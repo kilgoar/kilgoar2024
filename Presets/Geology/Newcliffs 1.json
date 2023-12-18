@@ -1,0 +1,60 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 917817594,
+            "emphasis": 1
+        }
+    ],
+    "title": "Newcliffs 1",
+    "prefabID": 917817594,
+    "prefabID0": 0,
+    "prefabID1": 0,
+    "prefabID2": 0,
+    "prefabID3": 0,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 200,
+    "frequency": 60,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "avoidTopo": false,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "cliffTest": false,
+    "overlap": false,
+    "scalesLow": {
+        "x": 0.9239130020141602,
+        "y": 0.8695652484893799,
+        "z": 0.9782609343528748
+    },
+    "scalesHigh": {
+        "x": 1.1413044929504395,
+        "y": 1.1413042545318604,
+        "z": 1.1956521272659302
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": -4.0,
+    "slopeLow": 31.250009536743165,
+    "slopeHigh": 90.0,
+    "colliderDistance": 0.0
+}

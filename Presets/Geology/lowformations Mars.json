@@ -1,0 +1,82 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 1854787556,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 4276644322,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 1651904754,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 4064290979,
+            "emphasis": 1
+        }
+    ],
+    "filename": "Presets/Geology/lowformations Mars.json",
+    "title": "lowformations Mars",
+    "prefabID": 140564594,
+    "prefabID0": 0,
+    "prefabID1": 1854787556,
+    "prefabID2": 4276644322,
+    "prefabID3": 1651904754,
+    "prefabID4": 214336632,
+    "prefabID5": 214336632,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 1000,
+    "frequency": 22,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "scalesLow": {
+        "x": 0.9958094358444214,
+        "y": 0.9914530515670776,
+        "z": 0.9918146133422852
+    },
+    "scalesHigh": {
+        "x": 0.9958094358444214,
+        "y": 0.9914530515670776,
+        "z": 0.9918146133422852
+    },
+    "rotationsLow": {
+        "x": 90.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": -1.2000000476837159,
+    "slopeLow": 0.0,
+    "slopeHigh": 4.236663341522217,
+    "colliderDistance": 40.0,
+    "closeColliderDistance": 0.0
+}

@@ -1,0 +1,60 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 222963432,
+            "emphasis": 1
+        }
+    ],
+    "title": "Trashbags",
+    "prefabID": 222963432,
+    "prefabID0": 0,
+    "prefabID1": 0,
+    "prefabID2": 0,
+    "prefabID3": 0,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 1250,
+    "frequency": 60,
+    "floor": 500,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": false,
+    "cliffTest": false,
+    "overlap": false,
+    "scalesLow": {
+        "x": 1.0326086282730103,
+        "y": 1.0326087474822999,
+        "z": 1.0326083898544312
+    },
+    "scalesHigh": {
+        "x": 1.0326086282730103,
+        "y": 1.0326087474822999,
+        "z": 1.0326083898544312
+    },
+    "rotationsLow": {
+        "x": 89.49152374267578,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.84745788574219,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": -0.15000000596046449,
+    "slopeLow": 0.0,
+    "slopeHigh": 3.8510022163391115,
+    "colliderDistance": 0.0
+}

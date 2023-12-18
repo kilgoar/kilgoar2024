@@ -1,0 +1,75 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 4064290979,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3817899359,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 732484098,
+            "emphasis": 2
+        }
+    ],
+    "title": "Mars Cliffs no skirts",
+    "prefabID": 261440689,
+    "prefabID0": 0,
+    "prefabID1": 183291403,
+    "prefabID2": 459301333,
+    "prefabID3": 1839093796,
+    "prefabID4": 261440689,
+    "prefabID5": 1507611726,
+    "prefabID6": 2929264923,
+    "prefabID7": 261440689,
+    "density": 100,
+    "frequency": 20,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": true,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "scalesLow": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "scalesHigh": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": -4.0,
+    "slopeLow": 9.23638916015625,
+    "slopeHigh": 90.0,
+    "colliderDistance": 30.0,
+    "closeColliderDistance": 0.0
+}

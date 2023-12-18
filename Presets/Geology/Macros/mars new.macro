@@ -1,0 +1,189 @@
+{
+    "title": "highcliffs Mars",
+    "prefabID": 261440689,
+    "prefabID0": 0,
+    "prefabID1": 0,
+    "prefabID2": 0,
+    "prefabID3": 0,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 500,
+    "frequency": 10,
+    "floor": 565,
+    "ceiling": 1000,
+    "biomeIndex": 1,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": true,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "cliffTest": true,
+    "scalesLow": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "scalesHigh": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": -3.0,
+    "slopeLow": 7.335766315460205,
+    "slopeHigh": 30.946075439453126
+}*{
+    "title": "highformations Mars",
+    "prefabID": 0,
+    "prefabID0": 0,
+    "prefabID1": 1077083573,
+    "prefabID2": 2939550396,
+    "prefabID3": 0,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 2000,
+    "frequency": 500,
+    "floor": 540,
+    "ceiling": 1000,
+    "biomeIndex": 1,
+    "avoidTopo": true,
+    "flipping": true,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": true,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "cliffTest": false,
+    "scalesLow": {
+        "x": 1.9886293411254883,
+        "y": 1.9247491359710694,
+        "z": 1.928981065750122
+    },
+    "scalesHigh": {
+        "x": 3.0312299728393556,
+        "y": 2.933717727661133,
+        "z": 2.8706846237182619
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 0.0,
+    "slopeHigh": 10.401805877685547
+}*{
+    "title": "lowformations Mars",
+    "prefabID": 2112394123,
+    "prefabID0": 0,
+    "prefabID1": 993777534,
+    "prefabID2": 909381225,
+    "prefabID3": 2366814979,
+    "prefabID4": 2629325715,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 2000,
+    "frequency": 200,
+    "floor": 0,
+    "ceiling": 540,
+    "biomeIndex": 1,
+    "avoidTopo": true,
+    "flipping": true,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "cliffTest": false,
+    "scalesLow": {
+        "x": 2.930333375930786,
+        "y": 2.866453170776367,
+        "z": 2.837052822113037
+    },
+    "scalesHigh": {
+        "x": 3.9729340076446535,
+        "y": 3.8754217624664308,
+        "z": 3.7787563800811769
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 360.0,
+        "y": 360.0,
+        "z": 360.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 6.649797439575195,
+    "slopeHigh": 20.695327758789064
+}*{
+    "title": "midcliffs Mars",
+    "prefabID": 261440689,
+    "prefabID0": 0,
+    "prefabID1": 183291403,
+    "prefabID2": 459301333,
+    "prefabID3": 1839093796,
+    "prefabID4": 261440689,
+    "prefabID5": 1507611726,
+    "prefabID6": 2929264923,
+    "prefabID7": 261440689,
+    "density": 100,
+    "frequency": 40,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 1,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": true,
+    "normalizeX": false,
+    "normalizeY": true,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "cliffTest": true,
+    "scalesLow": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "scalesHigh": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": -5.0,
+    "slopeLow": 9.23638916015625,
+    "slopeHigh": 58.92778396606445
+}*

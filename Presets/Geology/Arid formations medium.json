@@ -1,0 +1,84 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2591072256,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 4064290979,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3817899359,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 4064290979,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3817899359,
+            "emphasis": 1
+        }
+    ],
+    "title": "Arid formations medium",
+    "prefabID": 2591072256,
+    "prefabID0": 0,
+    "prefabID1": 4064290979,
+    "prefabID2": 3817899359,
+    "prefabID3": 4064290979,
+    "prefabID4": 3817899359,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 1250,
+    "frequency": 200,
+    "floor": 510,
+    "ceiling": 550,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": false,
+    "cliffTest": false,
+    "overlap": false,
+    "scalesLow": {
+        "x": 1.0326086282730103,
+        "y": 1.0326087474822999,
+        "z": 1.0326083898544312
+    },
+    "scalesHigh": {
+        "x": 1.0326086282730103,
+        "y": 1.0326087474822999,
+        "z": 1.0326083898544312
+    },
+    "rotationsLow": {
+        "x": 89.49152374267578,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.84745788574219,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 0.0,
+    "slopeHigh": 3.8510022163391115,
+    "colliderDistance": 0.0
+}

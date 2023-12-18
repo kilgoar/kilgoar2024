@@ -1,0 +1,102 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2494642805,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3934282489,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3897867041,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3008655077,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2595862078,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 183291403,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2595862078,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3008655077,
+            "emphasis": 1
+        }
+    ],
+    "title": "newcliffsArid",
+    "prefabID": 2494642805,
+    "prefabID0": 0,
+    "prefabID1": 3934282489,
+    "prefabID2": 3897867041,
+    "prefabID3": 3008655077,
+    "prefabID4": 2595862078,
+    "prefabID5": 183291403,
+    "prefabID6": 2595862078,
+    "prefabID7": 3008655077,
+    "density": 225,
+    "frequency": 45,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": true,
+    "normalizeX": false,
+    "normalizeY": true,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "cliffTest": false,
+    "overlap": false,
+    "scalesLow": {
+        "x": 1.013292908668518,
+        "y": 1.6334997415542603,
+        "z": 1.0209091901779175
+    },
+    "scalesHigh": {
+        "x": 1.013292908668518,
+        "y": 1.6334997415542603,
+        "z": 1.0209091901779175
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": -16.0,
+    "slopeLow": 26.340869903564454,
+    "slopeHigh": 90.0,
+    "colliderDistance": 0.0
+}

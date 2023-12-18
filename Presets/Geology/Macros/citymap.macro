@@ -1,0 +1,124 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "Custom/polygons\\cube.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourCube.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourdodecahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourOctahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourOctahedronMetal.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourTetrahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourTruncIcosa.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourTwig.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\tetrahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\twigdoubletetrahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\woodDodecahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        }
+    ],
+    "filename": "Presets/Geology/lowformations Mars test.json",
+    "title": "lowformations Mars test",
+    "prefabID": 2939550396,
+    "prefabID0": 0,
+    "prefabID1": 1077083573,
+    "prefabID2": 2939550396,
+    "prefabID3": 2506672559,
+    "prefabID4": 3830715959,
+    "prefabID5": 732484098,
+    "prefabID6": 1077083573,
+    "prefabID7": 732484098,
+    "density": 250,
+    "frequency": 50,
+    "floor": 500,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": true,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "scalesLow": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "scalesHigh": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 6.228813648223877,
+    "slopeHigh": 16.630619049072267,
+    "colliderDistance": 40.0,
+    "closeColliderDistance": 0.0
+}*

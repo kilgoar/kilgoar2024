@@ -1,0 +1,102 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3004602158,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3264578399,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2420618133,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 246584577,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 1837053258,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2832497307,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2300745015,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2082081653,
+            "emphasis": 1
+        }
+    ],
+    "title": "arid vehicles",
+    "prefabID": 3004602158,
+    "prefabID0": 0,
+    "prefabID1": 3264578399,
+    "prefabID2": 2420618133,
+    "prefabID3": 246584577,
+    "prefabID4": 1837053258,
+    "prefabID5": 2832497307,
+    "prefabID6": 2300745015,
+    "prefabID7": 2082081653,
+    "density": 500,
+    "frequency": 4,
+    "floor": 510,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": false,
+    "scalesLow": {
+        "x": 1.0169490575790406,
+        "y": 1.073446273803711,
+        "z": 1.073446273803711
+    },
+    "scalesHigh": {
+        "x": 1.0169490575790406,
+        "y": 1.073446273803711,
+        "z": 1.073446273803711
+    },
+    "rotationsLow": {
+        "x": 89.49152374267578,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.16948699951172,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 0.0,
+    "slopeHigh": 4.306217193603516,
+    "colliderDistance": 0.0
+}

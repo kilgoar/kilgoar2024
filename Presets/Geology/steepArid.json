@@ -1,0 +1,78 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3414254278,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3894150473,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3665119337,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3835339216,
+            "emphasis": 1
+        }
+    ],
+    "title": "steepArid",
+    "prefabID": 3414254278,
+    "prefabID0": 0,
+    "prefabID1": 3894150473,
+    "prefabID2": 3665119337,
+    "prefabID3": 3835339216,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 50,
+    "frequency": 10,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": true,
+    "normalizeX": false,
+    "normalizeY": true,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "cliffTest": false,
+    "overlap": false,
+    "scalesLow": {
+        "x": 1.013292908668518,
+        "y": 1.012030839920044,
+        "z": 1.0209091901779175
+    },
+    "scalesHigh": {
+        "x": 1.013292908668518,
+        "y": 1.012030839920044,
+        "z": 1.0209091901779175
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": -15.0,
+    "slopeLow": 49.020301818847659,
+    "slopeHigh": 90.0,
+    "colliderDistance": 0.0
+}

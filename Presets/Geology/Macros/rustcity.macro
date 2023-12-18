@@ -1,0 +1,185 @@
+{
+    "title": "arid vehicles",
+    "prefabID": 3004602158,
+    "prefabID0": 0,
+    "prefabID1": 3264578399,
+    "prefabID2": 2420618133,
+    "prefabID3": 246584577,
+    "prefabID4": 1837053258,
+    "prefabID5": 2832497307,
+    "prefabID6": 2300745015,
+    "prefabID7": 2082081653,
+    "density": 200,
+    "frequency": 40,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 1,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": false,
+    "scalesLow": {
+        "x": 1.0169490575790406,
+        "y": 1.073446273803711,
+        "z": 1.073446273803711
+    },
+    "scalesHigh": {
+        "x": 1.0169490575790406,
+        "y": 1.073446273803711,
+        "z": 1.073446273803711
+    },
+    "rotationsLow": {
+        "x": 89.49152374267578,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.16948699951172,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 8.899521827697754,
+    "slopeHigh": 15.215309143066407
+}*{
+    "title": "newcliffsArid",
+    "prefabID": 2494642805,
+    "prefabID0": 0,
+    "prefabID1": 3934282489,
+    "prefabID2": 3897867041,
+    "prefabID3": 3008655077,
+    "prefabID4": 2595862078,
+    "prefabID5": 183291403,
+    "prefabID6": 2595862078,
+    "prefabID7": 3008655077,
+    "density": 225,
+    "frequency": 50,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 1,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": true,
+    "normalizeX": false,
+    "normalizeY": true,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "scalesLow": {
+        "x": 1.013292908668518,
+        "y": 1.520505428314209,
+        "z": 1.0209091901779175
+    },
+    "scalesHigh": {
+        "x": 1.013292908668518,
+        "y": 1.520505428314209,
+        "z": 1.0209091901779175
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": -15.0,
+    "slopeLow": 31.93895721435547,
+    "slopeHigh": 66.74640655517578
+}*{
+    "title": "Tires 1",
+    "prefabID": 766753890,
+    "prefabID0": 0,
+    "prefabID1": 477532245,
+    "prefabID2": 3007326564,
+    "prefabID3": 0,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 300,
+    "frequency": 40,
+    "floor": 500,
+    "ceiling": 1000,
+    "biomeIndex": 1,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": false,
+    "scalesLow": {
+        "x": 0.9782608151435852,
+        "y": 0.9782608151435852,
+        "z": 0.9782605171203613
+    },
+    "scalesHigh": {
+        "x": 0.9782608151435852,
+        "y": 0.9782608151435852,
+        "z": 0.9782605171203613
+    },
+    "rotationsLow": {
+        "x": 90.84745788574219,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.84745788574219,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 0.0,
+    "slopeHigh": 10.416658401489258
+}*{
+    "title": "Trashbags",
+    "prefabID": 222963432,
+    "prefabID0": 0,
+    "prefabID1": 0,
+    "prefabID2": 0,
+    "prefabID3": 0,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 1250,
+    "frequency": 60,
+    "floor": 500,
+    "ceiling": 1000,
+    "biomeIndex": 1,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": false,
+    "scalesLow": {
+        "x": 1.0326086282730103,
+        "y": 1.0326087474822999,
+        "z": 1.0326083898544312
+    },
+    "scalesHigh": {
+        "x": 1.0326086282730103,
+        "y": 1.0326087474822999,
+        "z": 1.0326083898544312
+    },
+    "rotationsLow": {
+        "x": 89.49152374267578,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.84745788574219,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": -0.15000000596046449,
+    "slopeLow": 0.0,
+    "slopeHigh": 3.8510022163391115
+}*

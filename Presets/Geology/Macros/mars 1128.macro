@@ -1,0 +1,359 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 4064290979,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3817899359,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 732484098,
+            "emphasis": 2
+        }
+    ],
+    "title": "Mars Cliffs no skirts",
+    "prefabID": 261440689,
+    "prefabID0": 0,
+    "prefabID1": 183291403,
+    "prefabID2": 459301333,
+    "prefabID3": 1839093796,
+    "prefabID4": 261440689,
+    "prefabID5": 1507611726,
+    "prefabID6": 2929264923,
+    "prefabID7": 261440689,
+    "density": 100,
+    "frequency": 20,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": true,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "scalesLow": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "scalesHigh": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": -4.0,
+    "slopeLow": 9.23638916015625,
+    "slopeHigh": 90.0,
+    "colliderDistance": 30.0,
+    "closeColliderDistance": 0.0
+}*{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 1854787556,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 4276644322,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 1651904754,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 4064290979,
+            "emphasis": 1
+        }
+    ],
+    "title": "lowformations Mars",
+    "prefabID": 140564594,
+    "prefabID0": 0,
+    "prefabID1": 1854787556,
+    "prefabID2": 4276644322,
+    "prefabID3": 1651904754,
+    "prefabID4": 214336632,
+    "prefabID5": 214336632,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 1000,
+    "frequency": 22,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "scalesLow": {
+        "x": 0.9958094358444214,
+        "y": 0.9914530515670776,
+        "z": 0.9918146133422852
+    },
+    "scalesHigh": {
+        "x": 0.9958094358444214,
+        "y": 0.9914530515670776,
+        "z": 0.9918146133422852
+    },
+    "rotationsLow": {
+        "x": 90.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": -1.2000000476837159,
+    "slopeLow": 0.0,
+    "slopeHigh": 4.236663341522217,
+    "colliderDistance": 40.0,
+    "closeColliderDistance": 0.0
+}*{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2506672559,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3830715959,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 1077083573,
+            "emphasis": 2
+        }
+    ],
+    "title": "lowformations Mars 2",
+    "prefabID": 2939550396,
+    "prefabID0": 0,
+    "prefabID1": 1077083573,
+    "prefabID2": 2939550396,
+    "prefabID3": 2506672559,
+    "prefabID4": 3830715959,
+    "prefabID5": 732484098,
+    "prefabID6": 1077083573,
+    "prefabID7": 732484098,
+    "density": 250,
+    "frequency": 50,
+    "floor": 500,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": true,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "scalesLow": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "scalesHigh": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 6.228813648223877,
+    "slopeHigh": 16.630619049072267,
+    "colliderDistance": 40.0,
+    "closeColliderDistance": 0.0
+}*{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2515908409,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 276134416,
+            "emphasis": 1
+        }
+    ],
+    "title": "largeformations Mars",
+    "prefabID": 2515908409,
+    "prefabID0": 0,
+    "prefabID1": 276134416,
+    "prefabID2": 0,
+    "prefabID3": 0,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 1000,
+    "frequency": 200,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "scalesLow": {
+        "x": 0.9958094358444214,
+        "y": 0.9914530515670776,
+        "z": 0.9918146133422852
+    },
+    "scalesHigh": {
+        "x": 0.9958094358444214,
+        "y": 0.9914530515670776,
+        "z": 0.9918146133422852
+    },
+    "rotationsLow": {
+        "x": 90.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": -4.0,
+    "slopeLow": 0.0,
+    "slopeHigh": 4.236663341522217,
+    "colliderDistance": 45.0,
+    "closeColliderDistance": 0.0
+}*{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 1654744457,
+            "emphasis": 1
+        }
+    ],
+    "title": "nodes Mars",
+    "prefabID": 1654744457,
+    "prefabID0": 0,
+    "prefabID1": 0,
+    "prefabID2": 0,
+    "prefabID3": 0,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 1000,
+    "frequency": 35,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 256,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": false,
+    "normalizeZ": true,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "scalesLow": {
+        "x": 0.9958094358444214,
+        "y": 0.9914530515670776,
+        "z": 0.9918146133422852
+    },
+    "scalesHigh": {
+        "x": 0.9958094358444214,
+        "y": 0.9914530515670776,
+        "z": 0.9918146133422852
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 0.0,
+    "slopeHigh": 6.023895740509033,
+    "colliderDistance": 7.0,
+    "closeColliderDistance": 0.0
+}*

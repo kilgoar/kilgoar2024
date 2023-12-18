@@ -1,0 +1,837 @@
+{
+    "geologyItems": [
+        {
+<<<<<<< HEAD
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2506672559,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3830715959,
+            "emphasis": 1
+        }
+    ],
+    "geologyCollisions": [
+        {
+            "minMax": true,
+            "radius": 20.0,
+            "layer": 256
+        }
+    ],
+    "newCollisions": {
+        "minMax": true,
+        "radius": 20.0,
+        "layer": 256
+    },
+    "filename": "Presets/Geology/Large Formations Contest.json",
+    "title": "Large Formations Contest",
+    "prefabID": 2939550396,
+    "prefabID0": 0,
+    "prefabID1": 1077083573,
+    "prefabID2": 2939550396,
+    "prefabID3": 2506672559,
+    "prefabID4": 3830715959,
+    "prefabID5": 732484098,
+    "prefabID6": 1077083573,
+    "prefabID7": 732484098,
+    "density": 250,
+    "frequency": 700,
+    "floor": 500,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": true,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "featureMenu": true,
+    "rotationMenu": false,
+    "scaleMenu": false,
+    "placementMenu": true,
+    "collisionMenu": true,
+    "presetMenu": true,
+    "scalesLow": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "scalesHigh": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 6.228813648223877,
+    "slopeHigh": 16.630619049072267,
+    "colliderDistance": 40.0,
+    "closeColliderDistance": 0.0
+}*{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2515908409,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 276134416,
+            "emphasis": 1
+        }
+    ],
+    "geologyCollisions": [],
+    "newCollisions": {
+        "minMax": false,
+        "radius": 0.0,
+        "layer": 0
+    },
+    "filename": "Presets/Geology/largeformations Mars.json",
+    "title": "largeformations Mars",
+    "prefabID": 2515908409,
+    "prefabID0": 0,
+    "prefabID1": 276134416,
+    "prefabID2": 0,
+    "prefabID3": 0,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "density": 1000,
+    "frequency": 200,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "featureMenu": true,
+    "rotationMenu": false,
+    "scaleMenu": false,
+    "placementMenu": false,
+    "collisionMenu": false,
+    "presetMenu": true,
+    "scalesLow": {
+        "x": 0.9958094358444214,
+        "y": 0.9914530515670776,
+        "z": 0.9918146133422852
+    },
+    "scalesHigh": {
+        "x": 0.9958094358444214,
+        "y": 0.9914530515670776,
+        "z": 0.9918146133422852
+    },
+    "rotationsLow": {
+        "x": 90.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": -4.0,
+    "slopeLow": 0.0,
+    "slopeHigh": 4.236663341522217,
+    "colliderDistance": 45.0,
+    "closeColliderDistance": 0.0
+}*{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2506672559,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3830715959,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 1077083573,
+            "emphasis": 2
+        }
+    ],
+    "geologyCollisions": [
+        {
+            "minMax": true,
+            "radius": 150.0,
+            "layer": 512
+        },
+        {
+            "minMax": false,
+            "radius": 300.0,
+            "layer": 512
+        },
+        {
+            "minMax": true,
+            "radius": 30.0,
+            "layer": 256
+        }
+    ],
+    "newCollisions": {
+        "minMax": false,
+        "radius": 300.0,
+        "layer": 512
+    },
+    "filename": "Presets/Geology/lowformations Mars 2.json",
+    "title": "lowformations Mars 2",
+=======
+            "customPrefab": "Custom/polygons\\cube.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourCube.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourdodecahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourOctahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourOctahedronMetal.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourTetrahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourTruncIcosa.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\parkourTwig.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\tetrahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\twigdoubletetrahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons\\woodDodecahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        }
+    ],
+    "filename": "Presets/Geology/lowformations Mars test.json",
+    "title": "lowformations Mars test",
+>>>>>>> origin/master
+    "prefabID": 2939550396,
+    "prefabID0": 0,
+    "prefabID1": 1077083573,
+    "prefabID2": 2939550396,
+    "prefabID3": 2506672559,
+    "prefabID4": 3830715959,
+    "prefabID5": 732484098,
+    "prefabID6": 1077083573,
+    "prefabID7": 732484098,
+    "density": 250,
+    "frequency": 50,
+    "floor": 500,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": true,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+<<<<<<< HEAD
+    "featureMenu": true,
+    "rotationMenu": false,
+    "scaleMenu": false,
+    "placementMenu": false,
+    "collisionMenu": false,
+    "presetMenu": true,
+=======
+>>>>>>> origin/master
+    "scalesLow": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "scalesHigh": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 6.228813648223877,
+    "slopeHigh": 16.630619049072267,
+    "colliderDistance": 40.0,
+    "closeColliderDistance": 0.0
+}*{
+    "geologyItems": [
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\cube.prefab",
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-Roadsidejunkpile1.prefab",
+>>>>>>> origin/master
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\parkourCube.prefab",
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile10.prefab",
+>>>>>>> origin/master
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\parkourdodecahedron.prefab",
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile11.prefab",
+>>>>>>> origin/master
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\parkourOctahedron.prefab",
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile12.prefab",
+>>>>>>> origin/master
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\parkourOctahedronMetal.prefab",
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile13.prefab",
+>>>>>>> origin/master
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\parkourTetrahedron.prefab",
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-Roadsidejunkpile14.prefab",
+>>>>>>> origin/master
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\parkourTruncIcosa.prefab",
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile15.prefab",
+>>>>>>> origin/master
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\parkourTwig.prefab",
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-Roadsidejunkpile16.prefab",
+>>>>>>> origin/master
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\tetrahedron.prefab",
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-Roadsidejunkpile17.prefab",
+>>>>>>> origin/master
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\twigdoubletetrahedron.prefab",
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-Roadsidejunkpile18.prefab",
+>>>>>>> origin/master
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+<<<<<<< HEAD
+            "customPrefab": "Custom/polygons\\woodDodecahedron.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        }
+    ],
+    "geologyCollisions": [],
+    "newCollisions": {
+        "minMax": false,
+        "radius": 0.0,
+        "layer": 0
+    },
+    "filename": "Presets/Geology/lowformations Mars test.json",
+    "title": "lowformations Mars test",
+    "prefabID": 2939550396,
+    "prefabID0": 0,
+    "prefabID1": 1077083573,
+    "prefabID2": 2939550396,
+    "prefabID3": 2506672559,
+    "prefabID4": 3830715959,
+    "prefabID5": 732484098,
+    "prefabID6": 1077083573,
+    "prefabID7": 732484098,
+    "density": 250,
+    "frequency": 50,
+    "floor": 500,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": true,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "featureMenu": true,
+    "rotationMenu": false,
+    "scaleMenu": false,
+    "placementMenu": false,
+    "collisionMenu": false,
+    "presetMenu": true,
+    "scalesLow": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "scalesHigh": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": 0.0,
+    "slopeLow": 6.228813648223877,
+    "slopeHigh": 16.630619049072267,
+    "colliderDistance": 40.0,
+    "closeColliderDistance": 0.0
+}*{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 4064290979,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3817899359,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 732484098,
+            "emphasis": 2
+        }
+    ],
+    "geologyCollisions": [],
+    "newCollisions": {
+        "minMax": false,
+        "radius": 0.0,
+        "layer": 0
+    },
+    "filename": "Presets/Geology/Mars Cliffs no skirts.json",
+    "title": "Mars Cliffs no skirts",
+    "prefabID": 261440689,
+    "prefabID0": 0,
+    "prefabID1": 183291403,
+    "prefabID2": 459301333,
+    "prefabID3": 1839093796,
+    "prefabID4": 261440689,
+    "prefabID5": 1507611726,
+    "prefabID6": 2929264923,
+    "prefabID7": 261440689,
+    "density": 100,
+    "frequency": 20,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 512,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": true,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": false,
+    "featureMenu": true,
+    "rotationMenu": false,
+    "scaleMenu": false,
+    "placementMenu": false,
+    "collisionMenu": false,
+    "presetMenu": true,
+    "scalesLow": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "scalesHigh": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": -4.0,
+    "slopeLow": 9.23638916015625,
+    "slopeHigh": 90.0,
+    "colliderDistance": 30.0,
+    "closeColliderDistance": 0.0
+}*{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2494642805,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3934282489,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3897867041,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3008655077,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2595862078,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 183291403,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2595862078,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3008655077,
+            "emphasis": 1
+        }
+    ],
+    "geologyCollisions": [],
+    "newCollisions": {
+        "minMax": false,
+        "radius": 0.0,
+        "layer": 0
+    },
+    "filename": "Presets/Geology/newcliffsAridv2.json",
+    "title": "newcliffsAridv2",
+    "prefabID": 2494642805,
+    "prefabID0": 0,
+    "prefabID1": 3934282489,
+    "prefabID2": 3897867041,
+    "prefabID3": 3008655077,
+    "prefabID4": 2595862078,
+    "prefabID5": 183291403,
+    "prefabID6": 2595862078,
+    "prefabID7": 3008655077,
+    "density": 50,
+    "frequency": 10,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": true,
+    "normalizeX": false,
+    "normalizeY": true,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "cliffTest": true,
+    "overlap": false,
+    "closeOverlap": false,
+    "featureMenu": true,
+    "rotationMenu": false,
+    "scaleMenu": false,
+    "placementMenu": false,
+    "collisionMenu": false,
+    "presetMenu": true,
+    "scalesLow": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+    },
+    "scalesHigh": {
+        "x": 1.013292908668518,
+        "y": 1.0166773796081544,
+        "z": 1.0209091901779175
+=======
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-Roadsidejunkpile19.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile2.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-Roadsidejunkpile20.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile3.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile4.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile5.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile6.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-Roadsidejunkpile7.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile8.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/Martian Junkpiles\\Martian-RoadsideJunkpile9.prefab",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        }
+    ],
+    "filename": "Presets/Geology/junkpiles.json",
+    "title": "junkpiles",
+    "prefabID": 2939550396,
+    "prefabID0": 0,
+    "prefabID1": 1077083573,
+    "prefabID2": 2939550396,
+    "prefabID3": 2506672559,
+    "prefabID4": 3830715959,
+    "prefabID5": 732484098,
+    "prefabID6": 1077083573,
+    "prefabID7": 732484098,
+    "density": 1000,
+    "frequency": 55,
+    "floor": 500,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 256,
+    "closeColliderLayer": 512,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": false,
+    "normalizeZ": false,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": true,
+    "closeOverlap": true,
+    "scalesLow": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+    },
+    "scalesHigh": {
+        "x": 1.0082371234893799,
+        "y": 1.0219531059265137,
+        "z": 0.997608482837677
+>>>>>>> origin/master
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+<<<<<<< HEAD
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": -5.0,
+    "slopeLow": 29.71084213256836,
+    "slopeHigh": 55.862091064453128,
+    "colliderDistance": 0.0,
+    "closeColliderDistance": 0.0
+=======
+        "y": 360.0,
+        "z": 0.0
+    },
+    "zOffset": 1.0,
+    "slopeLow": 0.0,
+    "slopeHigh": 3.645432472229004,
+    "colliderDistance": 10.0,
+    "closeColliderDistance": 40.0
+>>>>>>> origin/master
+}*
