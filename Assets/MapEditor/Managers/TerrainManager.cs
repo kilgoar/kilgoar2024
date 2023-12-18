@@ -61,15 +61,14 @@ public static class TerrainManager
     /// <summary>Alpha/Transparency value of terrain.</summary>
     /// <value>True = Visible / False = Invisible.</value>
     public static bool[,] Alpha { get; private set; }
-<<<<<<< HEAD
+
 	public static bool[,] AlphaMask { get; private set; }	
 	public static bool[,] SpawnMap { get; private set; }
 	
 	public static float[,] CliffMap { get; private set; }
 	public static float[,,] CliffField { get; private set; }	
 	
-=======
->>>>>>> origin/master
+
     /// <summary>Topology layers [topology][x, y, texture] use <seealso cref="TerrainTopology.TypeToIndex(int)"/> for topology layer indexes.</summary>
     /// <value>Texture 0 = Active / Texture 1 = Inactive.</value>
     public static float[][,,] Topology { get; private set; } = new float[TerrainTopology.COUNT][,,];
@@ -132,7 +131,7 @@ public static class TerrainManager
         return Alpha;
     }
 
-<<<<<<< HEAD
+
 	public static void SetCliffMap(float[,] gradient, bool[,] spawns)
 	{
 		SpawnMap = spawns;
@@ -192,9 +191,7 @@ public static class TerrainManager
 	
 	
 	/// <summary>Sets SplatMap of the selected LayerType.</summary>
-=======
-    /// <summary>Sets SplatMap of the selected LayerType.</summary>
->>>>>>> origin/master
+
     /// <param name="layer">The layer to set the data to.</param>
     /// <param name="topology">The topology layer if layer is topology.</param>
     public static void SetSplatMap(float[,,] array, LayerType layer, int topology = -1)
@@ -315,18 +312,13 @@ public static class TerrainManager
     #region Fields
     /// <summary>The current slope values stored as [x, y].</summary>
     /// <value>Slope angle in degrees, between 0 - 90.</value>
-<<<<<<< HEAD
+
     public static float[,] Slope;
 	public static float[,] Curvature;
     /// <summary>The current height values stored as [x, y].</summary>
     /// <value>Height in metres, between 0 - 1000.</value> 
     public static float[,] Height;
-=======
-    private static float[,] Slope;
-    /// <summary>The current height values stored as [x, y].</summary>
-    /// <value>Height in metres, between 0 - 1000.</value> 
-    private static float[,] Height;
->>>>>>> origin/master
+
     /// <summary>Resolution of the HeightMap.</summary>
     /// <value>Power of ^2 + 1, between 1025 - 4097.</value>
     public static int HeightMapRes { get; private set; }
@@ -341,27 +333,19 @@ public static class TerrainManager
     #region Methods
     public static void ResetHeightCache()
     {
-<<<<<<< HEAD
 		Curvature = null;
-=======
->>>>>>> origin/master
+
         Slope = null;
         Height = null;
     }
 
     public static void UpdateHeightCache()
     {
-<<<<<<< HEAD
 		UpdateHeights();
         UpdateSlopes();
         UpdateCurves();
     }
 	
-=======
-        UpdateSlopes();
-        UpdateHeights();
-    }
->>>>>>> origin/master
 
     /// <summary>Checks if selected Alphamap index is a valid coord.</summary>
     /// <returns>True if Alphamap index is valid, false otherwise.</returns>
@@ -396,7 +380,7 @@ public static class TerrainManager
         if (Slope != null)
             return Slope;
         if (Slope == null)
-<<<<<<< HEAD
+
             Slope = new float[HeightMapRes, HeightMapRes];
 
         for (int x = 0; x < HeightMapRes; x++)
@@ -471,20 +455,7 @@ public static class TerrainManager
     public static void UpdateSlopes() => GetSlopes();
 	public static void UpdateCurves() => GetCurves();
 	
-=======
-            Slope = new float[SplatMapRes, SplatMapRes];
 
-        for (int x = 0; x < SplatMapRes; x++)
-            for (int y = 0; y < SplatMapRes; y++)
-                Slope[x, y] = Land.terrainData.GetSteepness((float)y / SplatMapRes, (float)x / SplatMapRes);
-
-        return Slope;
-    }
-
-    /// <summary>Updates cached Slope values with current.</summary>
-    public static void UpdateSlopes() => GetSlopes();
-
->>>>>>> origin/master
     /// <summary>Returns the height of the HeightMap at the selected coords.</summary>
     /// <returns>Float within the range 0m - 1000m. Null if out of bounds.</returns>
     public static float? GetHeight(int x, int y)
@@ -509,17 +480,11 @@ public static class TerrainManager
             return Height;
         if (terrain == TerrainType.Land)
         {
-<<<<<<< HEAD
             Height = Land.terrainData.GetInterpolatedHeights(0, 0, HeightMapRes, HeightMapRes, 1f / HeightMapRes, 1f / HeightMapRes);
             return Height;
         }
         return Water.terrainData.GetInterpolatedHeights(0, 0, HeightMapRes, HeightMapRes, 1f / HeightMapRes, 1f / HeightMapRes);
-=======
-            Height = Land.terrainData.GetInterpolatedHeights(0, 0, SplatMapRes, SplatMapRes, 1f / SplatMapRes, 1f / SplatMapRes);
-            return Height;
-        }
-        return Water.terrainData.GetInterpolatedHeights(0, 0, SplatMapRes, SplatMapRes, 1f / SplatMapRes, 1f / SplatMapRes);
->>>>>>> origin/master
+
     }
 
     /// <summary>Updates cached Height values with current.</summary>
@@ -533,11 +498,7 @@ public static class TerrainManager
             return Land.terrainData.GetHeights(0, 0, HeightMapRes, HeightMapRes);
         return Water.terrainData.GetHeights(0, 0, HeightMapRes, HeightMapRes);
     }
-<<<<<<< HEAD
-	
-=======
 
->>>>>>> origin/master
     /// <summary>Rotates the HeightMap 90° Clockwise or Counter Clockwise.</summary>
     /// <param name="CW">True = 90°, False = 270°</param>
     public static void RotateHeightMap(bool CW, TerrainType terrain = TerrainType.Land, Area dmns = null)
@@ -656,20 +617,14 @@ public static class TerrainManager
     private static void HeightMapChanged(Terrain terrain, RectInt heightRegion, bool synched)
     {
         if (terrain.Equals(Land))
-<<<<<<< HEAD
 		{
             ResetHeightCache();
 		}
-		
-        Callbacks.InvokeHeightMapUpdated(terrain.Equals(Land) ? TerrainType.Land : TerrainType.Water);
-		
-		
 
-=======
             ResetHeightCache();
 
         Callbacks.InvokeHeightMapUpdated(terrain.Equals(Land) ? TerrainType.Land : TerrainType.Water);
->>>>>>> origin/master
+
     }
     #endregion
     #endregion
@@ -678,11 +633,10 @@ public static class TerrainManager
     #region Fields
     /// <summary>The Land terrain in the scene.</summary>
     public static Terrain Land { get; private set; }
-<<<<<<< HEAD
+
 	/// <summary>A Terrain for visualizing extra data.</summary>
 	public static Terrain LandMask { get; private set; }
-=======
->>>>>>> origin/master
+
     /// <summary>The Water terrain in the scene.</summary>
     public static Terrain Water { get; private set; }
     /// <summary>The material used by the Water terrain object.</summary>
@@ -699,10 +653,8 @@ public static class TerrainManager
     public enum TerrainType
     {
         Land,
-<<<<<<< HEAD
 		LandMask,
-=======
->>>>>>> origin/master
+
         Water
     }
     #endregion
@@ -712,12 +664,8 @@ public static class TerrainManager
     {
         Water = GameObject.FindGameObjectWithTag("Water").GetComponent<Terrain>();
         Land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
-<<<<<<< HEAD
 		LandMask = GameObject.FindGameObjectWithTag("LandMask").GetComponent<Terrain>();
-		
-=======
->>>>>>> origin/master
-        WaterMaterial = Water.materialTemplate;
+		WaterMaterial = Water.materialTemplate;
     }
 
     public static void SetWaterTransparency(float alpha)
@@ -739,11 +687,9 @@ public static class TerrainManager
 
     #region Terrain Layers
     /// <summary>The Terrain layers used by the terrain for paint operations</summary>
-<<<<<<< HEAD
+
     private static TerrainLayer[] GroundLayers = null, BiomeLayers = null, TopologyLayers = null, MaskLayers = null;
-=======
-    private static TerrainLayer[] GroundLayers = null, BiomeLayers = null, TopologyLayers = null;
->>>>>>> origin/master
+
 
     #region Methods
     /// <summary>Sets the unity terrain references if not already set, and returns the current terrain layers.</summary>
@@ -773,10 +719,8 @@ public static class TerrainManager
         GroundLayers = GetGroundLayers();
         BiomeLayers = GetBiomeLayers();
         TopologyLayers = GetTopologyLayers();
-<<<<<<< HEAD
 		MaskLayers = GetMaskLayers();
-=======
->>>>>>> origin/master
+
         AssetDatabase.SaveAssets();
 		
     }
@@ -851,7 +795,7 @@ public static class TerrainManager
         textures[1].diffuseTexture = Resources.Load<Texture2D>("Textures/Topology/inactive");
         return textures;
     }
-<<<<<<< HEAD
+
 	
 	private static TerrainLayer[] GetMaskLayers()
     {
@@ -865,8 +809,7 @@ public static class TerrainManager
         return textures;
     }
 	
-=======
->>>>>>> origin/master
+
     #endregion
     #endregion
 
@@ -963,26 +906,16 @@ public static class TerrainManager
 
     private class Coroutines
     {
-<<<<<<< HEAD
-		
-		
-		
-=======
->>>>>>> origin/master
+
         /// <summary>Loads and sets up the terrain and associated splatmaps.</summary>
         /// <param name="mapInfo">Struct containing all info about the map to initialise.</param>
         public static IEnumerator Load(MapInfo mapInfo, int progressID)
         {
             IsLoading = true;
-<<<<<<< HEAD
-            
+
 			yield return SetTerrains(mapInfo, progressID);
             yield return SetSplatMaps(mapInfo, progressID);
-			
-=======
-            yield return SetTerrains(mapInfo, progressID);
-            yield return SetSplatMaps(mapInfo, progressID);
->>>>>>> origin/master
+
             ClearSplatMapUndo();
             AreaManager.Reset();
             Progress.Report(progressID, .99f, "Loaded Terrain.");
@@ -998,11 +931,10 @@ public static class TerrainManager
             Progress.Report(progressID, .2f, "Loaded: Water.");
             yield return SetupTerrain(mapInfo, Land);
             Progress.Report(progressID, .5f, "Loaded: Land.");
-<<<<<<< HEAD
+
 			yield return SetupTerrain(mapInfo, LandMask);
 			Progress.Report(progressID, .2f, "Loaded: LandMask.");
-=======
->>>>>>> origin/master
+
         }
 
         /// <summary>Sets up the inputted terrain's terraindata.</summary>
@@ -1019,10 +951,7 @@ public static class TerrainManager
             yield return null;
         }
 
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/master
         /// <summary>Sets and initialises the Splat/AlphaMaps of all layers from MapInfo. Called when first loading/creating a map.</summary>
         private static IEnumerator SetSplatMaps(MapInfo mapInfo, int progressID)
         {

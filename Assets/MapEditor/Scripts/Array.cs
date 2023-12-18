@@ -492,8 +492,6 @@ namespace RustMapEditor.Maths
             }
             return tempArray;
         }
-<<<<<<< HEAD
-		
 		
 		// resize heightmap to splat map
         public static float[,] HeightToSplat(float[,] array)
@@ -536,14 +534,11 @@ namespace RustMapEditor.Maths
         public static float[,,] HeightToSplat(float[,] array, bool[,] spawn, int arrayLength)
         {
 			int ratio = (array.GetLength(0)-1) / arrayLength;
-			Debug.Log(ratio);
 			float[,,] arrayOut = new float[arrayLength, arrayLength, 3];
 			
 				int ratioX = (array.GetLength(0) - 1) / (arrayLength - 1);
 				int ratioY = (array.GetLength(1) - 1) / (arrayLength - 1);
 
-				Debug.Log(ratioX);
-				Debug.Log(ratioY);
 			//Debug.LogError(arrayLength + " " + array.GetLength(0));
 			   Parallel.For(0, arrayLength, i =>
 				{
@@ -572,8 +567,6 @@ namespace RustMapEditor.Maths
             return arrayOut;
         }
 
-=======
->>>>>>> origin/master
 
         public static float[,] ShortMapToFloatArray(TerrainMap<short> terrainMap)
         {

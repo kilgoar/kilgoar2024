@@ -6,15 +6,12 @@ TagManager:
   tags:
   - Prefabs
   - Paths
-  - Land
-  - Water
   - Electrics
+  - Land
   - NPC
+  - Water
   - Modifiers
-<<<<<<< HEAD
   - LandMask
-=======
->>>>>>> origin/master
   layers:
   - Default
   - TransparentFX
@@ -24,9 +21,9 @@ TagManager:
   - UI
   - 
   - 
-  - Prefabs
-  - Paths
-  - Land
+  - 
+  - 
+  - 
   - 
   - 
   - 

@@ -483,7 +483,6 @@ namespace RustMapEditor.UI
                 Elements.EndToolbarHorizontal();
             }
         }
-<<<<<<< HEAD
 		
 		public static void CurvesTools(LayerType landLayer, int texture, ref CurvesInfo curvesInfo, ref bool previewCurves, int erase = 0, int topology = 0)
 		{
@@ -547,8 +546,6 @@ namespace RustMapEditor.UI
 				Elements.EndToolbarHorizontal();
 			}
 		}
-=======
->>>>>>> origin/master
 
         public static void HeightTools(LayerType landLayer, int texture, ref HeightsInfo heightInfo, int erase = 0, int topology = 0)
         {
@@ -721,7 +718,6 @@ namespace RustMapEditor.UI
             info.SlopeBlendHigh = Mathf.Clamp(info.SlopeBlendHigh, info.SlopeHigh, 90f);
             return info;
         }
-<<<<<<< HEAD
 		
 		public static CurvesInfo ClampValues(CurvesInfo info)
 		{
@@ -731,8 +727,6 @@ namespace RustMapEditor.UI
 			info.CurveBlendHigh = Mathf.Clamp(info.CurveBlendHigh, info.CurveHigh, 500f);
 			return info;
 		}
-=======
->>>>>>> origin/master
 
         public static HeightsInfo ClampValues(HeightsInfo info)
         {
@@ -1889,7 +1883,7 @@ namespace RustMapEditor.UI
 					}
 					EditorGUILayout.EndFoldoutHeaderGroup();
 					DrawHorizontalGUILine(); 
-<<<<<<< HEAD
+
 					
 					EditorGUI.BeginChangeCheck();
 						activePreset.placementMenu = EditorGUILayout.BeginFoldoutHeaderGroup(activePreset.placementMenu, "Item Placement");
@@ -1968,55 +1962,15 @@ namespace RustMapEditor.UI
 					
 					}
 
-=======
-					activePreset.placementMenu = EditorGUILayout.BeginFoldoutHeaderGroup(activePreset.placementMenu, "Item Placement");
-					if(activePreset.placementMenu)
-					{
-					
-							
-						
-                            EditorGUILayout.BeginHorizontal();
-                            GUILayout.Label("Slope Range: " + activePreset.slopeLow.ToString("0.0#") + "° - " + activePreset.slopeHigh.ToString("0.0#") + "°");
-                            EditorGUILayout.EndHorizontal();
-							
-                            EditorGUILayout.MinMaxSlider(ref activePreset.slopeLow, ref activePreset.slopeHigh, 0f, 90f);
-							
-							EditorGUILayout.BeginHorizontal();
-							activePreset.biomeExclusive = EditorGUILayout.ToggleLeft("Biome:", activePreset.biomeExclusive, GUILayout.MaxWidth(80));
-							
-							
-							activePreset.biomeLayer = (TerrainBiome.Enum)Elements.ToolbarEnumPopup(activePreset.biomeLayer);
-							activePreset.biomeIndex = TerrainBiome.TypeToIndex((int)activePreset.biomeLayer);
-							
-							EditorGUILayout.EndHorizontal();
-							
-							
-							EditorGUILayout.BeginHorizontal();
-							activePreset.avoidTopo = EditorGUILayout.ToggleLeft("Dodge roads and monuments", activePreset.avoidTopo, GUILayout.MaxWidth(250));
-							activePreset.cliffTest = EditorGUILayout.ToggleLeft("Test cliff skirts", activePreset.cliffTest, GUILayout.MaxWidth(250));							
-							EditorGUILayout.EndHorizontal();
-							
-							
-					activePreset.zOffset = EditorGUILayout.FloatField("Height Offset", activePreset.zOffset);
-					activePreset.density = EditorGUILayout.IntField("Density", activePreset.density);
-					activePreset.frequency = EditorGUILayout.IntField("Frequency", activePreset.frequency);
-					activePreset.floor = EditorGUILayout.IntField("Floor", activePreset.floor);
-					activePreset.ceiling = EditorGUILayout.IntField("Ceiling", activePreset.ceiling);
-					
-					
-					
-					}
->>>>>>> origin/master
+
 					EditorGUILayout.EndFoldoutHeaderGroup();
 					DrawHorizontalGUILine(); 
 					activePreset.collisionMenu = EditorGUILayout.BeginFoldoutHeaderGroup(activePreset.collisionMenu, "Collision detection");
 					if(activePreset.collisionMenu)
-<<<<<<< HEAD
+
 					{		
 							activePreset.cliffTest = EditorGUILayout.ToggleLeft("Test cliff skirts", activePreset.cliffTest, GUILayout.MaxWidth(125));						
-=======
-					{					
->>>>>>> origin/master
+
 							if (activePreset.geologyCollisions != null)
 							{
 								for (int i  = 0; i < activePreset.geologyCollisions.Count; i++)
@@ -2101,11 +2055,9 @@ namespace RustMapEditor.UI
 						}
 					if (GUILayout.Button("Apply"))
 						{
-<<<<<<< HEAD
+
 							GenerativeManager.MakeCliffs(activePreset);
-=======
-                            GenerativeManager.insertPrefabCliffs(activePreset);
->>>>>>> origin/master
+
 							SettingsManager.geology = activePreset;
 						}
 
@@ -2145,11 +2097,9 @@ namespace RustMapEditor.UI
 						{
 							foreach (GeologyPreset pre in SettingsManager.macro)
 							{
-<<<<<<< HEAD
+
 								GenerativeManager.MakeCliffs(pre);
-=======
-								GenerativeManager.insertPrefabCliffs(pre);
->>>>>>> origin/master
+
 							}
 						}
 					EditorGUILayout.EndHorizontal();
@@ -2312,15 +2262,13 @@ namespace RustMapEditor.UI
 
 		}
 	    
-<<<<<<< HEAD
+
 		public static void DitherTool(LayerType landLayer)
 		{
 			if (GUILayout.Button("Dither Biome"))
 				GenerativeManager.DitherFillBiome(0);
 		}
 		
-=======
->>>>>>> origin/master
 		public static void LayerTools(LayerType landLayer, int texture, int erase = 0, int topology = 0)
         {
             Elements.MiniBoldLabel(ToolTips.layerToolsLabel);
@@ -2343,7 +2291,6 @@ namespace RustMapEditor.UI
             Elements.EndToolbarHorizontal();
         }
 	   
-<<<<<<< HEAD
 		public static void HeightSelect(ref HeightSelector heights)
 		{
 							EditorGUILayout.BeginHorizontal();
@@ -2368,8 +2315,7 @@ namespace RustMapEditor.UI
 							
                             EditorGUILayout.MinMaxSlider(ref heights.curveMin, ref heights.curveMax, -70f, 70f);
 		}
-=======
->>>>>>> origin/master
+
 	   
 		public static void DecompressMapPanel()
 		{

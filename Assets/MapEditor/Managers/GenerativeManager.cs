@@ -9,8 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using System;
-
-<<<<<<< HEAD
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,11 +17,7 @@ public static class GenerativeManager
 	
 	public static int GeologySpawns;
 	
-=======
-public static class GenerativeManager
-{
-	
->>>>>>> origin/master
+
 	public static void oceans(OceanPreset ocean)
 	{
 		
@@ -1081,8 +1075,6 @@ public static class GenerativeManager
 		TerrainManager.SetSplatMap(newGround, TerrainManager.CurrentLayerType, 0);
 		//TerrainManager.SetLayer(TerrainManager.CurrentLayerType, 0);
 	}
-	
-<<<<<<< HEAD
 	public static void DitherFillBiome(int t)
 	{
 		
@@ -1108,8 +1100,6 @@ public static class GenerativeManager
 		//TerrainManager.SetLayer(TerrainManager.CurrentLayerType, 0);
 	}
 	
-=======
->>>>>>> origin/master
 	public static void splatDitherFill(int t)
 	{
 		
@@ -1314,13 +1304,9 @@ public static class GenerativeManager
 		uint sewerCorner = 2032918088;
 		int glassScale = 6;
 		float z = 9.36f;
-<<<<<<< HEAD
 		//float yRotation;
 		//int height = 0;
-=======
-		float yRotation;
-		int height = 0;
->>>>>>> origin/master
+
 		int tallness = 0;
 		Vector3 position = new Vector3(0f,0f,0f);
 		Vector3 rotation = new Vector3(0f,0f,0f);
@@ -1522,13 +1508,9 @@ public static class GenerativeManager
 		int heightMapsY = 0;
 		int heightMapsX1 = 0;
 		int heightMapsY1 = 0;
-<<<<<<< HEAD
 		//int biomeMaskX = 0;
 		//int biomeMaskY = 0;
-=======
-		int biomeMaskX = 0;
-		int biomeMaskY = 0;
->>>>>>> origin/master
+
 		
 		for (int i = 0; i < width; i++)
 		{
@@ -1686,7 +1668,6 @@ public static class GenerativeManager
 		}
 	}
 	
-<<<<<<< HEAD
 	public static float[,] Dithering(float[,] array)
 	{
 		float[,] cliffMap = array;
@@ -1749,8 +1730,6 @@ public static class GenerativeManager
 		
 	}
 	
-=======
->>>>>>> origin/master
 	public static List<GeologyItem> OddsList(List<GeologyItem> geologyItems)
 	{
 		List<GeologyItem> oddsList = new List<GeologyItem>();
@@ -1765,7 +1744,6 @@ public static class GenerativeManager
 		return oddsList;
 	}
 	
-<<<<<<< HEAD
 	public static float GaussCurve(float x, float mean, float deviance)
 	{
 		float coefficient = 1f / (float)(deviance * Math.Sqrt(2f * Math.PI));
@@ -1818,8 +1796,6 @@ public static class GenerativeManager
 
 	
 	
-=======
->>>>>>> origin/master
 	public static void spawnCustom(GeologyItem geoItem, Vector3 position, Vector3 rotation, Vector3 scale, Transform parent)
 	{
 		PrefabManager.placeCustomPrefab(geoItem.customPrefab, position, rotation, scale, parent);
@@ -1843,7 +1819,7 @@ public static class GenerativeManager
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.insertPrefabCliffs(geo));
 	}
 	
-<<<<<<< HEAD
+
 	public static void MakeCliffMap(GeologyPreset geo)
 	{
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.MakeCliffMap(geo));
@@ -2214,24 +2190,16 @@ public static class GenerativeManager
 				{ yield return null; }
 		}
 		
-		
-=======
-	private static class Coroutines
-    {
-		
->>>>>>> origin/master
+
 		public static IEnumerator insertPrefabCliffs(GeologyPreset geo)
 		{
 			//var sw = new System.Diagnostics.Stopwatch();
             //sw.Start();
 			
-<<<<<<< HEAD
+
 			//uint featPrefabID = 0;
 			//int roll = 0;
-=======
-			uint featPrefabID = 0;
-			int roll = 0;
->>>>>>> origin/master
+
 			
 			List<GeologyItem> oddsList = OddsList(geo.geologyItems);
 			int selection;
@@ -2245,13 +2213,10 @@ public static class GenerativeManager
 			float floor = geo.floor/1000f;
 			float ceiling = geo.ceiling/1000f;
 			float cliffFade = 0f;
-<<<<<<< HEAD
+
 			float s1 = geo.heights.slopeLow;
 			float s2 = geo.heights.slopeHigh;
-=======
-			float s1 = geo.slopeLow;
-			float s2 = geo.slopeHigh;
->>>>>>> origin/master
+
 			int density = geo.density;
 			int thinnitude = geo.frequency;
 			int colliderLayer = (int)geo.colliderLayer;
@@ -2268,10 +2233,6 @@ public static class GenerativeManager
 			bool closeOverlap = geo.closeOverlap;
 			
 			
-<<<<<<< HEAD
-=======
-			
->>>>>>> origin/master
 			Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
 			float[,] baseMap = land.terrainData.GetHeights(0, 0, land.terrainData.heightmapResolution, land.terrainData.heightmapResolution);
 			float[,,] avoidMap = TerrainManager.Topology[TerrainTopology.TypeToIndex(1024)];
@@ -2312,15 +2273,10 @@ public static class GenerativeManager
 			float newPixel = 0f;
 			float randomizer = 0f;
 			
-<<<<<<< HEAD
 			//float xNormalizer = 0f;
 			//float yNormalizer = 0f;
 			//float zNormalizer = 0f;
-=======
-			float xNormalizer = 0f;
-			float yNormalizer = 0f;
-			float zNormalizer = 0f;
->>>>>>> origin/master
+
 			
 			float quotient = 0f;		
 			
@@ -2398,19 +2354,14 @@ public static class GenerativeManager
 			EditorUtility.ClearProgressBar();
 			
 			bool prefabCollisions = false;
-<<<<<<< HEAD
+
 			
 			foreach (GeologyCollisions collision in geo.geologyCollisions)
 			{ prefabCollisions |= (collision.layer ==  ColliderLayer.Prefabs);}
 			
 			if (prefabCollisions)
 			{Debug.LogError("Testing Prefab Collision, Generating may take longer than normal");}
-=======
-			foreach (GeologyCollisions collision in geo.geologyCollisions)
-													{
-														prefabCollisions |= (collision.layer ==  ColliderLayer.Prefabs);
-													}
->>>>>>> origin/master
+
 			
 			for (int i = 1; i < splatRes-1; i++)
 			{
@@ -2524,15 +2475,12 @@ public static class GenerativeManager
 												
 													foreach (GeologyCollisions collision in geo.geologyCollisions)
 													{
-<<<<<<< HEAD
+
 														
 														bool sphere = PrefabManager.sphereCollision(position, collision.radius,(int)collision.layer);
 														collisions &= collision.minMax ? !sphere : sphere;
 														
-=======
-														bool sphere = PrefabManager.sphereCollision(position, collision.radius,(int)collision.layer);
-														collisions &= collision.minMax ? !sphere : sphere;
->>>>>>> origin/master
+
 													}
 												
 												
@@ -2540,15 +2488,11 @@ public static class GenerativeManager
 														{
 															
 															if(!oddsList[selection].custom)
-<<<<<<< HEAD
+
 																{ spawnGeoItem(oddsList[selection], position, rRotate, rScale); count++; }
 															else
 																{ spawnCustom(oddsList[selection], position, rRotate, rScale, GameObject.FindGameObjectWithTag("Prefabs").transform); count++; }
-=======
-																spawnGeoItem(oddsList[selection], position, rRotate, rScale);
-															else
-																spawnCustom(oddsList[selection], position, rRotate, rScale, GameObject.FindGameObjectWithTag("Prefabs").transform);
->>>>>>> origin/master
+
 															
 															if(prefabCollisions){yield return null;}
 														}
@@ -2569,10 +2513,7 @@ public static class GenerativeManager
 			}
 			
 			
-<<<<<<< HEAD
-			
-=======
->>>>>>> origin/master
+
 			EditorUtility.ClearProgressBar();
 			Debug.LogError("Geology Complete: " + count + " Features Placed.");
 			if (cullcount >0)

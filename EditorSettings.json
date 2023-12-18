@@ -1,12 +1,8 @@
 {
-<<<<<<< HEAD
-    "rustDirectory": "C:/Program Files (x86)/Steam/steamapps/common/Rust",
-=======
-    "rustDirectory": "E:/Program Files (x86)/Steam/steamapps/common/Rust",
->>>>>>> origin/master
-    "prefabRenderDistance": 1644.0,
-    "pathRenderDistance": 2735.0,
-    "waterTransparency": 0.20000000298023225,
+    "rustDirectory": "",
+    "prefabRenderDistance": 0.0,
+    "pathRenderDistance": 0.0,
+    "waterTransparency": 0.0,
     "loadbundleonlaunch": false,
     "terrainTextureSet": false,
     "style": true,
@@ -68,28 +64,13 @@
         },
         "filename": "",
         "title": "",
-<<<<<<< HEAD
-=======
-        "prefabID": 0,
-        "prefabID0": 0,
-        "prefabID1": 0,
-        "prefabID2": 0,
-        "prefabID3": 0,
-        "prefabID4": 0,
-        "prefabID5": 0,
-        "prefabID6": 0,
-        "prefabID7": 0,
->>>>>>> origin/master
         "density": 0,
         "frequency": 0,
         "floor": 0,
         "ceiling": 0,
         "biomeIndex": 0,
-<<<<<<< HEAD
         "seed": 0,
         "spawns": 0,
-=======
->>>>>>> origin/master
         "biomeLayer": 0,
         "colliderLayer": 0,
         "closeColliderLayer": 0,
@@ -103,7 +84,6 @@
         "cliffTest": false,
         "overlap": false,
         "closeOverlap": false,
-<<<<<<< HEAD
         "temperate": false,
         "arid": false,
         "arctic": false,
@@ -112,19 +92,14 @@
         "monument": false,
         "dither": false,
         "useSeed": false,
-=======
->>>>>>> origin/master
         "featureMenu": false,
         "rotationMenu": false,
         "scaleMenu": false,
         "placementMenu": false,
         "collisionMenu": false,
         "presetMenu": false,
-<<<<<<< HEAD
         "jitterMenu": false,
         "preview": false,
-=======
->>>>>>> origin/master
         "scalesLow": {
             "x": 0.0,
             "y": 0.0,
@@ -145,7 +120,6 @@
             "y": 0.0,
             "z": 0.0
         },
-<<<<<<< HEAD
         "jitterLow": {
             "x": 0.0,
             "y": 0.0,
@@ -171,13 +145,6 @@
             "curveWeight": 0.0
         },
         "topologies": 0
-=======
-        "zOffset": 0.0,
-        "slopeLow": 0.0,
-        "slopeHigh": 0.0,
-        "colliderDistance": 0.0,
-        "closeColliderDistance": 0.0
->>>>>>> origin/master
     },
     "replacer": {
         "prefabID0": 0,
@@ -226,25 +193,7 @@
             "z": 0.0
         }
     },
-    "prefabPaths": [
-        "assets/bundled/prefabs/autospawn/",
-        "assets/bundled/prefabs/bunker_rooms/",
-        "assets/bundled/prefabs/caves/",
-        "assets/bundled/prefabs/hapis/",
-        "assets/bundled/prefabs/modding/",
-        "assets/bundled/prefabs/radtown/",
-        "assets/bundled/prefabs/static/",
-        "assets/content/nature/",
-        "assets/content/building/",
-        "assets/content/props/",
-        "assets/content/structures/",
-        "assets/content/vehicles/",
-        "assets/prefabs/building/",
-        "assets/prefabs/building core/",
-        "assets/prefabs/deployable/",
-        "assets/prefabs/misc/",
-        "assets/prefabs/resource/"
-    ],
+    "prefabPaths": [],
     "city": {
         "title": "",
         "size": 0,

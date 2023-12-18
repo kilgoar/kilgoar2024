@@ -11,15 +11,11 @@ using static TerrainManager;
 public class MapManagerWindow : EditorWindow
 {
     #region Values
-<<<<<<< HEAD
     int mainMenuOptions = 0;
 	// mapToolsOptions = 0, heightMapOptions = 0, conditionalPaintOptions = 0;
     float offset = 0f, heightSet = 500f;
 	//, heightLow = 450f, heightHigh = 750f;
-=======
-    int mainMenuOptions = 0, mapToolsOptions = 0, heightMapOptions = 0, conditionalPaintOptions = 0;
-    float offset = 0f, heightSet = 500f, heightLow = 450f, heightHigh = 750f;
->>>>>>> origin/master
+
     bool clampOffset = true, autoUpdate = false;
     float normaliseLow = 450f, normaliseHigh = 1000f;
     Conditions conditions = new Conditions() 
@@ -27,17 +23,12 @@ public class MapManagerWindow : EditorWindow
         GroundConditions = new GroundConditions(TerrainSplat.Enum.Grass), BiomeConditions = new BiomeConditions(TerrainBiome.Enum.Temperate), TopologyConditions = new TopologyConditions(TerrainTopology.Enum.Beach)
     };
     Layers layers = new Layers() { Ground = TerrainSplat.Enum.Grass, Biome = TerrainBiome.Enum.Temperate, Topologies = TerrainTopology.Enum.Field};
-<<<<<<< HEAD
+
     //int texture = 0, smoothPasses = 0;
     Vector2 scrollPos = new Vector2(0, 0);
     Selections.Objects rotateSelection;
     //float terraceErodeFeatureSize = 150f, terraceErodeInteriorCornerWeight = 1f, blurDirection = 0f, filterStrength = 1f;
-=======
-    int texture = 0, smoothPasses = 0;
-    Vector2 scrollPos = new Vector2(0, 0);
-    Selections.Objects rotateSelection;
-    float terraceErodeFeatureSize = 150f, terraceErodeInteriorCornerWeight = 1f, blurDirection = 0f, filterStrength = 1f;
->>>>>>> origin/master
+
 	
 
 	float zOffset = 0f;
@@ -54,10 +45,9 @@ public class MapManagerWindow : EditorWindow
 	float tttWeight = .7f;
 	float zBreaker = 100f;
 	bool destroy = false;
-<<<<<<< HEAD
+
 	bool previewCurves = true;
-=======
->>>>>>> origin/master
+
 	
 	[SerializeField] TreeViewState breakerState;
 	BreakerTreeView breakerTree;
@@ -80,10 +70,9 @@ public class MapManagerWindow : EditorWindow
 		
 	Layers sourceLayers = new Layers() { Ground = TerrainSplat.Enum.Grass, Biome = TerrainBiome.Enum.Temperate, Topologies = TerrainTopology.Enum.Field };
 	SlopesInfo slopesInfo = new SlopesInfo() { SlopeLow = 40f, SlopeHigh = 60f, SlopeBlendLow = 25f, SlopeBlendHigh = 75f, BlendSlopes = false };
-<<<<<<< HEAD
+
 	CurvesInfo curvesInfo = new CurvesInfo() { CurveLow = 40f, CurveHigh = 60f, CurveBlendLow = 25f, CurveBlendHigh = 75f, BlendCurves = false };
-=======
->>>>>>> origin/master
+
     HeightsInfo heightsInfo = new HeightsInfo() { HeightLow = 400f, HeightHigh = 600f, HeightBlendLow = 300f, HeightBlendHigh = 700f, BlendHeights = false };
 
 	CrazingPreset crazing = new CrazingPreset();
@@ -112,15 +101,14 @@ public class MapManagerWindow : EditorWindow
 		breakerTree = new BreakerTreeView(breakerState);
 		SettingsManager.LoadFragmentLookup();
 		
-<<<<<<< HEAD
+
 		geologyList = SettingsManager.GetPresetTitles("Presets/Geology/");
 		activePreset.title = geologyList[presetIndex];
 		SettingsManager.LoadGeologyPreset(activePreset.title);
 		activePreset = SettingsManager.geology;
 		
 		
-=======
->>>>>>> origin/master
+
 		icons = new IconTextures(
 			(Texture2D)Resources.Load("Textures/Icons/gears"),
 			(Texture2D)Resources.Load("Textures/Icons/scrap"),
@@ -143,7 +131,7 @@ public class MapManagerWindow : EditorWindow
         mainMenu[4] = new GUIContent("Generator");
         mainMenu[5] = new GUIContent("Advanced");
 
-<<<<<<< HEAD
+
 		EditorGUI.BeginChangeCheck();
 
         mainMenuOptions = GUILayout.Toolbar(mainMenuOptions, mainMenu, EditorStyles.toolbarButton);
@@ -156,10 +144,7 @@ public class MapManagerWindow : EditorWindow
 							GenerativeManager.MakeCliffMap(activePreset);
 					}
 		
-=======
-        mainMenuOptions = GUILayout.Toolbar(mainMenuOptions, mainMenu, EditorStyles.toolbarButton);
-		
->>>>>>> origin/master
+
 		Functions.SaveSettings();
 
 	
@@ -247,12 +232,10 @@ public class MapManagerWindow : EditorWindow
 						
 						Functions.HeightTools(TerrainManager.CurrentLayerType, TerrainSplat.TypeToIndex((int)layers.Ground), ref heightsInfo);
 						Functions.SlopeTools(TerrainManager.CurrentLayerType, TerrainSplat.TypeToIndex((int)layers.Ground), ref slopesInfo);
-<<<<<<< HEAD
+
 						Functions.CurvesTools(TerrainManager.CurrentLayerType, TerrainSplat.TypeToIndex((int)layers.Ground), ref curvesInfo, ref previewCurves);
 						
-=======
 
->>>>>>> origin/master
 						Functions.RiverTools(TerrainManager.CurrentLayerType, TerrainSplat.TypeToIndex((int)layers.Ground), ref aboveTerrain);
 						
 						break;
@@ -260,11 +243,9 @@ public class MapManagerWindow : EditorWindow
 						Functions.TextureSelect((LayerType)layerIndex, ref layers);
 
 						Functions.LayerTools(TerrainManager.CurrentLayerType, TerrainBiome.TypeToIndex((int)layers.Biome));
-<<<<<<< HEAD
-						Functions.DitherTool(TerrainManager.CurrentLayerType);
-=======
 
->>>>>>> origin/master
+						Functions.DitherTool(TerrainManager.CurrentLayerType);
+
 						
 						Functions.HeightTools(TerrainManager.CurrentLayerType, TerrainBiome.TypeToIndex((int)layers.Biome), ref heightsInfo);
 						Functions.SlopeTools(TerrainManager.CurrentLayerType, TerrainBiome.TypeToIndex((int)layers.Biome), ref slopesInfo);
@@ -291,15 +272,12 @@ public class MapManagerWindow : EditorWindow
 						
 						Functions.RiverTools(TerrainManager.CurrentLayerType, 0, ref aboveTerrain, 1, TerrainTopology.TypeToIndex((int)layers.Topologies));
 						Functions.LakeOcean(ref layers);
-<<<<<<< HEAD
-						
-=======
->>>>>>> origin/master
+
 						break;
 				}
 				
 			
-<<<<<<< HEAD
+
 			/*
             switch (mapToolsOptions)
             {
@@ -351,10 +329,7 @@ public class MapManagerWindow : EditorWindow
 					
             }
 			*/
-=======
-					*/
-            }
->>>>>>> origin/master
+
             break;
 		case 4:
 			GUIContent[] generatorMenu = new GUIContent[3];
@@ -362,7 +337,7 @@ public class MapManagerWindow : EditorWindow
 				generatorMenu[1] = new GUIContent("Geology");
 				generatorMenu[2] = new GUIContent("Monuments");
 				
-<<<<<<< HEAD
+
 				EditorGUI.BeginChangeCheck();
 				
 					generatorOptions = GUILayout.Toolbar(generatorOptions, generatorMenu, EditorStyles.toolbarButton);
@@ -375,9 +350,7 @@ public class MapManagerWindow : EditorWindow
 							GenerativeManager.MakeCliffMap(activePreset);
 					}
 				
-=======
-				generatorOptions = GUILayout.Toolbar(generatorOptions, generatorMenu, EditorStyles.toolbarButton);
->>>>>>> origin/master
+
 				switch (generatorOptions)
 				{
 						case 0:
@@ -419,12 +392,7 @@ public class MapManagerWindow : EditorWindow
 		break;
 		
         }
-<<<<<<< HEAD
-		
 
-			
-=======
->>>>>>> origin/master
         #endregion
         EditorGUILayout.EndScrollView();
     }

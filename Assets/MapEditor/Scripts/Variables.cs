@@ -93,7 +93,6 @@ namespace RustMapEditor.Variables
         public float SlopeHigh;
         public float SlopeBlendHigh;
     }
-<<<<<<< HEAD
 	public struct CurvesInfo
     {
         public bool BlendCurves;
@@ -102,8 +101,6 @@ namespace RustMapEditor.Variables
         public float CurveHigh;
         public float CurveBlendHigh;
     }
-=======
->>>>>>> origin/master
     public struct HeightsInfo
     {
         public bool BlendHeights;
@@ -137,11 +134,8 @@ namespace RustMapEditor.Variables
         public TopologyTextures TopologyTexture;
     }
 	
-<<<<<<< HEAD
 	public struct monumentData
-=======
-		public struct monumentData
->>>>>>> origin/master
+
 	{
 		public monumentData(int X, int Y, int Width, int Height)
 		{
@@ -154,10 +148,7 @@ namespace RustMapEditor.Variables
 	}
 	
 	
-<<<<<<< HEAD
-=======
-	
->>>>>>> origin/master
+
 	public enum ColliderLayer
 	{
 		All = Physics.AllLayers,
@@ -652,7 +643,7 @@ namespace RustMapEditor.Variables
 				public GeologyCollisions newCollisions;
 				public string filename;
 				public string title;
-<<<<<<< HEAD
+
 				
 				public int density, frequency, floor, ceiling, biomeIndex, seed, spawns;
 				
@@ -670,26 +661,7 @@ namespace RustMapEditor.Variables
 				public HeightSelector heights;
 				public Topologies topologies;
 				
-=======
-				public uint prefabID;
-				public uint prefabID0;
-				public uint prefabID1;
-				public uint prefabID2;
-				public uint prefabID3;
-				public uint prefabID4;
-				public uint prefabID5;
-				public uint prefabID6;
-				public uint prefabID7;
-				public int density, frequency, floor, ceiling, biomeIndex;
-				public TerrainBiome.Enum biomeLayer;
-				public ColliderLayer colliderLayer, closeColliderLayer;				
-				public bool avoidTopo, flipping, tilting, normalizeX, normalizeY, normalizeZ, biomeExclusive, cliffTest, overlap, closeOverlap; 
-				
-				public bool featureMenu, rotationMenu, scaleMenu, placementMenu, collisionMenu, presetMenu;
-				
-				public Vector3 scalesLow, scalesHigh, rotationsLow, rotationsHigh;
-				public float zOffset, slopeLow, slopeHigh, colliderDistance, closeColliderDistance;
->>>>>>> origin/master
+
 				
 				public GeologyPreset(string title) : this()
 				{
@@ -697,7 +669,7 @@ namespace RustMapEditor.Variables
 				}
 	}
 	
-<<<<<<< HEAD
+
 	[Serializable][System.Flags]
 		public enum Topologies
 		{
@@ -742,8 +714,7 @@ namespace RustMapEditor.Variables
 	}
 	
 	
-=======
->>>>>>> origin/master
+
 	[Serializable]
 	public struct RustCityPreset
 	{

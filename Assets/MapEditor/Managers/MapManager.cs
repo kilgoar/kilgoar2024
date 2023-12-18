@@ -205,11 +205,9 @@ public static class MapManager
             case LayerType.Ground:
             case LayerType.Biome:
             case LayerType.Topology:
-<<<<<<< HEAD
+
                 SetSplatMap(SetRange(GetSplatMap(landLayerToPaint, topology), HeightToSplat(GetHeights()), t, heightLow, heightHigh), landLayerToPaint, topology);
-=======
-                SetSplatMap(SetRange(GetSplatMap(landLayerToPaint, topology), GetHeights(), t, heightLow, heightHigh), landLayerToPaint, topology);
->>>>>>> origin/master
+
                 break;
             case LayerType.Alpha:
                 bool value = (t == 0) ? true : false;
@@ -231,11 +229,9 @@ public static class MapManager
         {
             case LayerType.Ground:
             case LayerType.Biome:
-<<<<<<< HEAD
+
                 SetSplatMap(SetRangeBlend(GetSplatMap(landLayerToPaint), HeightToSplat(GetHeights()), t, heightLow, heightHigh, minBlendLow, maxBlendHigh), landLayerToPaint);
-=======
-                SetSplatMap(SetRangeBlend(GetSplatMap(landLayerToPaint), GetHeights(), t, heightLow, heightHigh, minBlendLow, maxBlendHigh), landLayerToPaint);
->>>>>>> origin/master
+
                 break;
         }
     }
@@ -349,11 +345,9 @@ public static class MapManager
             case LayerType.Ground:
             case LayerType.Biome:
             case LayerType.Topology:
-<<<<<<< HEAD
+
                 SetSplatMap(SetRange(GetSplatMap(landLayerToPaint, topology), HeightToSplat(GetSlopes()), t, slopeLow, slopeHigh), landLayerToPaint, topology);
-=======
-                SetSplatMap(SetRange(GetSplatMap(landLayerToPaint, topology), GetSlopes(), t, slopeLow, slopeHigh), landLayerToPaint, topology);
->>>>>>> origin/master
+
                 break;
             case LayerType.Alpha:
                 bool value = (t == 0) ? true : false;
@@ -376,7 +370,7 @@ public static class MapManager
         {
             case LayerType.Ground:
             case LayerType.Biome:
-<<<<<<< HEAD
+
                 SetSplatMap(SetRangeBlend(GetSplatMap(landLayerToPaint),  HeightToSplat(GetSlopes()), t, slopeLow, slopeHigh, minBlendLow, maxBlendHigh), landLayerToPaint);
                 break;
         }
@@ -430,12 +424,7 @@ public static class MapManager
 				break;
 		}
 	}
-=======
-                SetSplatMap(SetRangeBlend(GetSplatMap(landLayerToPaint), GetSlopes(), t, slopeLow, slopeHigh, minBlendLow, maxBlendHigh), landLayerToPaint);
-                break;
-        }
-    }
->>>>>>> origin/master
+
 
     /// <summary>Paints the splats wherever the water is above 500 and is above the terrain.</summary>
     /// <param name="landLayerToPaint">The LayerType to paint. (Ground, Biome, Alpha, Topology)</param>
@@ -452,11 +441,9 @@ public static class MapManager
                 SetSplatMap(SetRiver(GetSplatMap(landLayerToPaint, topology), GetHeights(), GetHeights(TerrainManager.TerrainType.Water), aboveTerrain, tex), landLayerToPaint, topology);
                 break;
             case LayerType.Alpha:
-<<<<<<< HEAD
+
                 SetAlphaMap(SetRiver(GetAlphaMap(), GetHeights(), HeightToSplat(GetHeights(TerrainManager.TerrainType.Water)), aboveTerrain, tex == 0));
-=======
-                SetAlphaMap(SetRiver(GetAlphaMap(), GetHeights(), GetHeights(TerrainManager.TerrainType.Water), aboveTerrain, tex == 0));
->>>>>>> origin/master
+
                 break;
             
         }

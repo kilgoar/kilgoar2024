@@ -135,11 +135,7 @@ public static class PrefabManager
         foreach (var item in go.GetComponentsInChildren<MeshCollider>())
         {
             item.cookingOptions = MeshColliderCookingOptions.None;
-<<<<<<< HEAD
             item.enabled = true;
-=======
-            item.enabled = false;
->>>>>>> origin/master
             item.isTrigger = false;
             item.convex = true;
         }

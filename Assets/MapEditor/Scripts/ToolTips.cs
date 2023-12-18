@@ -111,14 +111,13 @@ public static class ToolTips
     public static GUIContent paintSlopesBlend = new GUIContent("Paint Slopes Blend", "Paints the active texture within the slope range, whilst blending out to the blend range.");
     public static GUIContent eraseSlopes = new GUIContent("Erase Slopes", "Paints the inactive texture within the slope range.");
 
-<<<<<<< HEAD
+
 	public static GUIContent curvesToolsLabel = new GUIContent("Curves Tools");
 	public static GUIContent paintCurves = new GUIContent("Paint Curves", "Paints the active texture within the curve range.");
 	public static GUIContent paintCurvesBlend = new GUIContent("Paint Curves Blend", "Paints the active texture within the curve range, whilst blending out to the blend range.");
 	public static GUIContent eraseCurves = new GUIContent("Erase Curves", "Paints the inactive texture within the curve range.");
 
-=======
->>>>>>> origin/master
+
     public static GUIContent heightsLabel = new GUIContent("Heights");
     public static GUIContent heightToolsLabel = new GUIContent("Height Tools");
     public static GUIContent paintHeights = new GUIContent("Paint Heights", "Paints the active texture within the height range.");
