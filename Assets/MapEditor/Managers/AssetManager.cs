@@ -635,29 +635,22 @@ public static class AssetManager
 
 			for (int i = 0; i < bundles.Length; i++)
 			{
+				Progress.Report(ID.bundle, (float)i / bundles.Length, "Loading: " + bundles[i]);
+				var bundlePath = Path.GetDirectoryName(bundleRoot) + Path.DirectorySeparatorChar + bundles[i];
+				if (File.Exists(bundlePath)) 
+				{
+                    var asset = AssetBundle.LoadFromFileAsync(bundlePath);
+                    while (!asset.isDone)
+                        yield return null;
 
-					
-					Progress.Report(ID.bundle, (float)i / bundles.Length, "Loading: " + bundles[i]);
-					var bundlePath = Path.GetDirectoryName(bundleRoot) + Path.DirectorySeparatorChar + bundles[i];
-					
-					if (!bundlePath.Contains("content.private.bundle"))
-					{
-					
-						AssetBundleCreateRequest asset = null;
-						
-						asset = AssetBundle.LoadFromFileAsync(bundlePath);
-							
-						while (!asset.isDone)
-							yield return null;
-
-						if (asset == null)
-						{
-							Debug.LogError("Couldn't load AssetBundle - " + bundlePath);
-							IsInitialising = false;
-							yield break;
-						}
-						BundleCache.Add(bundles[i], asset.assetBundle);
-					}
+                    if (asset == null)
+                    {
+                        Debug.LogError("Couldn't load AssetBundle - " + bundlePath);
+                        IsInitialising = false;
+                        yield break;
+                    }
+                    BundleCache.Add(bundles[i], asset.assetBundle);
+                }
 			}
 			rootBundle.Unload(true);
 		}

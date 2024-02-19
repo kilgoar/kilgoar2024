@@ -49,23 +49,24 @@
             "emphasis": 1
         }
     ],
+    "geologyCollisions": [],
+    "newCollisions": {
+        "minMax": false,
+        "radius": 0.0,
+        "layer": 0
+    },
+    "filename": "Presets/Geology/arid vehicles.json",
     "title": "arid vehicles",
-    "prefabID": 3004602158,
-    "prefabID0": 0,
-    "prefabID1": 3264578399,
-    "prefabID2": 2420618133,
-    "prefabID3": 246584577,
-    "prefabID4": 1837053258,
-    "prefabID5": 2832497307,
-    "prefabID6": 2300745015,
-    "prefabID7": 2082081653,
-    "density": 500,
+    "density": 1223,
     "frequency": 4,
     "floor": 510,
     "ceiling": 1000,
     "biomeIndex": 0,
+    "seed": 0,
+    "spawns": 0,
     "biomeLayer": 1,
     "colliderLayer": 0,
+    "closeColliderLayer": 0,
     "avoidTopo": true,
     "flipping": false,
     "tilting": false,
@@ -75,6 +76,23 @@
     "biomeExclusive": true,
     "cliffTest": false,
     "overlap": false,
+    "closeOverlap": false,
+    "temperate": true,
+    "arid": true,
+    "arctic": true,
+    "tundra": true,
+    "road": false,
+    "monument": false,
+    "dither": false,
+    "useSeed": false,
+    "featureMenu": true,
+    "rotationMenu": false,
+    "scaleMenu": false,
+    "placementMenu": true,
+    "collisionMenu": false,
+    "presetMenu": true,
+    "jitterMenu": false,
+    "preview": true,
     "scalesLow": {
         "x": 1.0169490575790406,
         "y": 1.073446273803711,
@@ -95,8 +113,29 @@
         "y": 0.0,
         "z": 0.0
     },
+    "jitterLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "jitterHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
     "zOffset": 0.0,
-    "slopeLow": 0.0,
-    "slopeHigh": 4.306217193603516,
-    "colliderDistance": 0.0
+    "colliderDistance": 0.0,
+    "closeColliderDistance": 0.0,
+    "balance": 0.0,
+    "heights": {
+        "slopeLow": 18.122173309326173,
+        "slopeHigh": 91.01809692382813,
+        "heightMin": 0.0,
+        "heightMax": 0.6957013607025147,
+        "curveMin": -70.0,
+        "curveMax": -66.04072570800781,
+        "slopeWeight": 3.0873498916625978,
+        "curveWeight": 0.0
+    },
+    "topologies": -1
 }

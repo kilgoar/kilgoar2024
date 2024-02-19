@@ -1085,14 +1085,26 @@ public static class GenerativeManager
         {
             for (int y = 0; y < dim; y++)
             {
-				if ( (x%2==0 && y%2==0) || ((x+1)%2==0 && (y+1)%2==0) )
+				newGround[x, y, 0] = 1;
+				newGround[x, y, 1] = 0;
+				newGround[x, y, 2] = 0;
+				newGround[x, y, 3] = 0;
+				
+				if(Mathf.PerlinNoise(x*1f/5f,y*1f/5f) > .666f)
+				{
+					newGround[x, y, 0] = 0;
+					newGround[x, y, 1] = 1;
+					newGround[x, y, 2] = 0;
+					newGround[x, y, 3] = 0;
+				}
+				else if(Mathf.PerlinNoise(x*1f/5f,y*1f/5f) > .444f)
 				{
 					newGround[x, y, 0] = 0;
 					newGround[x, y, 1] = 0;
-					newGround[x, y, 2] = 0;
+					newGround[x, y, 2] = 1;
 					newGround[x, y, 3] = 0;
-					newGround[x, y, t] = 1;	
 				}
+				
 			}
 		}
 		
@@ -1869,7 +1881,7 @@ public static class GenerativeManager
 			Vector3 scaleRange2 = geo.scalesHigh;
 			
 			int res = TerrainManager.HeightMapRes;
-			int splatRes = TerrainManager.CliffMap.GetLength(0);
+			int splatRes = TerrainManager.SpawnMap.GetLength(0);
 			float resRatio = 1f * res/splatRes;
 			
 			int heightMapsX, heightMapsY;
@@ -2099,7 +2111,7 @@ public static class GenerativeManager
 
 			int resRatio = (int)( TerrainManager.HeightMapRes / TerrainManager.SplatMapRes);
 			
-			float[,] cliffMap = new float[TerrainManager.HeightMapRes,TerrainManager.HeightMapRes];
+			//float[,] cliffMap = new float[TerrainManager.HeightMapRes,TerrainManager.HeightMapRes];
 			float[,] heightOut = new float[TerrainManager.HeightMapRes,TerrainManager.HeightMapRes];
 			bool[,] spawnMap = new bool[TerrainManager.HeightMapRes,TerrainManager.HeightMapRes];
 			
@@ -2108,8 +2120,10 @@ public static class GenerativeManager
 				{
 					for (int j = 0; j < TerrainManager.HeightMapRes-1; j++)
 					{
-						
-						
+						heightOut[i,j] = (TerrainManager.Height[i,j] - 2f) / 1000f;
+						if(RandomTS.Next(geo.density) == 1)
+							{
+							
 							if (
 								
 									(TerrainManager.Height[i,j] >= geo.heights.heightMin * 1000f && TerrainManager.Height[i,j]-1 <= geo.heights.heightMax * 1000f)									
@@ -2153,27 +2167,32 @@ public static class GenerativeManager
 								)
 							{
 								
-								cliffMap[i,j] =  TerrainManager.Slope[i,j] * geo.heights.slopeWeight + Math.Abs(TerrainManager.Curvature[i,j]) * geo.heights.curveWeight;
-								heightOut[i,j] = (TerrainManager.Height[i,j] + 2f) / 1000f;
-								
-								if(TerrainManager.CliffMap != null) // can't make spawnMap first time
-								{
-									odds = (int)(GaussCurve(TerrainManager.CliffMap[i,j],geo.balance,1f)*geo.density);
-									if (odds<=(.4f*geo.density-2f) && (RandomTS.Next(odds))==1)
-									{
-										spawnMap[i,j] = true;
-										spawnCount++;
-									}
-									else
-									{
-										spawnMap[i,j] = false;
-									}
-								}
+								//cliffMap[i,j] =  TerrainManager.Slope[i,j] * geo.heights.slopeWeight + Math.Abs(TerrainManager.Curvature[i,j]) * geo.heights.curveWeight;
+								heightOut[i,j] = (TerrainManager.Height[i,j] + 4f) / 1000f;
+								spawnMap[i,j] = true;
+								spawnCount++;
+								//if(TerrainManager.CliffMap != null) // can't make spawnMap first time
+								//{
+									//odds = (int)(GaussCurve(TerrainManager.CliffMap[i,j],geo.balance,1f)*geo.density);
+									//if (odds<=(.4f*geo.density-2f) && (RandomTS.Next(odds))==1)
+									//{
+									
+
+
+										
+										
+									//}
+									//else
+									//{
+									//	spawnMap[i,j] = false;
+									//}
+								//}
+							}
 							}
 							else
 							{
-								heightOut[i,j] = (TerrainManager.Height[i,j] - 2f) / 1000f;
-								cliffMap[i,j] = 0f;
+								
+								//cliffMap[i,j] = 0f;
 								spawnMap[i,j] = false;
 							}
 					}
@@ -2181,9 +2200,9 @@ public static class GenerativeManager
 				
 				GeologySpawns = spawnCount;
 				
-				if(cliffMap != null && spawnMap != null && heightOut != null)
+				if(spawnMap != null && heightOut != null)
 				{
-					TerrainManager.SetCliffMap(cliffMap, spawnMap);
+					TerrainManager.SetCliffMap(spawnMap);
 					TerrainManager.SetLandMask(heightOut);
 				}
 				else

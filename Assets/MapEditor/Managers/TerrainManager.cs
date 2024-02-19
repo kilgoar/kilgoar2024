@@ -131,6 +131,14 @@ public static class TerrainManager
         return Alpha;
     }
 
+	public static void SetCliffMap(bool[,] spawns)
+	{
+		SpawnMap = spawns;		
+		
+		//CliffField = RustMapEditor.Maths.Array.HeightToSplat(CliffMap, SpawnMap, LandMask.terrainData.alphamapResolution);
+		//LandMask.terrainData.SetAlphamaps(0, 0, CliffField);
+		
+	}
 
 	public static void SetCliffMap(float[,] gradient, bool[,] spawns)
 	{

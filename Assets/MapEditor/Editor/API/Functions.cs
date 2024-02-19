@@ -2055,7 +2055,9 @@ namespace RustMapEditor.UI
 						}
 					if (GUILayout.Button("Apply"))
 						{
-
+							if(TerrainManager.SpawnMap == null || !activePreset.preview)
+							{ GenerativeManager.MakeCliffMap(activePreset); }
+							
 							GenerativeManager.MakeCliffs(activePreset);
 
 							SettingsManager.geology = activePreset;
@@ -2097,7 +2099,7 @@ namespace RustMapEditor.UI
 						{
 							foreach (GeologyPreset pre in SettingsManager.macro)
 							{
-
+								GenerativeManager.MakeCliffMap(pre);
 								GenerativeManager.MakeCliffs(pre);
 
 							}

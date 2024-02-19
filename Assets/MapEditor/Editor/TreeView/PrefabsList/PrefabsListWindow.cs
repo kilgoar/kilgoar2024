@@ -14,7 +14,7 @@ namespace RustMapEditor.UI
 		SearchField m_SearchField;
 		PrefabsListTreeView treeView;
 
-		private bool showAllPrefabs = false;
+		private bool showAllPrefabs = true; //displayed none when false ? 
 
 		private float rightColumn { get => position.width / 3 * 2 + 40; }
 

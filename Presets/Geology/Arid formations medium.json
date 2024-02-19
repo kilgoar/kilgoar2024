@@ -31,23 +31,24 @@
             "emphasis": 1
         }
     ],
+    "geologyCollisions": [],
+    "newCollisions": {
+        "minMax": false,
+        "radius": 0.0,
+        "layer": 0
+    },
+    "filename": "Presets/Geology/Arid formations medium.json",
     "title": "Arid formations medium",
-    "prefabID": 2591072256,
-    "prefabID0": 0,
-    "prefabID1": 4064290979,
-    "prefabID2": 3817899359,
-    "prefabID3": 4064290979,
-    "prefabID4": 3817899359,
-    "prefabID5": 0,
-    "prefabID6": 0,
-    "prefabID7": 0,
-    "density": 1250,
+    "density": 30,
     "frequency": 200,
     "floor": 510,
     "ceiling": 550,
     "biomeIndex": 0,
+    "seed": 0,
+    "spawns": 0,
     "biomeLayer": 1,
     "colliderLayer": 0,
+    "closeColliderLayer": 0,
     "avoidTopo": true,
     "flipping": false,
     "tilting": false,
@@ -57,6 +58,23 @@
     "biomeExclusive": false,
     "cliffTest": false,
     "overlap": false,
+    "closeOverlap": false,
+    "temperate": true,
+    "arid": true,
+    "arctic": true,
+    "tundra": true,
+    "road": false,
+    "monument": false,
+    "dither": false,
+    "useSeed": false,
+    "featureMenu": true,
+    "rotationMenu": false,
+    "scaleMenu": false,
+    "placementMenu": true,
+    "collisionMenu": false,
+    "presetMenu": true,
+    "jitterMenu": false,
+    "preview": true,
     "scalesLow": {
         "x": 1.0326086282730103,
         "y": 1.0326087474822999,
@@ -77,8 +95,29 @@
         "y": 360.0,
         "z": 0.0
     },
+    "jitterLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "jitterHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
     "zOffset": 0.0,
-    "slopeLow": 0.0,
-    "slopeHigh": 3.8510022163391115,
-    "colliderDistance": 0.0
+    "colliderDistance": 0.0,
+    "closeColliderDistance": 0.0,
+    "balance": 0.0,
+    "heights": {
+        "slopeLow": 0.0,
+        "slopeHigh": 45.40724182128906,
+        "heightMin": 0.0,
+        "heightMax": 0.9943438768386841,
+        "curveMin": 0.0,
+        "curveMax": 0.0,
+        "slopeWeight": 12.091988563537598,
+        "curveWeight": 0.0
+    },
+    "topologies": -1
 }

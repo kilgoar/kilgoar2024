@@ -1,0 +1,123 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 183291403,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 1507611726,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 2929264923,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 261440689,
+            "emphasis": 1
+        }
+    ],
+    "geologyCollisions": [
+        {
+            "minMax": true,
+            "radius": 1.0,
+            "layer": 256
+        }
+    ],
+    "newCollisions": {
+        "minMax": true,
+        "radius": 6.0,
+        "layer": 256
+    },
+    "filename": "Presets/Geology/waterworld cliffs.json",
+    "title": "waterworld cliffs",
+    "density": 112,
+    "frequency": 10,
+    "floor": 0,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "seed": 0,
+    "spawns": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": true,
+    "normalizeZ": false,
+    "biomeExclusive": false,
+    "cliffTest": true,
+    "overlap": false,
+    "closeOverlap": false,
+    "temperate": true,
+    "arid": true,
+    "arctic": true,
+    "tundra": true,
+    "road": false,
+    "monument": false,
+    "dither": false,
+    "useSeed": false,
+    "featureMenu": true,
+    "rotationMenu": true,
+    "scaleMenu": false,
+    "placementMenu": true,
+    "collisionMenu": true,
+    "presetMenu": true,
+    "jitterMenu": true,
+    "preview": true,
+    "scalesLow": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+    },
+    "scalesHigh": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "jitterLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "jitterHigh": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": -15.0,
+    "colliderDistance": 0.0,
+    "closeColliderDistance": 0.0,
+    "balance": 0.0,
+    "heights": {
+        "slopeLow": 24.232669830322267,
+        "slopeHigh": 180.0,
+        "heightMin": 0.4254153370857239,
+        "heightMax": 1.0,
+        "curveMin": -70.0,
+        "curveMax": -70.0,
+        "slopeWeight": 2.17391300201416,
+        "curveWeight": 0.0
+    },
+    "topologies": -1
+}

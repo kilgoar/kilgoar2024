@@ -831,6 +831,178 @@
         {
             "fragment": "Oil Rig Lighting",
             "id": 1051135025
+        },
+        {
+            "fragment": "oilrig_stairs_small",
+            "id": 2902432828
+        },
+        {
+            "fragment": "Small Oil Rig Lighting",
+            "id": 517659167
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn",
+            "id": 2663428525
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (3)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (2)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (1)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "manhole_square_big (2)",
+            "id": 2737816132
+        },
+        {
+            "fragment": "manhole_square_big (1)",
+            "id": 2737816132
+        },
+        {
+            "fragment": "manhole_square_big (3)",
+            "id": 2737816132
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (5)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (4)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (6)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "cover panel decal e",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover panel e",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (1)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (2)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (3)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (4)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (28)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (5)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (6)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (7)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (8)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (9)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (10)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (11)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (12)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (13)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (14)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (15)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (16)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (17)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (18)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (19)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (20)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (21)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (22)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (23)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (24)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (25)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (26)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (27)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (29)",
+            "id": 3775558681
         }
     ]
 }

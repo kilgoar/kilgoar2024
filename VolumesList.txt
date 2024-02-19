@@ -9,3 +9,5 @@ Cube : assets/bundled/prefabs/modding/volumes_and_triggers/invisible_collider.pr
 Sphere : assets/bundled/prefabs/modding/volumes_and_triggers/prevent_building_sphere.prefab
 Sphere : assets/bundled/prefabs/modding/volumes_and_triggers/safezonesphere.prefab
 Sphere : assets/content/structures/radiation/radiationsphere.prefab
+Cube: assets/bundled/prefabs/modding/volumes_and_triggers/water_trigger_noenv.prefab
+Cube: assets/bundled/prefabs/modding/volumes_and_triggers/water_trigger.prefab
