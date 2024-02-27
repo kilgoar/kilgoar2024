@@ -92,6 +92,9 @@
         "monument": false,
         "dither": false,
         "useSeed": false,
+        "slopeRange": false,
+        "curveRange": false,
+        "heightRange": false,
         "featureMenu": false,
         "rotationMenu": false,
         "scaleMenu": false,
@@ -134,6 +137,8 @@
         "colliderDistance": 0.0,
         "closeColliderDistance": 0.0,
         "balance": 0.0,
+        "slopeLow": 0.0,
+        "slopeHigh": 0.0,
         "heights": {
             "slopeLow": 0.0,
             "slopeHigh": 0.0,

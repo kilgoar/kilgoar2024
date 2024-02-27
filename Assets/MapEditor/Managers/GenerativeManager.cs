@@ -16,7 +16,6 @@ public static class GenerativeManager
 {
 	
 	public static int GeologySpawns;
-	
 
 	public static void oceans(OceanPreset ocean)
 	{
@@ -1843,6 +1842,16 @@ public static class GenerativeManager
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.MakeCliffs(geo));
 	}
 	
+	public static void ApplyGeologyTemplate()
+	{
+		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.ApplyGeologyTemplate());
+	}
+	
+	public static void ApplyGeologyPreset(GeologyPreset geo)
+	{
+		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.ApplyGeologyPreset(geo));
+	}
+	
 	public static void PreviewDither()
 	{
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.PreviewDither());
@@ -1851,6 +1860,36 @@ public static class GenerativeManager
 		
 	private static class Coroutines
     {
+
+		private static bool makeCliffMapRunning = false;
+		private static bool makeCliffsRunning = false;
+
+		public static IEnumerator ApplyGeologyTemplate()
+		{
+			foreach (GeologyPreset pre in SettingsManager.macro)
+			{
+				makeCliffMapRunning = true;
+				GenerativeManager.MakeCliffMap(pre);
+				yield return new WaitUntil(() => !makeCliffMapRunning && !makeCliffsRunning);
+
+				makeCliffsRunning = true;
+				GenerativeManager.MakeCliffs(pre);
+				yield return new WaitUntil(() => !makeCliffsRunning && !makeCliffMapRunning);
+			}
+		}
+		
+		public static IEnumerator ApplyGeologyPreset(GeologyPreset geo)
+		{
+			
+				makeCliffMapRunning = true;
+				GenerativeManager.MakeCliffMap(geo);
+				yield return new WaitUntil(() => !makeCliffMapRunning && !makeCliffsRunning);
+
+				makeCliffsRunning = true;
+				GenerativeManager.MakeCliffs(geo);
+				yield return new WaitUntil(() => !makeCliffsRunning && !makeCliffMapRunning);
+			
+		}
 		
 		public static IEnumerator PreviewDither()
 		{
@@ -1870,7 +1909,7 @@ public static class GenerativeManager
 			{
 				yield break;
 			}*/
-			
+			makeCliffsRunning = true;
 			Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
 			List<GeologyItem> oddsList = OddsList(geo.geologyItems);
 			int selection;
@@ -2066,11 +2105,12 @@ public static class GenerativeManager
 			{
 				Debug.LogError(cullcount + " prefabs culled");
 			}
+			makeCliffsRunning = false;
 		}
 		
 		public static IEnumerator MakeCliffMap(GeologyPreset geo)
 		{
-			
+			makeCliffMapRunning = true;
 			TerrainManager.UpdateHeightCache();
 		
 			int odds = 0;
@@ -2105,8 +2145,7 @@ public static class GenerativeManager
 			float[,,] tier1 = TerrainManager.Topology[27];
 			float[,,] tier2 = TerrainManager.Topology[28];
 			float[,,] mainland = TerrainManager.Topology[29];
-			float[,,] hilltop = TerrainManager.Topology[30];
-			
+			float[,,] hilltop = TerrainManager.Topology[30];			
 			float[,,] biomeMap = TerrainManager.Biome;
 
 			int resRatio = (int)( TerrainManager.HeightMapRes / TerrainManager.SplatMapRes);
@@ -2121,15 +2160,13 @@ public static class GenerativeManager
 					for (int j = 0; j < TerrainManager.HeightMapRes-1; j++)
 					{
 						heightOut[i,j] = (TerrainManager.Height[i,j] - 2f) / 1000f;
-						if(RandomTS.Next(geo.density) == 1)
+						if(RandomTS.Next(geo.frequency) == 1)
 							{
 							
 							if (
-								
-									(TerrainManager.Height[i,j] >= geo.heights.heightMin * 1000f && TerrainManager.Height[i,j]-1 <= geo.heights.heightMax * 1000f)									
-									&& ((TerrainManager.Slope[i,j] * geo.heights.slopeWeight >= geo.heights.slopeLow && TerrainManager.Slope[i,j]-1 * geo.heights.slopeWeight <= geo.heights.slopeHigh)
-										|| (TerrainManager.Curvature[i,j] * geo.heights.curveWeight >= geo.heights.curveMin && TerrainManager.Curvature[i,j] * geo.heights.curveWeight <= geo.heights.curveMax))
-																
+									(geo.heightRange && (TerrainManager.Height[i,j] >= geo.heights.heightMin * 1000f && TerrainManager.Height[i,j]-1 <= geo.heights.heightMax * 1000f))						
+									&&((geo.slopeRange && (TerrainManager.Slope[i,j]*(geo.density / 100f) >= geo.heights.slopeLow && TerrainManager.Slope[i,j]*(geo.density / 100f) <= geo.heights.slopeHigh))
+									||(geo.curveRange && (TerrainManager.Curvature[i,j] * geo.heights.curveWeight >= geo.heights.curveMin && TerrainManager.Curvature[i,j] * geo.heights.curveWeight <= geo.heights.curveMax)))		
 									&&(field[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Field)) 
 									&&(cliff[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Cliff))
 									&&(summit[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Summit)) 
@@ -2204,9 +2241,10 @@ public static class GenerativeManager
 				{
 					TerrainManager.SetCliffMap(spawnMap);
 					TerrainManager.SetLandMask(heightOut);
+					makeCliffMapRunning = false;
 				}
 				else
-				{ yield return null; }
+				{ makeCliffMapRunning = false; yield return null; }
 		}
 		
 

@@ -1901,13 +1901,30 @@ namespace RustMapEditor.UI
 							if (EditorGUI.EndChangeCheck() && !activePreset.preview)
 							{ TerrainManager.HideLandMask(); }
 							
-							HeightSelect(ref activePreset.heights);
-							
+							HeightSelect(ref activePreset.heights, ref activePreset.heightRange, ref activePreset.slopeRange, ref activePreset.curveRange);
+							if (GUILayout.Button("import legacy placements"))
+							{
+								activePreset.heightRange = true;
+								activePreset.slopeRange = true;
+								activePreset.curveRange = false;
+								activePreset.jitterLow.y = activePreset.zOffset;
+								activePreset.jitterHigh.y = activePreset.zOffset;
+								activePreset.heights.slopeLow = activePreset.slopeLow;
+								activePreset.heights.slopeHigh = activePreset.slopeHigh;
+								activePreset.heights.heightMin = activePreset.floor / 1000f;
+								activePreset.heights.heightMax = activePreset.ceiling / 1000f;
+								
+								
+							}
 							EditorGUILayout.BeginHorizontal();
-							GUILayout.Label("Balance ", EditorStyles.boldLabel,GUILayout.MaxWidth(50));	
-							activePreset.balance = GUILayout.HorizontalSlider(activePreset.balance, 0f, 1f);
-							GUILayout.Label("Density ", EditorStyles.boldLabel,GUILayout.MaxWidth(50));	
-							activePreset.density = (int)GUILayout.HorizontalSlider(activePreset.density, 1600f, 30f);
+							//GUILayout.Label("Balance ", EditorStyles.boldLabel,GUILayout.MaxWidth(50));	
+							//activePreset.balance = GUILayout.HorizontalSlider(activePreset.balance, 0f, 1f);
+							
+							GUILayout.Label("Spawn Frequency", EditorStyles.boldLabel,GUILayout.MaxWidth(110));	
+							activePreset.frequency = (int)GUILayout.HorizontalSlider(activePreset.frequency, 0f, 2000f);
+							
+							GUILayout.Label("Slope Scale", EditorStyles.boldLabel,GUILayout.MaxWidth(75));	
+							activePreset.density = (int)GUILayout.HorizontalSlider(activePreset.density, 0f, 200f);
 							EditorGUILayout.EndHorizontal();
 							
 							EditorGUILayout.BeginHorizontal();							
@@ -1938,14 +1955,14 @@ namespace RustMapEditor.UI
 							//mixed these up and relabeled
 							EditorGUILayout.BeginHorizontal();
 							EditorGUILayout.LabelField("x",GUILayout.MaxWidth(10));
-							EditorGUILayout.MinMaxSlider(ref activePreset.jitterLow.y, ref activePreset.jitterHigh.y, -8f, 8f);
-							EditorGUILayout.LabelField(activePreset.jitterLow.y.ToString("0.#") + " - " + activePreset.jitterHigh.y.ToString("0.#") ,GUILayout.MaxWidth(80));
+							EditorGUILayout.MinMaxSlider(ref activePreset.jitterLow.x, ref activePreset.jitterHigh.x, -8f, 8f);
+							EditorGUILayout.LabelField(activePreset.jitterLow.x.ToString("0.#") + " - " + activePreset.jitterHigh.x.ToString("0.#") ,GUILayout.MaxWidth(80));
 							EditorGUILayout.EndHorizontal();
 							
 							EditorGUILayout.BeginHorizontal();
 							EditorGUILayout.LabelField("y",GUILayout.MaxWidth(10));
-							EditorGUILayout.MinMaxSlider(ref activePreset.jitterLow.x, ref activePreset.jitterHigh.x, -8f, 8f);
-							EditorGUILayout.LabelField(activePreset.jitterLow.x.ToString("0.#") + " - " + activePreset.jitterHigh.x.ToString("0.#") ,GUILayout.MaxWidth(80));
+							EditorGUILayout.MinMaxSlider(ref activePreset.jitterLow.y, ref activePreset.jitterHigh.y, -8f, 8f);
+							EditorGUILayout.LabelField(activePreset.jitterLow.y.ToString("0.#") + " - " + activePreset.jitterHigh.y.ToString("0.#") ,GUILayout.MaxWidth(80));
 							EditorGUILayout.EndHorizontal();
 							
 							EditorGUILayout.BeginHorizontal();
@@ -2055,10 +2072,7 @@ namespace RustMapEditor.UI
 						}
 					if (GUILayout.Button("Apply"))
 						{
-							if(TerrainManager.SpawnMap == null || !activePreset.preview)
-							{ GenerativeManager.MakeCliffMap(activePreset); }
-							
-							GenerativeManager.MakeCliffs(activePreset);
+							GenerativeManager.ApplyGeologyPreset(activePreset);
 
 							SettingsManager.geology = activePreset;
 						}
@@ -2068,7 +2082,7 @@ namespace RustMapEditor.UI
 					DrawHorizontalGUILine(); 
 					
 					EditorGUI.BeginChangeCheck();
-						macroIndex = EditorGUILayout.Popup("Multi Preset list:", macroIndex, macroList);
+						macroIndex = EditorGUILayout.Popup("Template list:", macroIndex, macroList);
 					
 					
 					GUILayout.Label(macroDisplay, EditorStyles.boldLabel);
@@ -2097,12 +2111,7 @@ namespace RustMapEditor.UI
 
 					if (GUILayout.Button("Apply"))
 						{
-							foreach (GeologyPreset pre in SettingsManager.macro)
-							{
-								GenerativeManager.MakeCliffMap(pre);
-								GenerativeManager.MakeCliffs(pre);
-
-							}
+							GenerativeManager.ApplyGeologyTemplate();
 						}
 					EditorGUILayout.EndHorizontal();
 					SettingsManager.macroSources = EditorGUILayout.ToggleLeft("Use source files", SettingsManager.macroSources);
@@ -2293,29 +2302,32 @@ namespace RustMapEditor.UI
             Elements.EndToolbarHorizontal();
         }
 	   
-		public static void HeightSelect(ref HeightSelector heights)
-		{
-							EditorGUILayout.BeginHorizontal();
-                            GUILayout.Label("Height Range: " + heights.heightMin.ToString("0.0#") + " - " + heights.heightMax.ToString("0.0#"));
+		public static void HeightSelect(ref HeightSelector heights, ref bool heightRange, ref bool slopeRange, ref bool curveRange)
+		{							
+							EditorGUILayout.BeginHorizontal();                            
+							heightRange = EditorGUILayout.ToggleLeft("Height Range: ", heightRange, GUILayout.MaxWidth(100));
+							GUILayout.Label( heights.heightMin.ToString("0.0#") + " - " + heights.heightMax.ToString("0.0#") );
                             EditorGUILayout.EndHorizontal();
 							
 							EditorGUILayout.MinMaxSlider(ref heights.heightMin, ref heights.heightMax, 0f, 1f);
 						
                             EditorGUILayout.BeginHorizontal();
-                            GUILayout.Label("Slope Range: " + heights.slopeLow.ToString("0.0#") + " - " + heights.slopeHigh.ToString("0.0#"));
+							slopeRange = EditorGUILayout.ToggleLeft("Slope Range: ", slopeRange, GUILayout.MaxWidth(100));
+                            GUILayout.Label(heights.slopeLow.ToString("0.0#") + " - " + heights.slopeHigh.ToString("0.0#"));
 							EditorGUILayout.LabelField("Weight",GUILayout.MaxWidth(50));
-							heights.slopeWeight = GUILayout.HorizontalSlider(heights.slopeWeight, 0f, 25f);
+							//heights.slopeWeight = GUILayout.HorizontalSlider(heights.slopeWeight, 0f, 25f);
                             EditorGUILayout.EndHorizontal();
 							
                             EditorGUILayout.MinMaxSlider(ref heights.slopeLow, ref heights.slopeHigh, 0f, 180f);
 							
 							EditorGUILayout.BeginHorizontal();
-                            GUILayout.Label("Curvature Range: " + heights.curveMin.ToString("0.0#") + " - " + heights.curveMax.ToString("0.0#"));
+							curveRange = EditorGUILayout.ToggleLeft("Curve Range: ", curveRange, GUILayout.MaxWidth(100));
+                            GUILayout.Label(heights.curveMin.ToString("0.0#") + " - " + heights.curveMax.ToString("0.0#"));
 							EditorGUILayout.LabelField("Weight",GUILayout.MaxWidth(50));
-							heights.curveWeight = GUILayout.HorizontalSlider(heights.curveWeight, 0f, 25f);
+							//heights.curveWeight = GUILayout.HorizontalSlider(heights.curveWeight, 0f, 25f);
                             EditorGUILayout.EndHorizontal();
 							
-                            EditorGUILayout.MinMaxSlider(ref heights.curveMin, ref heights.curveMax, -70f, 70f);
+                            EditorGUILayout.MinMaxSlider(ref heights.curveMin, ref heights.curveMax, -2f, 2f);
 		}
 
 	   

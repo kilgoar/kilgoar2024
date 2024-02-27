@@ -638,6 +638,11 @@ namespace RustMapEditor.Variables
 	[Serializable]
 	public struct GeologyPreset
 	{
+				//zoffset corresponds to jitterLow.y and jitterHigh.y
+				//avoidTopo corresponds to all topologies true except monument and road
+				//biomeexclusive sets all to true except biomelayer
+				//
+				
 				public List<GeologyItem> geologyItems;
 				public List<GeologyCollisions> geologyCollisions;
 				public GeologyCollisions newCollisions;
@@ -651,13 +656,13 @@ namespace RustMapEditor.Variables
 				
 				
 				public ColliderLayer colliderLayer, closeColliderLayer;
-				public bool avoidTopo, flipping, tilting, normalizeX, normalizeY, normalizeZ, biomeExclusive, cliffTest, overlap, closeOverlap, temperate, arid, arctic, tundra, road, monument, dither, useSeed; 
+				public bool avoidTopo, flipping, tilting, normalizeX, normalizeY, normalizeZ, biomeExclusive, cliffTest, overlap, closeOverlap, temperate, arid, arctic, tundra, road, monument, dither, useSeed, slopeRange, curveRange, heightRange; 
 				
 				public bool featureMenu, rotationMenu, scaleMenu, placementMenu, collisionMenu, presetMenu, jitterMenu, preview;
 				
 				public Vector3 scalesLow, scalesHigh, rotationsLow, rotationsHigh, jitterLow, jitterHigh;
 				public float zOffset, colliderDistance, closeColliderDistance, balance;
-				
+				public float slopeLow, slopeHigh; //legacy
 				public HeightSelector heights;
 				public Topologies topologies;
 				

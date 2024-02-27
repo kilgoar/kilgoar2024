@@ -1,0 +1,115 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3548275561,
+            "emphasis": 1
+        }
+    ],
+    "geologyCollisions": [
+        {
+            "minMax": true,
+            "radius": 20.0,
+            "layer": 256
+        },
+        {
+            "minMax": true,
+            "radius": 20.0,
+            "layer": 512
+        }
+    ],
+    "newCollisions": {
+        "minMax": true,
+        "radius": 50.0,
+        "layer": 256
+    },
+    "filename": "Presets/Geology/Martian-OverhangRocks.json",
+    "title": "Martian-OverhangRocks",
+    "density": 2000,
+    "frequency": 50,
+    "floor": 505,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "seed": 0,
+    "spawns": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": true,
+    "normalizeY": true,
+    "normalizeZ": true,
+    "biomeExclusive": true,
+    "cliffTest": false,
+    "overlap": false,
+    "closeOverlap": false,
+    "temperate": true,
+    "arid": true,
+    "arctic": false,
+    "tundra": false,
+    "road": false,
+    "monument": false,
+    "dither": false,
+    "useSeed": false,
+    "slopeRange": true,
+    "curveRange": false,
+    "heightRange": true,
+    "featureMenu": true,
+    "rotationMenu": false,
+    "scaleMenu": false,
+    "placementMenu": true,
+    "collisionMenu": true,
+    "presetMenu": true,
+    "jitterMenu": false,
+    "preview": true,
+    "scalesLow": {
+        "x": 1.0326086282730103,
+        "y": 1.0326087474822999,
+        "z": 1.0326083898544312
+    },
+    "scalesHigh": {
+        "x": 1.0326086282730103,
+        "y": 1.0326087474822999,
+        "z": 1.0326083898544312
+    },
+    "rotationsLow": {
+        "x": 89.49152374267578,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 90.84745788574219,
+        "y": 360.0,
+        "z": 0.0
+    },
+    "jitterLow": {
+        "x": 0.0,
+        "y": -0.15000000596046449,
+        "z": 0.0
+    },
+    "jitterHigh": {
+        "x": 0.0,
+        "y": -0.15000000596046449,
+        "z": 0.0
+    },
+    "zOffset": -0.15000000596046449,
+    "colliderDistance": 0.0,
+    "closeColliderDistance": 0.0,
+    "balance": 0.0,
+    "slopeLow": 0.0,
+    "slopeHigh": 0.0,
+    "heights": {
+        "slopeLow": 0.0,
+        "slopeHigh": 58.227848052978519,
+        "heightMin": 0.5049999952316284,
+        "heightMax": 1.0,
+        "curveMin": -39.74763107299805,
+        "curveMax": 50.12617874145508,
+        "slopeWeight": 0.0,
+        "curveWeight": 0.0
+    },
+    "topologies": 18
+}
