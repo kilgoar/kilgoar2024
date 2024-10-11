@@ -1,0 +1,115 @@
+{
+    "geologyItems": [
+        {
+            "customPrefab": "",
+            "custom": false,
+            "prefabID": 3548275561,
+            "emphasis": 1
+        }
+    ],
+    "geologyCollisions": [
+        {
+            "minMax": true,
+            "radius": 10.0,
+            "layer": 256
+        },
+        {
+            "minMax": true,
+            "radius": 40.0,
+            "layer": 512
+        }
+    ],
+    "newCollisions": {
+        "minMax": true,
+        "radius": 50.0,
+        "layer": 256
+    },
+    "filename": "Presets/Geology/mars overhang rocks.json",
+    "title": "mars overhang rocks",
+    "density": 132,
+    "frequency": 96,
+    "floor": 505,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "seed": 0,
+    "spawns": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": true,
+    "normalizeZ": false,
+    "biomeExclusive": true,
+    "cliffTest": true,
+    "overlap": false,
+    "closeOverlap": false,
+    "temperate": false,
+    "arid": true,
+    "arctic": true,
+    "tundra": true,
+    "road": false,
+    "monument": false,
+    "dither": false,
+    "useSeed": false,
+    "slopeRange": true,
+    "curveRange": false,
+    "heightRange": true,
+    "featureMenu": true,
+    "rotationMenu": true,
+    "scaleMenu": false,
+    "placementMenu": true,
+    "collisionMenu": true,
+    "presetMenu": true,
+    "jitterMenu": true,
+    "preview": true,
+    "scalesLow": {
+        "x": 1.0326086282730103,
+        "y": 1.0326087474822999,
+        "z": 1.0326083898544312
+    },
+    "scalesHigh": {
+        "x": 1.0326086282730103,
+        "y": 1.0326087474822999,
+        "z": 1.0326083898544312
+    },
+    "rotationsLow": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "rotationsHigh": {
+        "x": 0.0,
+        "y": 3.5880398750305177,
+        "z": 0.0
+    },
+    "jitterLow": {
+        "x": -6.033222675323486,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "jitterHigh": {
+        "x": -5.475083351135254,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "zOffset": -0.15000000596046449,
+    "colliderDistance": 0.0,
+    "closeColliderDistance": 0.0,
+    "balance": 0.0,
+    "slopeLow": 0.0,
+    "slopeHigh": 0.0,
+    "heights": {
+        "slopeLow": 13.945808410644532,
+        "slopeHigh": 147.50717163085938,
+        "heightMin": 0.5049999952316284,
+        "heightMax": 1.0,
+        "curveMin": -2.0,
+        "curveMax": 2.0,
+        "slopeWeight": 0.0,
+        "curveWeight": 0.0
+    },
+    "topologies": 2147480575
+}

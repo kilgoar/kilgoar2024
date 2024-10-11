@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+#if UNITY_EDITOR
 using Unity.EditorCoroutines.Editor;
 using UnityEditor;
+#endif
 using UnityEngine;
 
 public static class AssetManager
 {
+	#if UNITY_EDITOR
 	#region Init
 	[InitializeOnLoadMethod]
 	private static void Init()
@@ -20,10 +23,17 @@ public static class AssetManager
 	{
 		EditorApplication.update -= OnProjectLoad;
 		if (!IsInitialised && SettingsManager.LoadBundleOnLaunch)
-			Initialise(SettingsManager.RustDirectory + SettingsManager.BundlePathExt);
+			Initialise(SettingsManager.application.rustDirectory + SettingsManager.BundlePathExt);
 	}
 	#endregion
-
+	#endif
+	
+	public static void RuntimeInit()
+	{
+		if (!IsInitialised && SettingsManager.application.loadbundleonlaunch)
+			Initialise(SettingsManager.application.rustDirectory + SettingsManager.BundlePathExt);
+	}
+	
 	public static class Callbacks
     {
 		public delegate void Bundle();
@@ -59,25 +69,8 @@ public static class AssetManager
 
 	public static bool IsInitialised { get; private set; }
 
-	/// <summary>Loads the Rust bundles into memory.</summary>
-	/// <param name="bundlesRoot">The file path to the Rust bundles file.</param>
-	public static void Initialise(string bundlesRoot)
-	{
-		if (!Coroutines.IsInitialising && !IsInitialised)
-			EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.Initialise(bundlesRoot));
-		if (IsInitialised)
-			Debug.Log("Bundles already loaded.");
-	}
 
-	/// <summary>Loads the Rust bundles at the currently set directory.</summary>
-	public static void Initialise() => Initialise(SettingsManager.RustDirectory + SettingsManager.BundlePathExt);
-
-	public static void Dispose()
-	{
-		if (!Coroutines.IsInitialising && IsInitialised)
-			EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.Dispose());
-	}
-
+	
 	private static T GetAsset<T>(string filePath) where T : Object
 	{
 		if (!BundleLookup.TryGetValue(filePath, out AssetBundle bundle))
@@ -85,6 +78,45 @@ public static class AssetManager
 
 		return bundle.LoadAsset<T>(filePath);
 	}
+	
+	#if UNITY_EDITOR
+	public static void Initialise(string bundlesRoot)
+	{
+		/// <summary>Loads the Rust bundles into memory.</summary>
+		/// <param name="bundlesRoot">The file path to the Rust bundles file.</param>
+		if (!Coroutines.IsInitialising && !IsInitialised)
+			EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.Initialise(bundlesRoot));
+		if (IsInitialised)
+			Debug.Log("Bundles already loaded.");
+	}
+
+	/// <summary>Loads the Rust bundles at the currently set directory.</summary>
+	public static void Initialise() => Initialise(SettingsManager.application.rustDirectory + SettingsManager.BundlePathExt);
+
+	public static void Dispose()
+	{
+		if (!Coroutines.IsInitialising && IsInitialised)
+			EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.Dispose());
+	}
+	#else
+	
+	public static void Initialise(string bundlesRoot)
+	{
+		if (!Coroutines.IsInitialising && !IsInitialised)
+			CoroutineManager.Instance.StartCoroutine(Coroutines.Initialise(bundlesRoot));
+		if (IsInitialised)
+			Debug.Log("Bundles already loaded.");
+	}
+
+	/// <summary>Loads the Rust bundles at the currently set directory.</summary>
+	public static void Initialise() => Initialise(SettingsManager.application.rustDirectory + SettingsManager.BundlePathExt);
+
+	public static void Dispose()
+	{
+		if (!Coroutines.IsInitialising && IsInitialised)
+			CoroutineManager.Instance.StartCoroutine(Coroutines.Dispose());
+	}
+	#endif
 
     public static T LoadAsset<T>(string filePath) where T : Object
 	{
@@ -125,6 +157,7 @@ public static class AssetManager
 	/// <summary>Returns a preview image of the asset located at the filepath. Caches the results.</summary>
 	public static Texture2D GetPreview(string filePath)
     {
+		#if UNITY_EDITOR
 		if (PreviewCache.TryGetValue(filePath, out Texture2D preview))
 			return preview;
         else
@@ -139,6 +172,9 @@ public static class AssetManager
 			prefab.SetActive(false);
 			return tex;
         }
+		#else
+		return new Texture2D(60, 60);
+		#endif
     }
 
 	//i can't make this work
@@ -530,6 +566,7 @@ public static class AssetManager
 			return num;
 		return 0;
 	}
+	
 
 	private static class Coroutines
     {
@@ -538,6 +575,7 @@ public static class AssetManager
 		public static IEnumerator Initialise(string bundlesRoot)
 		{
 			IsInitialising = true;
+			#if UNITY_EDITOR
 			ProgressManager.RemoveProgressBars("Asset Bundles");
 
 			int progressID = Progress.Start("Load Asset Bundles", null, Progress.Options.Sticky);
@@ -547,8 +585,10 @@ public static class AssetManager
 			Progress.Report(bundleID, 0f);
 			Progress.Report(materialID, 0f);
 			Progress.Report(prefabID, 0f);
-
+			
+			
 			yield return EditorCoroutineUtility.StartCoroutineOwnerless(LoadBundles(bundlesRoot, (progressID, bundleID, materialID)));
+			
 			if (!IsInitialising)
             {
 				Progress.Finish(bundleID, Progress.Status.Failed);
@@ -558,32 +598,51 @@ public static class AssetManager
 			}
 			yield return EditorCoroutineUtility.StartCoroutineOwnerless(SetBundleReferences((progressID, bundleID)));
 			yield return EditorCoroutineUtility.StartCoroutineOwnerless(SetMaterials(materialID));
+			
+			#else
+			yield return CoroutineManager.Instance.StartRuntimeCoroutine(LoadBundles(bundlesRoot, (0, 0, 0)));
+			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetBundleReferences((0, 0)));
+			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetMaterials(0));
+			#endif
+			
 
 			IsInitialised = true; IsInitialising = false;
 			SetVolumeGizmos();
 			//SetVolumesCache();
 			Callbacks.OnBundlesLoaded();
+			#if UNITY_EDITOR
 			PrefabManager.ReplaceWithLoaded(PrefabManager.CurrentMapPrefabs, prefabID);
+			#else
+			PrefabManager.ReplaceWithLoaded(PrefabManager.CurrentMapPrefabs, 0);
+			#endif
 		}
 
 		public static IEnumerator Dispose() 
 		{
 			IsInitialising = true;
 			ProgressManager.RemoveProgressBars("Unload Asset Bundles");
-
+			
+			#if UNITY_EDITOR
 			int progressID = Progress.Start("Unload Asset Bundles", null, Progress.Options.Sticky);
 			int bundleID = Progress.Start("Bundles", null, Progress.Options.Sticky, progressID);
 			int prefabID = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
 			Progress.Report(bundleID, 0f);
 			Progress.Report(prefabID, 0f);
 			PrefabManager.ReplaceWithDefault(PrefabManager.CurrentMapPrefabs, prefabID);
+			#else
+			PrefabManager.ReplaceWithDefault(PrefabManager.CurrentMapPrefabs, 0);
+			#endif
+			
+			
 
 			while (PrefabManager.IsChangingPrefabs)
 				yield return null;
 
 			for (int i = 0; i < BundleCache.Count; i++)
             {
+				#if UNITY_EDITOR
 				Progress.Report(bundleID, (float)i / BundleCache.Count, "Unloading: " + BundleCache.ElementAt(i).Key);
+				#endif
 				BundleCache.ElementAt(i).Value.Unload(true);
 				yield return null;
             }
@@ -592,24 +651,27 @@ public static class AssetManager
 			BundleLookup.Clear();
 			BundleCache.Clear();
 			AssetCache.Clear();
-
+			
+			#if Unity_editor
 			Progress.Report(bundleID, 0.99f, "Unloaded: " + bundleCount + " bundles.");
 			Progress.Finish(bundleID, Progress.Status.Succeeded);
+			#endif
+			
 			IsInitialised = false; IsInitialising = false;
 		}
 
 		public static IEnumerator LoadBundles(string bundleRoot, (int progress, int bundle, int material) ID)
         {
-			if (!Directory.Exists(SettingsManager.RustDirectory))
+			if (!Directory.Exists(SettingsManager.application.rustDirectory))
 			{
 				Debug.LogError("Directory does not exist: " + bundleRoot);
 				IsInitialising = false;
 				yield break;
 			}
 
-			if (!SettingsManager.RustDirectory.EndsWith("Rust") && !SettingsManager.RustDirectory.EndsWith("RustStaging"))
+			if (!SettingsManager.application.rustDirectory.EndsWith("Rust") && !SettingsManager.application.rustDirectory.EndsWith("RustStaging"))
 			{
-				Debug.LogError("Not a valid Rust install directory: " + SettingsManager.RustDirectory);
+				Debug.LogError("Not a valid Rust install directory: " + SettingsManager.application.rustDirectory);
 				IsInitialising = false;
 				yield break;
 			}
@@ -635,7 +697,9 @@ public static class AssetManager
 
 			for (int i = 0; i < bundles.Length; i++)
 			{
+				#if UNITY_EDITOR
 				Progress.Report(ID.bundle, (float)i / bundles.Length, "Loading: " + bundles[i]);
+				#endif
 				var bundlePath = Path.GetDirectoryName(bundleRoot) + Path.DirectorySeparatorChar + bundles[i];
 				if (File.Exists(bundlePath)) 
 				{
@@ -681,16 +745,20 @@ public static class AssetManager
 					}
 				}
 			}
-
+			
+			#if UNITY_EDITOR
 			Progress.Report(ID.bundle, 0.99f, "Loaded " + BundleCache.Count + " bundles.");
 			Progress.Finish(ID.bundle, Progress.Status.Succeeded);
+			#endif
 
 			Manifest = GetAsset<GameManifest>(ManifestPath);
 			if (Manifest == null)
 			{
 				Debug.LogError("Couldn't load GameManifest.");
 				Dispose();
+				#if UNITY_EDITOR
 				Progress.Finish(ID.parent, Progress.Status.Failed);
+				#endif
 				yield break;
 			}
 
@@ -735,6 +803,7 @@ public static class AssetManager
 					if (ToID(Manifest.pooledStrings[i].str) != 0)
 						AssetPaths.Add(Manifest.pooledStrings[i].str);
 				}
+				
 				AssetDump();
 			});
 			while (!setLookups.IsCompleted)
@@ -759,7 +828,9 @@ public static class AssetManager
 					var lineSplit = materials[i].Split(':');
 					lineSplit[0] = lineSplit[0].Trim(' '); // Shader Name
 					lineSplit[1] = lineSplit[1].Trim(' '); // Material Path
+					#if UNITY_EDITOR
 					Progress.Report(materialID, (float)i / materials.Length, "Setting: " + lineSplit[1]);
+					#endif
 					switch (lineSplit[0])
 					{
 						case "Standard":
@@ -769,7 +840,11 @@ public static class AssetManager
 								Debug.LogWarning(lineSplit[1] + " is not a valid asset.");
 								break;
                             }
+							#if UNITY_EDITOR
 							EditorCoroutineUtility.StartCoroutineOwnerless(UpdateShader(matStd, std));
+							#else
+							CoroutineManager.Instance.StartRuntimeCoroutine(UpdateShader(matStd, std));	
+							#endif
 							break;
 
 						case "Specular":
@@ -779,7 +854,11 @@ public static class AssetManager
 								Debug.LogWarning(lineSplit[1] + " is not a valid asset.");
 								break;
 							}
+							#if UNITY_EDITOR
 							EditorCoroutineUtility.StartCoroutineOwnerless(UpdateShader(matSpc, spc));
+							#else
+							CoroutineManager.Instance.StartRuntimeCoroutine(UpdateShader(matSpc, spc));
+							#endif
 							break;
 
 						case "Foliage":
@@ -798,8 +877,10 @@ public static class AssetManager
 					}
 					yield return null;
 				}
+				#if UNITY_EDITOR
 				Progress.Report(materialID, 0.99f, "Set " + materials.Length + " materials.");
 				Progress.Finish(materialID, Progress.Status.Succeeded);
+				#endif
 			}
 		}
 

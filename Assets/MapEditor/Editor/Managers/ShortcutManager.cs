@@ -16,7 +16,7 @@ public static class ShortcutManager
     public static void NewMap() => Functions.NewMapPanel();
 
     [Shortcut("RustMapEditor/Centre Scene View")]
-    public static void CentreSceneView() => SceneManager.CentreSceneView(SceneView.lastActiveSceneView);
+    public static void CentreSceneView() => SceneController.CentreSceneView(SceneView.lastActiveSceneView);
 
     [Shortcut("RustMapEditor/Clear Map Prefabs")]
     public static void ClearMapPrefabs() => PrefabManager.DeletePrefabs(PrefabManager.CurrentMapPrefabs);
@@ -49,10 +49,10 @@ public static class ShortcutManager
     public static void SelectScaleTool() => ToolManager.SetActiveTool(typeof(ScaleToolCentred));
 
     [Shortcut("RustMapEditor/Enable Hide Flags")]
-    public static void EnableHideFlags() => SceneManager.ToggleHideFlags(true);
+    public static void EnableHideFlags() => SceneController.ToggleHideFlags(true);
 
     [Shortcut("RustMapEditor/Disable Hide Flags")]
-    public static void DisableHideFlags() => SceneManager.ToggleHideFlags(false);
+    public static void DisableHideFlags() => SceneController.ToggleHideFlags(false);
 
     [Shortcut("RustMapEditor/Main Menu"), MenuItem("Rust Map Editor/Main Menu", false, -1)]
     public static void OpenMainMenu() => EditorWindow.GetWindow(typeof(MapManagerWindow), false, "Rust Map Editor");

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using ProtoBuf;
 using LZ4;
+
 using RustMapEditor.Variables;
 
 public class BreakerSerialization
@@ -42,7 +43,6 @@ public class BreakerSerialization
                     
                     using (var compressionStream = new LZ4Stream(fileStream, LZ4StreamMode.Decompress))
 					{
-						
 						breaker = Serializer.Deserialize<BreakerPreset>(compressionStream);
 						return breaker;
 					}
@@ -325,8 +325,9 @@ public class WorldSerialization
 
     public MapData GetMap(string name)
     {
-        for (int i = 0; i < world.maps.Count; i++)
+        for (int i = 0; i < world.maps.Count; i++){
             if (world.maps[i].name == name) return world.maps[i];
+		}
         return null;
     }
 
@@ -446,24 +447,25 @@ public class WorldSerialization
 
     public void Load(string fileName)
     {
-        try
+		
+		try
         {
-            using (var fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+		    using (var fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                using (var binaryReader = new BinaryReader(fileStream))
+				
+				using (var binaryReader = new BinaryReader(fileStream))
                 {
                     Version = binaryReader.ReadUInt32();
 
                     if (Version != CurrentVersion)
-                        Debug.LogWarning("Map Version is: " + Version + " whilst Rust is on: " + CurrentVersion);
-
-                    using (var compressionStream = new LZ4Stream(fileStream, LZ4StreamMode.Decompress))
+						Debug.LogError("wrong version");
+					
+					using (var compressionStream = new LZ4Stream(fileStream, LZ4StreamMode.Decompress))
 					{
-						
 						world = Serializer.Deserialize<WorldData>(compressionStream);
-						
 					}
-				
+					
+					
                 }
             }
         }

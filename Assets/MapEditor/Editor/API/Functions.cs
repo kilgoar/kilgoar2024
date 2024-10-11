@@ -14,7 +14,8 @@ namespace RustMapEditor.UI
     {
         #region MainMenu
 
-
+		
+		
         public static void LoadMap()
         {
             if (Elements.ToolbarButton(ToolTips.loadMap))
@@ -82,7 +83,9 @@ namespace RustMapEditor.UI
             Elements.BoldLabel(ToolTips.editorSettingsLabel);
 
 			EditorGUI.BeginChangeCheck();
-				SettingsManager.style = EditorGUILayout.ToggleLeft(new GUIContent("Ingame Textures"), SettingsManager.style);
+				FilePreset fileSettings = SettingsManager.application; 
+				fileSettings.terrainTextureSet = EditorGUILayout.ToggleLeft(new GUIContent("Ingame Textures"), fileSettings.terrainTextureSet);
+				SettingsManager.application = fileSettings;
 			if (EditorGUI.EndChangeCheck())
 			{
 				TerrainManager.SetTerrainLayers();
@@ -119,7 +122,7 @@ namespace RustMapEditor.UI
             SettingsManager.PathRenderDistance = Elements.ToolbarSlider(ToolTips.pathRenderDistance, SettingsManager.PathRenderDistance, 0, 5000f);
 
             if (EditorGUI.EndChangeCheck())
-                SceneManager.SetCullingDistances(SceneView.GetAllSceneCameras(), SettingsManager.PrefabRenderDistance, SettingsManager.PathRenderDistance);
+                SceneController.SetCullingDistances(SceneView.GetAllSceneCameras(), SettingsManager.PrefabRenderDistance, SettingsManager.PathRenderDistance);
 
             EditorGUI.BeginChangeCheck();
             SettingsManager.WaterTransparency = Elements.ToolbarSlider(ToolTips.waterTransparency, SettingsManager.WaterTransparency, 0f, 0.5f);
@@ -138,6 +141,11 @@ namespace RustMapEditor.UI
             if (Elements.ToolbarButton(ToolTips.defaultSettings))
                 SettingsManager.SetDefaultSettings();
             Elements.EndToolbarHorizontal();
+			
+			if (GUILayout.Button("Asset Dump"))
+					{
+						AssetManager.AssetDump();
+					}
 
         }
         #endregion
@@ -857,7 +865,7 @@ namespace RustMapEditor.UI
                         SaveMapPanel();
                         break;
                 }
-                MapManager.CreateMap(mapSize, TerrainSplat.TypeToIndex((int)layers.Ground), TerrainBiome.TypeToIndex((int)layers.Biome), landHeight);
+                MapManager.CreateMap(mapSize, layers.Ground, layers.Biome, landHeight);
             }
             if (Elements.ToolbarButton(ToolTips.cancel))
                 window.Close();
@@ -1763,11 +1771,13 @@ namespace RustMapEditor.UI
 								if (GUILayout.Button("Add"))
 								{
 									string directory = geologyItem.customPrefab;
+									Debug.LogError(directory);
 									if (geologyItem.custom)
 									{	
 										
 										foreach(string filename in SettingsManager.GetPresetTitles(directory))
 										{
+											Debug.LogError(filename);
 											geologyItem.customPrefab = "Custom/" + filename + ".prefab";
 											activePreset.geologyItems.Add(new GeologyItem(geologyItem));
 										}
@@ -1793,6 +1803,7 @@ namespace RustMapEditor.UI
 							if (EditorGUI.EndChangeCheck())
 								{
 									geologyItem.customPrefab = customPrefabList[customPrefabIndex];
+									Debug.LogError(geologyItem.customPrefab);
 								}
 							
 							geologyItem.emphasis = EditorGUILayout.IntField("Weight", geologyItem.emphasis);
@@ -1954,13 +1965,13 @@ namespace RustMapEditor.UI
 							
 							//mixed these up and relabeled
 							EditorGUILayout.BeginHorizontal();
-							EditorGUILayout.LabelField("x",GUILayout.MaxWidth(10));
+							EditorGUILayout.LabelField("y",GUILayout.MaxWidth(10));
 							EditorGUILayout.MinMaxSlider(ref activePreset.jitterLow.x, ref activePreset.jitterHigh.x, -8f, 8f);
 							EditorGUILayout.LabelField(activePreset.jitterLow.x.ToString("0.#") + " - " + activePreset.jitterHigh.x.ToString("0.#") ,GUILayout.MaxWidth(80));
 							EditorGUILayout.EndHorizontal();
 							
 							EditorGUILayout.BeginHorizontal();
-							EditorGUILayout.LabelField("y",GUILayout.MaxWidth(10));
+							EditorGUILayout.LabelField("x",GUILayout.MaxWidth(10));
 							EditorGUILayout.MinMaxSlider(ref activePreset.jitterLow.y, ref activePreset.jitterHigh.y, -8f, 8f);
 							EditorGUILayout.LabelField(activePreset.jitterLow.y.ToString("0.#") + " - " + activePreset.jitterHigh.y.ToString("0.#") ,GUILayout.MaxWidth(80));
 							EditorGUILayout.EndHorizontal();
@@ -2254,7 +2265,7 @@ namespace RustMapEditor.UI
                         SaveMapPanel();
                         break;
                 }
-                MapManager.CreateMap(mapSize, TerrainSplat.TypeToIndex((int)layers.Ground), TerrainBiome.TypeToIndex((int)layers.Biome), landHeight);
+                MapManager.CreateMap(mapSize, layers.Ground, layers.Biome, landHeight);
             }
 
             Elements.EndToolbarHorizontal();

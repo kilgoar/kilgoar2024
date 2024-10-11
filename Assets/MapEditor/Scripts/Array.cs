@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using UnityEngine;
 using static AreaManager;
 
@@ -579,6 +580,7 @@ namespace RustMapEditor.Maths
             });
             return array;
         }
+		
 
         public static byte[] FloatArrayToByteArray(float[,] array)
         {

@@ -1,26 +1,56 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
+
 using UnityEngine;
 using RustMapEditor.Variables;
 using static BreakerSerialization;
 
 public static class SettingsManager
 {
+	public static string SettingsPath;
+	
     #region Init
+	#if UNITY_EDITOR
     [InitializeOnLoadMethod]
     private static void Init()
     {
+		SettingsPath = "EditorSettings.json";
         if (!File.Exists(SettingsPath))
             using (StreamWriter write = new StreamWriter(SettingsPath, false))
                 write.Write(JsonUtility.ToJson(new EditorSettings(), true));
 
         LoadSettings();
+    }	
+    #endif
+	#endregion
+	
+	public static void RuntimeInit()
+    {
+		SettingsPath = AppDataPath() + "EditorSettings.json";
+        if (!File.Exists(SettingsPath)){
+            using (StreamWriter write = new StreamWriter(SettingsPath, false))
+                write.Write(JsonUtility.ToJson(new EditorSettings(), true));
+				Debug.LogError("Config file not found!");
+		}
+		
+        LoadSettings();
     }
-    #endregion
-
-    public const string SettingsPath = "EditorSettings.json";
+	
+	public static string AppDataPath()
+	{
+		
+		#if UNITY_EDITOR
+			return "";
+		#else
+			return Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "RustMapper/");
+		#endif
+	}
+    
     public const string BundlePathExt = @"\Bundles\Bundles";
 	
 	public static bool style { get; set; }
@@ -30,6 +60,8 @@ public static class SettingsManager
     public static float WaterTransparency { get; set; }
     public static bool LoadBundleOnLaunch { get; set; }
     public static bool TerrainTextureSet { get; set; }
+	
+	public static FilePreset application { get; set; }
 	public static CrazingPreset crazing { get; set; }
 	public static PerlinSplatPreset perlinSplat { get; set; }
 	public static RipplePreset ripple { get; set; }
@@ -49,15 +81,16 @@ public static class SettingsManager
 	public static BreakerSerialization breakerSerializer = new BreakerSerialization();
 
     /// <summary>Saves the current EditorSettings to a JSON file.</summary>
-    public static void SaveSettings()
-    {
-        using (StreamWriter write = new StreamWriter(SettingsPath, false))
-        {
+    public static void SaveSettings()    {
+		using (StreamWriter write = new StreamWriter(SettingsPath, false))  {
             EditorSettings editorSettings = new EditorSettings
             (
-                RustDirectory, PrefabRenderDistance, PathRenderDistance, WaterTransparency, LoadBundleOnLaunch
+                RustDirectory, PrefabRenderDistance, PathRenderDistance, WaterTransparency, LoadBundleOnLaunch, TerrainTextureSet, 
+				style, crazing, perlinSplat, ripple, ocean, terracing, perlin, geology, replacer,
+				city, breaker, macroSources, application
             );
             write.Write(JsonUtility.ToJson(editorSettings, true));
+			
         }
     }
 
@@ -118,7 +151,7 @@ public static class SettingsManager
 	
 	public static void LoadBreakerPreset(string filename)
 	{
-		breaker = breakerSerializer.Load($"Presets/Breaker/{filename}.breaker");
+		breaker = breakerSerializer.Load(Path.Combine( $"Presets/Breaker/{filename}.breaker"));
 		/*
 		using (StreamReader reader = new StreamReader($"Presets/Breaker/{filename}.breaker"))
 			{
@@ -138,7 +171,7 @@ public static class SettingsManager
 	
 	public static void SaveReplacerPreset()
     {
-        using (StreamWriter write = new StreamWriter($"Presets/Replacer/{replacer.title}.json", false))
+        using (StreamWriter write = new StreamWriter($"Presets/Geology/{geology.title}.json", false))
         {
             write.Write(JsonUtility.ToJson(replacer, true));
         }
@@ -278,10 +311,13 @@ public static class SettingsManager
     /// <summary>Loads and sets the current EditorSettings from a JSON file.</summary>
     public static void LoadSettings()
     {
+		if (!File.Exists(SettingsPath)){ Debug.LogError("Config file not found"); return; }
+		
         using (StreamReader reader = new StreamReader(SettingsPath))
         {
             EditorSettings editorSettings = JsonUtility.FromJson<EditorSettings>(reader.ReadToEnd());
-            RustDirectory = editorSettings.rustDirectory;
+            
+			RustDirectory = editorSettings.rustDirectory;
             PrefabRenderDistance = editorSettings.prefabRenderDistance;
             PathRenderDistance = editorSettings.pathRenderDistance;
             WaterTransparency = editorSettings.waterTransparency;
@@ -298,21 +334,22 @@ public static class SettingsManager
 			replacer = editorSettings.replacer;
 			city = editorSettings.city;
 			macroSources = editorSettings.macroSources;
+			application = editorSettings.application;
         }
-
+		
 		LoadPresets();
 		LoadMacros();
     }
 	
 	public static void LoadPresets()
 	{
-		string[] geologyPresets = Directory.GetFiles("Presets/Geology/");
-		string[] breakerPresets = Directory.GetFiles("Presets/Breaker/");
+		string[] geologyPresets = Directory.GetFiles(AppDataPath() + "Presets/Geology/");
+		string[] breakerPresets = Directory.GetFiles(AppDataPath() + "Presets/Breaker");
 	}
 	
 	public static void LoadMacros()
 	{
-		string[] geologyPresets = Directory.GetFiles("Presets/Geology/Macros/");
+		string[] geologyPresets = Directory.GetFiles(AppDataPath() + "Presets/Geology/Macros/");
 	}
 	
 	public static string[] GetPresetTitles(string path)
@@ -362,6 +399,8 @@ public struct EditorSettings
     public bool loadbundleonlaunch;
     public bool terrainTextureSet;
 	public bool style;
+	
+	public FilePreset application;
 	public CrazingPreset crazing;
 	public PerlinSplatPreset perlinSplat;
 	public RipplePreset ripple;
@@ -380,7 +419,7 @@ public struct EditorSettings
         string rustDirectory = @"C:\Program Files (x86)\Steam\steamapps\common\Rust", float prefabRenderDistance = 700f, float pathRenderDistance = 200f, 
         float waterTransparency = 0.2f, bool loadbundleonlaunch = false, bool terrainTextureSet = false, bool style = true, CrazingPreset crazing = new CrazingPreset(), PerlinSplatPreset perlinSplat = new PerlinSplatPreset(),
 		RipplePreset ripple = new RipplePreset(), OceanPreset ocean = new OceanPreset(), TerracingPreset terracing = new TerracingPreset(), PerlinPreset perlin = new PerlinPreset(), GeologyPreset geology = new GeologyPreset(), 
-		ReplacerPreset replacer = new ReplacerPreset(), RustCityPreset city = new RustCityPreset(), BreakerPreset breaker = new BreakerPreset(), bool macroSources = true
+		ReplacerPreset replacer = new ReplacerPreset(), RustCityPreset city = new RustCityPreset(), BreakerPreset breaker = new BreakerPreset(), bool macroSources = true, FilePreset application = new FilePreset()
 	)
         {
             this.rustDirectory = rustDirectory;
@@ -402,5 +441,6 @@ public struct EditorSettings
 			this.city = city;
 			this.breaker = breaker;
 			this.macroSources = macroSources;
+			this.application = application;
         }
 }

@@ -1,6 +1,4 @@
 using UnityEngine;
-using UnityEditor;
-using UnityEditorInternal;
 using static TerrainManager;
 
 [SelectionBase, DisallowMultipleComponent]

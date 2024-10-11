@@ -1,9 +1,10 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using RustMapEditor.UI;
-
+#if UNITY_EDITOR
 public class SettingsWindow : EditorWindow
 {
+	
     public static void Init()
     {
         SettingsWindow window = GetWindow<SettingsWindow>();
@@ -16,3 +17,4 @@ public class SettingsWindow : EditorWindow
         Functions.EditorSettings();
     }
 }
+#endif

@@ -1,11 +1,23 @@
 {
-    "rustDirectory": "E:/Program Files (x86)/Steam/steamapps/common/Rust",
+    "rustDirectory": "",
     "prefabRenderDistance": 0.0,
     "pathRenderDistance": 0.0,
     "waterTransparency": 0.0,
     "loadbundleonlaunch": false,
     "terrainTextureSet": false,
     "style": true,
+    "application": {
+        "rustDirectory": "D:/Program Files (x86)/Steam/steamapps/common/Rust",
+        "prefabRenderDistance": 5000.0,
+        "pathRenderDistance": 5000.0,
+        "waterTransparency": 0.2511078417301178,
+        "loadbundleonlaunch": false,
+        "terrainTextureSet": true,
+        "newSize": 1000,
+        "newHeight": 0.5022156834602356,
+        "newBiome": 1,
+        "newSplat": 16
+    },
     "crazing": {
         "title": "",
         "zones": 0,
@@ -55,63 +67,99 @@
         "simple": false
     },
     "geology": {
-        "geologyItems": [],
-        "geologyCollisions": [],
+        "geologyItems": [
+            {
+                "customPrefab": "",
+                "custom": false,
+                "prefabID": 3830715959,
+                "emphasis": 8
+            },
+            {
+                "customPrefab": "",
+                "custom": false,
+                "prefabID": 2506672559,
+                "emphasis": 8
+            },
+            {
+                "customPrefab": "Custom/extra arid formations/Formation Large Arid C.prefab",
+                "custom": true,
+                "prefabID": 0,
+                "emphasis": 1
+            },
+            {
+                "customPrefab": "Custom/extra arid formations/Formation Large Arid D.prefab",
+                "custom": true,
+                "prefabID": 0,
+                "emphasis": 1
+            }
+        ],
+        "geologyCollisions": [
+            {
+                "minMax": true,
+                "radius": 7.0,
+                "layer": 256
+            },
+            {
+                "minMax": true,
+                "radius": 50.0,
+                "layer": 512
+            }
+        ],
         "newCollisions": {
             "minMax": false,
-            "radius": 0.0,
-            "layer": 0
+            "radius": 50.0,
+            "layer": 256
         },
-        "filename": "",
-        "title": "",
-        "density": 0,
-        "frequency": 0,
-        "floor": 0,
-        "ceiling": 0,
+        "filename": "Presets/Geology/mars formations large.json",
+        "title": "mars formations large",
+        "density": 145,
+        "frequency": 97,
+        "floor": 505,
+        "ceiling": 1000,
         "biomeIndex": 0,
         "seed": 0,
         "spawns": 0,
-        "biomeLayer": 0,
+        "biomeLayer": 1,
         "colliderLayer": 0,
         "closeColliderLayer": 0,
-        "avoidTopo": false,
-        "flipping": false,
+        "avoidTopo": true,
+        "flipping": true,
         "tilting": false,
         "normalizeX": false,
         "normalizeY": false,
         "normalizeZ": false,
-        "biomeExclusive": false,
+        "biomeExclusive": true,
         "cliffTest": false,
         "overlap": false,
         "closeOverlap": false,
         "temperate": false,
-        "arid": false,
-        "arctic": false,
-        "tundra": false,
+        "arid": true,
+        "arctic": true,
+        "tundra": true,
         "road": false,
         "monument": false,
         "dither": false,
         "useSeed": false,
-        "slopeRange": false,
+        "slopeRange": true,
         "curveRange": false,
-        "heightRange": false,
-        "featureMenu": false,
-        "rotationMenu": false,
+        "heightRange": true,
+        "featureMenu": true,
+        "rotationMenu": true,
         "scaleMenu": false,
-        "placementMenu": false,
-        "collisionMenu": false,
-        "presetMenu": false,
-        "jitterMenu": false,
-        "preview": false,
+        "placementMenu": true,
+        "collisionMenu": true,
+        "presetMenu": true,
+        "jitterMenu": true,
+        "preview": true,
         "scalesLow": {
-            "x": 0.0,
-            "y": 0.0,
-            "z": 0.0
+            "x": 1.0326086282730103,
+            "y": 1.0326087474822999,
+            "z": 1.0326083898544312
         },
         "scalesHigh": {
-            "x": 0.0,
-            "y": 0.0,
-            "z": 0.0
+            "x": 1.0326086282730103,
+            "y": 1.0326087474822999,
+            "z": 1.0326083898544312
         },
         "rotationsLow": {
             "x": 0.0,
@@ -120,36 +168,36 @@
         },
         "rotationsHigh": {
             "x": 0.0,
-            "y": 0.0,
+            "y": 360.0,
             "z": 0.0
         },
         "jitterLow": {
-            "x": 0.0,
+            "x": -1.5149500370025635,
             "y": 0.0,
             "z": 0.0
         },
         "jitterHigh": {
-            "x": 0.0,
+            "x": -1.0897009372711182,
             "y": 0.0,
             "z": 0.0
         },
-        "zOffset": 0.0,
+        "zOffset": -0.15000000596046449,
         "colliderDistance": 0.0,
         "closeColliderDistance": 0.0,
         "balance": 0.0,
         "slopeLow": 0.0,
-        "slopeHigh": 0.0,
+        "slopeHigh": 4.349505424499512,
         "heights": {
-            "slopeLow": 0.0,
-            "slopeHigh": 0.0,
-            "heightMin": 0.0,
-            "heightMax": 0.0,
-            "curveMin": 0.0,
-            "curveMax": 0.0,
+            "slopeLow": 2.0630366802215578,
+            "slopeHigh": 18.79076385498047,
+            "heightMin": 0.5049999952316284,
+            "heightMax": 1.0,
+            "curveMin": -0.022817835211753846,
+            "curveMax": 0.005730673670768738,
             "slopeWeight": 0.0,
             "curveWeight": 0.0
         },
-        "topologies": 0
+        "topologies": 2147480573
     },
     "replacer": {
         "prefabID0": 0,
@@ -217,5 +265,5 @@
             "monumentName": ""
         }
     },
-    "macroSources": true
+    "macroSources": false
 }

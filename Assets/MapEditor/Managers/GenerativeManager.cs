@@ -1,9 +1,14 @@
 using UnityEngine;
-using UnityEditor;
+
 using RustMapEditor.Variables;
 using static WorldSerialization;
 using static TerrainManager;
+
+#if UNITY_EDITOR
 using Unity.EditorCoroutines.Editor;
+using UnityEditor;
+#endif
+
 using System.Collections;
 using System.IO;
 using System.Linq;
@@ -52,7 +57,7 @@ public static class GenerativeManager
 			
 				for (int i = 0; i < res; i++)
 				{
-					EditorUtility.DisplayProgressBar("Puckering", "making island",(i*1f/res));
+					//EditorUtility.DisplayProgressBar("Puckering", "making island",(i*1f/res));
 					for (int j = 0; j < res; j++)
 					{
 						scanCord.x = i; scanCord.y = j;
@@ -99,7 +104,7 @@ public static class GenerativeManager
 
 						
 			
-			EditorUtility.ClearProgressBar();
+			//EditorUtility.ClearProgressBar();
 			land.terrainData.SetHeights(0, 0, puckeredMap);
 	}
 	
@@ -266,13 +271,13 @@ public static class GenerativeManager
 						
 						perlinSum[i,j] +=  amplitude * Mathf.PerlinNoise((Mathf.PerlinNoise((Mathf.PerlinNoise(Mathf.PerlinNoise(Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r), Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r1)), Mathf.PerlinNoise(Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r), Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r1)))), (Mathf.PerlinNoise(Mathf.PerlinNoise(Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r), Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r1)), Mathf.PerlinNoise(Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r), Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r1)))))),(Mathf.PerlinNoise((Mathf.PerlinNoise(Mathf.PerlinNoise(Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r), Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r1)), Mathf.PerlinNoise(Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r), Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r1)))), (Mathf.PerlinNoise(Mathf.PerlinNoise(Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r), Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r1)), Mathf.PerlinNoise(Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r), Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r1)))))));
 					}
-					EditorUtility.DisplayProgressBar("Generating layer " + u.ToString(), "", (i*1f / baseMap.GetLength(0)*1f));
+					//EditorUtility.DisplayProgressBar("Generating layer " + u.ToString(), "", (i*1f / baseMap.GetLength(0)*1f));
 				}
 												
 				s = s + p;
 				
 			}
-			EditorUtility.ClearProgressBar();
+			//EditorUtility.ClearProgressBar();
 			for (int i = 0; i < baseMap.GetLength(0); i++)
 			{
 					
@@ -332,7 +337,7 @@ public static class GenerativeManager
 						
 						perlinSum[i,j] += Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r)*height + amplitude;
 					}
-					EditorUtility.DisplayProgressBar("Generating layer " + u.ToString(), "", (i*1f / baseMap.GetLength(0)*1f));
+					//EditorUtility.DisplayProgressBar("Generating layer " + u.ToString(), "", (i*1f / baseMap.GetLength(0)*1f));
 				}
 												
 				s = s - p;
@@ -340,7 +345,7 @@ public static class GenerativeManager
 				height *= .5f;
 				
 			}
-			EditorUtility.ClearProgressBar();
+			//EditorUtility.ClearProgressBar();
 			
 			
 	
@@ -527,7 +532,7 @@ public static class GenerativeManager
 		
 		for (int i = 0; i < res; i++)
         {
-			EditorUtility.DisplayProgressBar("Gradient Noise", "Textures",(i*1f/res));
+			//EditorUtility.DisplayProgressBar("Gradient Noise", "Textures",(i*1f/res));
             for (int j = 0; j < res; j++)
             {
 					o = Mathf.PerlinNoise(i*1f/s+r,j*1f/s+r1);
@@ -563,7 +568,7 @@ public static class GenerativeManager
 				
             }
         }
-		EditorUtility.ClearProgressBar();
+		//EditorUtility.ClearProgressBar();
 		//dont forget this shit again
 		TerrainManager.SetSplatMap(newGround, TerrainManager.CurrentLayerType, 0);
 		//TerrainManager.SetLayer(TerrainManager.CurrentLayerType, 0);
@@ -580,7 +585,7 @@ public static class GenerativeManager
 		int res = targetGround.GetLength(0);
 		for (int i = 0; i < res; i++)
         {
-			EditorUtility.DisplayProgressBar("Copying", "Terrains to Topology",(i*1f/res));
+			//EditorUtility.DisplayProgressBar("Copying", "Terrains to Topology",(i*1f/res));
             for (int j = 0; j < res; j++)
             {
                 if (targetGround[i,j,t] >= threshhold)
@@ -590,7 +595,7 @@ public static class GenerativeManager
 				}
             }
         }
-		EditorUtility.ClearProgressBar();
+		//EditorUtility.ClearProgressBar();
 		TerrainManager.SetSplatMap(splatMap, LayerType.Topology,  TerrainTopology.TypeToIndex((int)layer.Topologies));
         //TerrainManager.SetLayer(LayerType.Topology,  TerrainTopology.TypeToIndex((int)layer.Topologies));
 	}	
@@ -915,7 +920,7 @@ public static class GenerativeManager
 			
 			for (int i = 1; i < sourceMap.GetLength(0)-1; i++)
 			{
-				EditorUtility.DisplayProgressBar("Outlining", " Topology",(i*1f/res));
+				//EditorUtility.DisplayProgressBar("Outlining", " Topology",(i*1f/res));
 				for (int j = 1; j < sourceMap.GetLength(1)-1; j++)
 				{
 					for (int k = -1; k <= 1; k++)
@@ -956,7 +961,7 @@ public static class GenerativeManager
 					}
 				}
 			}
-			EditorUtility.ClearProgressBar();
+			//EditorUtility.ClearProgressBar();
 		}
 		
 		
@@ -1037,7 +1042,7 @@ public static class GenerativeManager
 		
 		for (int i = 0; i < z; i++)
         {
-			EditorUtility.DisplayProgressBar("Painting", "Mottles",(i*1f/z));
+			//EditorUtility.DisplayProgressBar("Painting", "Mottles",(i*1f/z));
 			int x = UnityEngine.Random.Range(1, newGround.GetLength(0));
 			int y = UnityEngine.Random.Range(1, newGround.GetLength(0));
             for (int j = 0; j < s; j++)
@@ -1070,7 +1075,7 @@ public static class GenerativeManager
 				
             }
         }
-		EditorUtility.ClearProgressBar();
+		//EditorUtility.ClearProgressBar();
 		TerrainManager.SetSplatMap(newGround, TerrainManager.CurrentLayerType, 0);
 		//TerrainManager.SetLayer(TerrainManager.CurrentLayerType, 0);
 	}
@@ -1143,7 +1148,7 @@ public static class GenerativeManager
 	public static void pasteMonument(WorldSerialization blob, int x, int y, float zOffset)
 	{
 		
-		EditorUtility.DisplayProgressBar("reeeLoading", "Monument File", .75f);
+		//EditorUtility.DisplayProgressBar("reeeLoading", "Monument File", .75f);
 		WorldConverter.MapInfo terrains = WorldConverter.WorldToTerrain(blob);
 		Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
 		var terrainPosition = 0.5f * terrains.size;
@@ -1189,7 +1194,7 @@ public static class GenerativeManager
 		
 		for (int i = 0; i < heightmapDim; i++)
 		{
-			EditorUtility.DisplayProgressBar("Loading", "Heightmap", (i*1f/heightmapDim));
+			//EditorUtility.DisplayProgressBar("Loading", "Heightmap", (i*1f/heightmapDim));
 			for (int j = 0; j < heightmapDim; j++)
 			{
 				splatMapsX = (int)(1f* i / ratioMaps);
@@ -1200,10 +1205,10 @@ public static class GenerativeManager
 			}
 		}
 		Debug.LogError("No nulls 1");
-		EditorUtility.ClearProgressBar();
+		//EditorUtility.ClearProgressBar();
 		for (int i = 0; i < res; i++)
 		{
-			EditorUtility.DisplayProgressBar("Loading", "Monument Layers", (i*1f/res));
+			//EditorUtility.DisplayProgressBar("Loading", "Monument Layers", (i*1f/res));
 			for (int j = 0; j < res; j++)
 			{
 				splatMapsX = (int)(1f* i / ratioMaps2);
@@ -1233,7 +1238,7 @@ public static class GenerativeManager
 			
         }
 		
-		EditorUtility.ClearProgressBar();
+		//EditorUtility.ClearProgressBar();
 		land.terrainData.SetHeights(0,0,baseMap);
 		TerrainManager.SetSplatMap(newGround, LayerType.Ground, 0);
 		TerrainManager.SetSplatMap(newBiome, LayerType.Biome, 0);
@@ -1259,9 +1264,9 @@ public static class GenerativeManager
         }
 		
 		Transform PathParent = GameObject.FindGameObjectWithTag("Paths").transform;
-		int progressID = Progress.Start("Load: " + "", "Preparing Map", Progress.Options.Sticky);
-		int spwPath = Progress.Start("Paths", null, Progress.Options.Sticky, progressID);
-		PathManager.SpawnPaths(terrains.pathData,spwPath);
+		//int progressID = Progress.Start("Load: " + "", "Preparing Map", Progress.Options.Sticky);
+		//int spwPath = Progress.Start("Paths", null, Progress.Options.Sticky, progressID);
+		PathManager.SpawnPaths(terrains.pathData,0);
 		/*
 		Debug.LogError(terrains.pathData.Length);
         for (int i = 0; i < terrains.pathData.Length; i++)
@@ -1391,7 +1396,7 @@ public static class GenerativeManager
 		int buildings = monumentDataLength(monuments);
 		
 		
-		EditorUtility.DisplayProgressBar("Generating", "building: " + k, ((y*x*1f)/(dim*dim)));
+		//EditorUtility.DisplayProgressBar("Generating", "building: " + k, ((y*x*1f)/(dim*dim)));
 		while (y < start + dim)
 		{
 			
@@ -1407,7 +1412,7 @@ public static class GenerativeManager
 			y += height;
 			x = start; 
 		}
-		EditorUtility.ClearProgressBar();
+		//EditorUtility.ClearProgressBar();
 		
 	}
 	
@@ -1493,7 +1498,7 @@ public static class GenerativeManager
 		
 		
 		
-		EditorUtility.ClearProgressBar();
+		//EditorUtility.ClearProgressBar();
 		
 		float ratioMaps = 1f * res / splatRes;
 		int heightmapDim = baseMap.GetLength(0)-4;
@@ -1552,7 +1557,7 @@ public static class GenerativeManager
 					{
 						
 						
-						EditorUtility.DisplayProgressBar("Loading", "Heightmap", (i*1f/heightmapDim));
+						//EditorUtility.DisplayProgressBar("Loading", "Heightmap", (i*1f/heightmapDim));
 						
 						for (int j = 0; j < height; j++)
 						{
@@ -1572,10 +1577,10 @@ public static class GenerativeManager
 					//width = (int)(width / ratioMaps);
 					//height = (int)(height / ratioMaps);
 					
-					EditorUtility.ClearProgressBar();
+					//EditorUtility.ClearProgressBar();
 					for (int i = 0; i < (int)(width/mapSplatRatio); i++)
 					{
-						EditorUtility.DisplayProgressBar("Loading", "Monument Layers", (i*1f/dim));
+						//EditorUtility.DisplayProgressBar("Loading", "Monument Layers", (i*1f/dim));
 						for (int j = 0; j < (int)(height/mapSplatRatio); j++)
 						{
 							
@@ -1686,7 +1691,7 @@ public static class GenerativeManager
 
 			for (int i = 2; i < array.GetLength(0)-2; i++)
 			{
-				EditorUtility.DisplayProgressBar("Dithering", "Cliff Map",(i*1f/TerrainManager.HeightMapRes));
+				//EditorUtility.DisplayProgressBar("Dithering", "Cliff Map",(i*1f/TerrainManager.HeightMapRes));
 				for (int j = 2; j < array.GetLength(1)-2; j++)
 				{
 					
@@ -1729,7 +1734,7 @@ public static class GenerativeManager
 				}
 			}
 		
-		EditorUtility.ClearProgressBar();
+		//EditorUtility.ClearProgressBar();
 		return cliffMap;
 		
 	}
@@ -1825,6 +1830,8 @@ public static class GenerativeManager
 
 	}
 	
+	#if UNITY_EDITOR
+	
 	public static void insertPrefabCliffs(GeologyPreset geo)
 	{
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.insertPrefabCliffs(geo));
@@ -1857,6 +1864,40 @@ public static class GenerativeManager
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.PreviewDither());
 	}
 	
+	#else
+		//runtime coroutines
+		public static void insertPrefabCliffs(GeologyPreset geo)
+		{
+			CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.insertPrefabCliffs(geo));
+		}
+		
+
+		public static void MakeCliffMap(GeologyPreset geo)
+		{
+			CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.MakeCliffMap(geo));
+		}
+		
+		
+		public static void MakeCliffs(GeologyPreset geo)
+		{
+			CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.MakeCliffs(geo));
+		}
+		
+		public static void ApplyGeologyTemplate()
+		{
+			CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.ApplyGeologyTemplate());
+		}
+		
+		public static void ApplyGeologyPreset(GeologyPreset geo)
+		{
+			CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.ApplyGeologyPreset(geo));
+		}
+		
+		public static void PreviewDither()
+		{
+			CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.PreviewDither());
+		}
+	#endif
 		
 	private static class Coroutines
     {
@@ -1968,7 +2009,7 @@ public static class GenerativeManager
 			
 			for (int i = 2; i < splatRes-2; i++)
 			{
-				EditorUtility.DisplayProgressBar("Spawning", "Geology features",(i*1f/splatRes-1));
+				//EditorUtility.DisplayProgressBar("Spawning", "Geology features",(i*1f/splatRes-1));
 				for (int j = 2; j < splatRes-2; j++)
 				{
 					
@@ -2099,7 +2140,7 @@ public static class GenerativeManager
 				}
 			}
 			
-			EditorUtility.ClearProgressBar();
+			//EditorUtility.ClearProgressBar();
 			Debug.LogError("Geology Complete: " + count + " Features Placed.");
 			if (cullcount >0)
 			{
@@ -2352,7 +2393,7 @@ public static class GenerativeManager
 			
 			for (int i = 0; i < splatRes; i++)
 			{
-				EditorUtility.DisplayProgressBar("Generating", "Slope Map",(i*1f/splatRes));
+				//EditorUtility.DisplayProgressBar("Generating", "Slope Map",(i*1f/splatRes));
 				for (int j = 0; j < splatRes; j++)
 				{
 					
@@ -2360,11 +2401,11 @@ public static class GenerativeManager
 				
 				}
 			}
-			EditorUtility.ClearProgressBar();
+			//EditorUtility.ClearProgressBar();
 
 			for (int i = 2; i < splatRes-2; i++)
 			{
-				EditorUtility.DisplayProgressBar("Dithering", "Cliff Map",(i*1f/splatRes));
+				//EditorUtility.DisplayProgressBar("Dithering", "Cliff Map",(i*1f/splatRes));
 				for (int j = 2; j < splatRes-2; j++)
 				{
 					
@@ -2408,7 +2449,7 @@ public static class GenerativeManager
 					
 				}
 			}
-			EditorUtility.ClearProgressBar();
+			//EditorUtility.ClearProgressBar();
 			
 			bool prefabCollisions = false;
 
@@ -2422,7 +2463,7 @@ public static class GenerativeManager
 			
 			for (int i = 1; i < splatRes-1; i++)
 			{
-				EditorUtility.DisplayProgressBar("Spawning", "Geology features",(i*1f/splatRes));
+				//EditorUtility.DisplayProgressBar("Spawning", "Geology features",(i*1f/splatRes));
 				for (int j = 1; j < splatRes-1; j++)
 				{
 					slope = land.terrainData.GetSteepness(1f*j/splatRes, 1f*i/splatRes);
@@ -2571,7 +2612,7 @@ public static class GenerativeManager
 			
 			
 
-			EditorUtility.ClearProgressBar();
+			//EditorUtility.ClearProgressBar();
 			Debug.LogError("Geology Complete: " + count + " Features Placed.");
 			if (cullcount >0)
 			{
@@ -2579,4 +2620,5 @@ public static class GenerativeManager
 			}
 		}
 	}
+	
 }

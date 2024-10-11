@@ -1,6 +1,9 @@
 ﻿using System;
 using UnityEngine;
+
 using UnityEditor;
+
+
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using RustMapEditor.Variables;
@@ -124,6 +127,7 @@ public static class WorldConverter
             });
         });
         Task.WaitAll(groundTask, biomeTask, alphaTask);
+
         return terrains;
     }
 
@@ -132,8 +136,9 @@ public static class WorldConverter
     public static MapInfo WorldToTerrain(WorldSerialization world)
     {
         MapInfo terrains = new MapInfo();
-
+			
         var terrainSize = new Vector3(world.world.size, 1000, world.world.size);
+		
         var terrainMap = new TerrainMap<short>(world.GetMap("terrain").data, 1);
         var heightMap = new TerrainMap<short>(world.GetMap("height").data, 1);
         var waterMap = new TerrainMap<short>(world.GetMap("water").data, 1);
@@ -141,7 +146,9 @@ public static class WorldConverter
         var topologyMap = new TerrainMap<int>(world.GetMap("topology").data, 1);
         var biomeMap = new TerrainMap<byte>(world.GetMap("biome").data, 4);
         var alphaMap = new TerrainMap<byte>(world.GetMap("alpha").data, 1);
+		
 
+		
         terrains.topology = topologyMap;
 
         terrains.pathData = world.world.paths.ToArray();
@@ -150,19 +157,26 @@ public static class WorldConverter
         terrains.terrainRes = heightMap.res;
         terrains.splatRes = splatMap.res;
         terrains.size = terrainSize;
-
+		
+		
         var heightTask = Task.Run(() => ShortMapToFloatArray(heightMap));
         var waterTask = Task.Run(() => ShortMapToFloatArray(waterMap));
+
         terrains = ConvertMaps(terrains, splatMap, biomeMap, alphaMap);
 
         Task.WaitAll(heightTask, waterTask);
         terrains.land.heights = heightTask.Result;
         terrains.water.heights = waterTask.Result;
+
+			terrains.land.heights = ShortMapToFloatArray(heightMap);
+			terrains.water.heights = ShortMapToFloatArray(waterMap);
+		    terrains = ConvertMaps(terrains, splatMap, biomeMap, alphaMap);
+
         return terrains;
     }
 
     /// <summary>Converts Unity terrains to WorldSerialization.</summary>
-    public static WorldSerialization TerrainToWorld(Terrain land, Terrain water, (int prefab, int path, int terrain) ID) 
+    public static WorldSerialization TerrainToWorld(Terrain land, Terrain water, (int prefab, int path, int terrain) ID = default) 
     {
         WorldSerialization world = new WorldSerialization();
         world.world.size = (uint) land.terrainData.size.x;
@@ -219,8 +233,11 @@ public static class WorldConverter
                 world.world.prefabs.Insert(0, p.prefabData);
             }
         }
+		
+		#if UNITY_EDITOR
         Progress.Report(ID.prefab, 0.99f, "Saved " + PrefabManager.CurrentMapPrefabs.Length + " prefabs.");
-
+		#endif
+		
         foreach (PathDataHolder p in PathManager.CurrentMapPaths)
         {
             if (p.pathData != null)
@@ -234,13 +251,19 @@ public static class WorldConverter
                 world.world.paths.Insert(0, p.pathData);
             }
         }
+		
+		#if UNITY_EDITOR
         Progress.Report(ID.path, 0.99f, "Saved " + PathManager.CurrentMapPaths.Length + " paths.");
+		#endif
 
         byte[] landHeightBytes = FloatArrayToByteArray(land.terrainData.GetHeights(0, 0, HeightMapRes, HeightMapRes));
         byte[] waterHeightBytes = FloatArrayToByteArray(water.terrainData.GetHeights(0, 0, HeightMapRes, HeightMapRes));
 
         Task.WaitAll(splatTask, biomeTask, alphaTask, topologyTask);
+		
+		#if UNITY_EDITOR
         Progress.Report(ID.terrain, 0.99f, "Saved " + TerrainSize.x + " size map.");
+		#endif
 
         world.AddMap("terrain", landHeightBytes);
         world.AddMap("height", landHeightBytes);
@@ -306,8 +329,10 @@ public static class WorldConverter
 					world.rePrefab.electric.circuitData.Insert(0, p.circuitData);
 				}
 			}
+			#if UNITY_EDITOR
 			Progress.Report(ID.prefab, 0.99f, "Saved " + PrefabManager.CurrentMapPrefabs.Length + " prefabs.");
 			Progress.Report(ID.circuit, 0.99f, "Saved " + PrefabManager.CurrentMapPrefabs.Length + " circuits.");
+			#endif
 
 			return world;
 			}

@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditorInternal;
+#endif
 using static TerrainManager;
 
 [SelectionBase, DisallowMultipleComponent]
@@ -10,8 +12,10 @@ public class PrefabDataHolder : MonoBehaviour
 
     public void Setup()
     {
+		#if UNITY_EDITOR
         for (int i = 0; i < GetComponents<Component>().Length; i++)
             ComponentUtility.MoveComponentUp(this);
+		#endif
     }
 
     public void UpdatePrefabData()
@@ -72,7 +76,9 @@ public class PrefabDataHolder : MonoBehaviour
     public void SnapToGround()
     {
         Vector3 newPos = transform.position;
+		#if UNITY_EDITOR
         Undo.RecordObject(transform, "Snap to Ground");
+		#endif
         newPos.y = Land.SampleHeight(transform.position);
         transform.position = newPos;
     }

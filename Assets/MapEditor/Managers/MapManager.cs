@@ -2,34 +2,45 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using UnityEditor;
+
 using UnityEngine;
 using RustMapEditor.Variables;
 using static TerrainManager;
 using static RustMapEditor.Maths.Array;
 using static WorldConverter;
+
+#if UNITY_EDITOR
 using Unity.EditorCoroutines.Editor;
+using UnityEditor;
+#endif
+
 using System.Collections;
 
 public static class MapManager
 {
+	#if UNITY_EDITOR
+	
     #region Init
     [InitializeOnLoadMethod]
     private static void Init()
     {
         EditorApplication.update += OnProjectLoad;
     }
-
+	
     private static void OnProjectLoad()
     {
         if (Land != null)
         {
             EditorApplication.update -= OnProjectLoad;
-            if (!EditorApplication.isPlaying)
-                CreateMap(1000);
+            if (!EditorApplication.isPlaying){
+                //CreateMap(1000);
+			}
         }
     }
+	
     #endregion
+	
+	#endif
 
     public static class Callbacks
     {
@@ -113,13 +124,20 @@ public static class MapManager
     {
         List<int> topologyElements = GetEnumSelection(topologyLayers);
 
+		#if UNITY_EDITOR
         int progressId = Progress.Start("Rotating Topologies", null, Progress.Options.Sticky);
+		#endif 
+		
         for (int i = 0; i < topologyElements.Count; i++)
         {
+			#if UNITY_EDITOR
             Progress.Report(progressId, (float)i / topologyElements.Count, "Rotating: " + ((TerrainTopology.Enum)TerrainTopology.IndexToType(i)).ToString());
+			#endif
             RotateLayer(LayerType.Topology, CW, i);
         }
+		#if UNITY_EDITOR
         Progress.Finish(progressId);
+		#endif
     }
 
     /// <summary>Paints if all the conditions passed in are true.</summary>
@@ -132,34 +150,48 @@ public static class MapManager
         int splatRes = SplatMapRes;
         bool[,] conditionsMet = new bool[splatRes, splatRes]; // Paints wherever the conditionsmet is false.
 
+		#if UNITY_EDITOR
         int progressId = Progress.Start("Conditional Paint");
+		#endif
         for (int i = 0; i < TerrainSplat.COUNT; i++)
             if (conditions.GroundConditions.CheckLayer[i])
                 conditionsMet = CheckConditions(GetSplatMap(LayerType.Ground), conditionsMet, i, conditions.GroundConditions.Weight[i]);
 
+		#if UNITY_EDITOR
         Progress.Report(progressId, 0.2f, "Checking Biome");
+		#endif
         for (int i = 0; i < TerrainBiome.COUNT; i++)
             if (conditions.BiomeConditions.CheckLayer[i])
                 conditionsMet = CheckConditions(GetSplatMap(LayerType.Biome), conditionsMet, i, conditions.BiomeConditions.Weight[i]);
 
+		#if UNITY_EDITOR
         Progress.Report(progressId, 0.3f, "Checking Alpha");
-        if (conditions.AlphaConditions.CheckAlpha)
+		#endif
+		if (conditions.AlphaConditions.CheckAlpha)
             conditionsMet = CheckConditions(GetAlphaMap(), conditionsMet, (conditions.AlphaConditions.Texture == 0) ? true : false);
 
+		#if UNITY_EDITOR
         Progress.Report(progressId, 0.5f, "Checking Topology");
+		#endif
         for (int i = 0; i < TerrainTopology.COUNT; i++)
             if (conditions.TopologyConditions.CheckLayer[i])
                 conditionsMet = CheckConditions(GetSplatMap(LayerType.Topology, i), conditionsMet, (int)conditions.TopologyConditions.Texture[i], 0.5f);
 
+		#if UNITY_EDITOR
         Progress.Report(progressId, 0.7f, "Checking Heights");
+		#endif
         if (conditions.TerrainConditions.CheckHeights)
             conditionsMet = CheckConditions(GetHeights(), conditionsMet, conditions.TerrainConditions.Heights.HeightLow, conditions.TerrainConditions.Heights.HeightHigh);
 
+		#if UNITY_EDITOR
         Progress.Report(progressId, 0.8f, "Checking Slopes");
+		#endif
         if (conditions.TerrainConditions.CheckSlopes)
             conditionsMet = CheckConditions(GetSlopes(), conditionsMet, conditions.TerrainConditions.Slopes.SlopeLow, conditions.TerrainConditions.Slopes.SlopeHigh);
 
+		#if UNITY_EDITOR
         Progress.Report(progressId, 0.8f, "Painting");
+		#endif
         switch (landLayerToPaint)
         {
             case LayerType.Ground:
@@ -189,7 +221,9 @@ public static class MapManager
                 SetAlphaMap(alphaMapToPaint);
                 break;
         }
+		#if UNITY_EDITOR
         Progress.Finish(progressId);
+		#endif
     }
 
     /// <summary>Paints the layer wherever the height conditions are met.</summary>
@@ -257,18 +291,26 @@ public static class MapManager
 
     /// <summary>Paints the selected Topology layers.</summary>
     /// <param name="topologyLayers">The Topology layers to clear.</param>
-    public static void PaintTopologyLayers(TerrainTopology.Enum topologyLayers)
-    {
-        List<int> topologyElements = GetEnumSelection(topologyLayers);
+	public static void PaintTopologyLayers(TerrainTopology.Enum topologyLayers)
+	{
+		List<int> topologyElements = GetEnumSelection(topologyLayers);
 
-        int progressId = Progress.Start("Paint Topologies");
-        for (int i = 0; i < topologyElements.Count; i++)
-        {
-            Progress.Report(progressId, (float)i / topologyElements.Count, "Painting: " + ((TerrainTopology.Enum)TerrainTopology.IndexToType(i)).ToString());
-            PaintLayer(LayerType.Topology, 0, i);
-        }
-        Progress.Finish(progressId);
-    }
+		#if UNITY_EDITOR
+		int progressId = Progress.Start("Paint Topologies");
+		#endif
+
+		for (int i = 0; i < topologyElements.Count; i++)
+		{
+			#if UNITY_EDITOR
+			Progress.Report(progressId, (float)i / topologyElements.Count, "Painting: " + ((TerrainTopology.Enum)TerrainTopology.IndexToType(i)).ToString());
+			#endif
+			PaintLayer(LayerType.Topology, 0, i);
+		}
+
+		#if UNITY_EDITOR
+		Progress.Finish(progressId);
+		#endif
+	}
 
     /// <summary>Sets whole layer to the inactive texture. Alpha and Topology only.</summary>
     /// <param name="landLayerToPaint">The LayerType to clear. (Alpha, Topology)</param>
@@ -288,18 +330,26 @@ public static class MapManager
 
     /// <summary>Clears the selected Topology layers.</summary>
     /// <param name="topologyLayers">The Topology layers to clear.</param>
-    public static void ClearTopologyLayers(TerrainTopology.Enum topologyLayers)
-    {
-        List<int> topologyElements = GetEnumSelection(topologyLayers);
+	public static void ClearTopologyLayers(TerrainTopology.Enum topologyLayers)
+	{
+		List<int> topologyElements = GetEnumSelection(topologyLayers);
 
-        int progressId = Progress.Start("Clear Topologies");
-        for (int i = 0; i < topologyElements.Count; i++)
-        {
-            Progress.Report(progressId, (float)i / topologyElements.Count, "Clearing: " + ((TerrainTopology.Enum)TerrainTopology.IndexToType(i)).ToString());
-            ClearLayer(LayerType.Topology, i);
-        }
-        Progress.Finish(progressId);
-    }
+		#if UNITY_EDITOR
+		int progressId = Progress.Start("Clear Topologies");
+		#endif
+
+		for (int i = 0; i < topologyElements.Count; i++)
+		{
+			#if UNITY_EDITOR
+			Progress.Report(progressId, (float)i / topologyElements.Count, "Clearing: " + ((TerrainTopology.Enum)TerrainTopology.IndexToType(i)).ToString());
+			#endif
+			ClearLayer(LayerType.Topology, i);
+		}
+
+		#if UNITY_EDITOR
+		Progress.Finish(progressId);
+		#endif
+	}
 
     /// <summary>Inverts the active and inactive textures. Alpha and Topology only.</summary>
     /// <param name="landLayerToPaint">The LayerType to invert. (Alpha, Topology)</param>
@@ -322,14 +372,20 @@ public static class MapManager
     public static void InvertTopologyLayers(TerrainTopology.Enum topologyLayers)
     {
         List<int> topologyElements = GetEnumSelection(topologyLayers);
-
+		#if UNITY_EDITOR
         int progressId = Progress.Start("Invert Topologies");
+		#endif
+			
         for (int i = 0; i < topologyElements.Count; i++)
         {
-            Progress.Report(progressId, (float)i / topologyElements.Count, "Inverting: " + ((TerrainTopology.Enum)TerrainTopology.IndexToType(i)).ToString());
+			#if UNITY_EDITOR
+			Progress.Report(progressId, (float)i / topologyElements.Count, "Inverting: " + ((TerrainTopology.Enum)TerrainTopology.IndexToType(i)).ToString());
+			#endif
             InvertLayer(LayerType.Topology, i);
         }
+		#if UNITY_EDITOR
         Progress.Finish(progressId);
+		#endif
     }
 
     /// <summary>Paints the layer wherever the slope conditions are met. Includes option to blend.</summary>
@@ -457,6 +513,7 @@ public static class MapManager
         PathManager.PathParent.GetComponent<LockObject>().SetPosition(new Vector3(mapInfo.size.x / 2, 500, mapInfo.size.z / 2));
     }
 
+	#if UNITY_EDITOR
     /// <summary>Loads and sets up the map.</summary>
     public static void Load(MapInfo mapInfo, string loadPath = "")
     {
@@ -469,35 +526,6 @@ public static class MapManager
     {
         EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.Save(path));
     }
-
-    /// <summary>Creates a new flat terrain.</summary>
-    /// <param name="size">The size of the terrain.</param>
-    public static void CreateMap(int size, int ground = 4, int biome = 1, float landHeight = 503f)
-    {
-        EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.CreateMap(size, ground, biome, landHeight));
-    }
-	
-		public static void MergeREPrefab(MapInfo mapInfo, string loadPath = "")
-    {	
-		int progressID = Progress.Start("Load: " + loadPath.Split('/').Last(), "Preparing Map", Progress.Options.Sticky);
-		int spwPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
-        int spwCircuit = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);
-		int spwNPCs = Progress.Start("NPCs", null, Progress.Options.Sticky, progressID);
-		PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab);
-		PrefabManager.SpawnCircuits(mapInfo.circuitData, spwCircuit);
-		PrefabManager.SpawnNPCs(mapInfo.npcData, spwNPCs);
-    }
-	
-	public static void MergeOffsetREPrefab(MapInfo mapInfo, Transform parent, string loadPath = "")
-    {
-
-		int progressID = Progress.Start("Load: " + loadPath.Split('/').Last(),  "Preparing Map", Progress.Options.Sticky);
-		int spwPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
-        //int spwCircuit = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);
-		PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab, parent);
-		//PrefabManager.SpawnCircuits(mapInfo.circuitData, spwCircuit);
-
-    }
 	
 	public static void SaveCustomPrefab(string path)
     {
@@ -508,154 +536,284 @@ public static class MapManager
 		Debug.LogError("saving custom prefab");
         EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.SaveCustomPrefab(path));
     }
-
-	public static void LoadREPrefab(MapInfo mapInfo, string loadPath = "")
+	#else
+	public static void Load(MapInfo mapInfo, string loadPath = "")
     {
-		//EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.LoadREPrefab(mapInfo, loadPath));
+        CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.Load(mapInfo, loadPath));
+    }
+
+    /// <summary>Saves the map.</summary>
+    /// <param name="path">The path to save to.</param>
+    public static void Save(string path)
+    {
+        CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.Save(path));
+    }
+	
+	public static void SaveCustomPrefab(string path)
+    {
+		//PrefabManager.RenamePrefabCategories(PrefabManager.CurrentMapPrefabs, path.Split('/').Last().Split('.')[0] + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10));
+		string name = path.Split('/').Last().Split('.')[0];
+		PrefabManager.RenamePrefabCategories(PrefabManager.CurrentMapPrefabs, ":" + name + "::");
+		PrefabManager.RenameNPCs(PrefabManager.CurrentMapNPCs, ":" + name + "::");
+		Debug.LogError("saving custom prefab");
+        CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.SaveCustomPrefab(path));
+    }
+	#endif
+    /// <summary>Creates a new flat terrain.</summary>
+    /// <param name="size">The size of the terrain.</param>
+    public static void CreateMap(int size, TerrainSplat.Enum ground, TerrainBiome.Enum biome, float landHeight = 503f)
+    {
 		
+		#if UNITY_EDITOR
+        EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.CreateMap(size, ground, biome, landHeight));
+		#else
+		CoroutineManager.Instance.StartCoroutine(Coroutines.CreateMap(size, ground, biome, landHeight));
+		#endif
+		
+    }
+	
+		public static void MergeREPrefab(MapInfo mapInfo, string loadPath = "")
+    {	
+		#if UNITY_EDITOR
 		int progressID = Progress.Start("Load: " + loadPath.Split('/').Last(), "Preparing Map", Progress.Options.Sticky);
 		int spwPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
         int spwCircuit = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);
 		int spwNPCs = Progress.Start("NPCs", null, Progress.Options.Sticky, progressID);
+		PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab);
+		PrefabManager.SpawnCircuits(mapInfo.circuitData, spwCircuit);
+		PrefabManager.SpawnNPCs(mapInfo.npcData, spwNPCs);
+		#else
+		PrefabManager.SpawnPrefabs(mapInfo.prefabData, 0);
+		PrefabManager.SpawnCircuits(mapInfo.circuitData, 0);
+		PrefabManager.SpawnNPCs(mapInfo.npcData, 0);
+		#endif
+	
+    }
+	
+	public static void MergeOffsetREPrefab(MapInfo mapInfo, Transform parent, string loadPath = "")
+    {
+		#if UNITY_EDITOR
+		int progressID = Progress.Start("Load: " + loadPath.Split('/').Last(),  "Preparing Map", Progress.Options.Sticky);
+		int spwPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
+		//int spwCircuit = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);
+		
+        
+		PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab, parent);
+		//PrefabManager.SpawnCircuits(mapInfo.circuitData, spwCircuit);
+		#else
+		PrefabManager.SpawnPrefabs(mapInfo.prefabData, 0, parent);
+		#endif
+    }
+	
+
+
+	public static void LoadREPrefab(MapInfo mapInfo, string loadPath = "")
+    {
+		//EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.LoadREPrefab(mapInfo, loadPath));
+		#if UNITY_EDITOR
+		int progressID = Progress.Start("Load: " + loadPath.Split('/').Last(), "Preparing Map", Progress.Options.Sticky);
+		int spwPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
+        int spwCircuit = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);
+		int spwNPCs = Progress.Start("NPCs", null, Progress.Options.Sticky, progressID);
+		#endif
 		//int heightmap = Progress.Start("Heightmap", null, Progress.Options.Sticky, progressID);
 		PrefabManager.DeletePrefabs(PrefabManager.CurrentMapPrefabs);
         PrefabManager.DeleteCircuits(PrefabManager.CurrentMapElectrics);
 		PrefabManager.DeleteNPCs(PrefabManager.CurrentMapNPCs);
 		PrefabManager.DeleteModifiers(PrefabManager.CurrentModifiers);
+		
+		#if UNITY_EDITOR
 		PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab);
 		PrefabManager.SpawnCircuits(mapInfo.circuitData, spwCircuit);
 		PrefabManager.SpawnNPCs(mapInfo.npcData, spwNPCs);
+		#else
+		PrefabManager.SpawnPrefabs(mapInfo.prefabData, 0);
+		PrefabManager.SpawnCircuits(mapInfo.circuitData, 0);
+		PrefabManager.SpawnNPCs(mapInfo.npcData, 0);
+		#endif
+		
+		
 		PrefabManager.SpawnModifiers(mapInfo.modifierData);
 		//SetPrefabHeightmap(PrefabManager.LoadHeightmap(loadPath + ".heights"), heightmap);
 		
-    }
-
-    private class Coroutines
-    {
-		public static IEnumerator LoadREPrefab(MapInfo mapInfo, string path = "")
-        {
-            ProgressManager.RemoveProgressBars("Load:");
-			
-			int progressID = Progress.Start("Load: " + path.Split('/').Last(), "Preparing Map", Progress.Options.Sticky);
-            int delPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
-            int spwPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
-			int spwCircuit = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);
-			int spwNPCs = Progress.Start("NPCs", null, Progress.Options.Sticky, progressID);
-			yield return null;
-			
-			yield return PrefabManager.DeletePrefabs(PrefabManager.CurrentMapPrefabs, delPrefab);
-			PrefabManager.DeleteCircuits(PrefabManager.CurrentMapElectrics);
-			PrefabManager.DeleteNPCs(PrefabManager.CurrentMapNPCs);
-			
-			CentreSceneObjects(mapInfo);
-			PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab);
-			PrefabManager.SpawnCircuits(mapInfo.circuitData, spwCircuit);
-			Debug.LogError("OK, boomer.");
-			PrefabManager.SpawnNPCs(mapInfo.npcData, spwNPCs);
-			
-			var sw = new System.Diagnostics.Stopwatch();
-			while (Progress.GetProgressById(spwPrefab).running)
-            {
-                if (sw.Elapsed.TotalMilliseconds > 0.05f)
-                {
-                    sw.Restart();
-                    yield return null;
-                }
-            }
-
-            Progress.Report(progressID, 0.99f, "Loaded");
-			Progress.Finish(progressID, Progress.Status.Succeeded);
-
-            Callbacks.OnMapLoaded(path);
-        }
-		
-        public static IEnumerator Load(MapInfo mapInfo, string path = "")
-        {
-            
-			ProgressManager.RemoveProgressBars("Load:");
-
-            int progressID = Progress.Start("Load: " + path.Split('/').Last(), "Preparing Map", Progress.Options.Sticky);
-            int delPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
-            int spwPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
-            int delPath = Progress.Start("Paths", null, Progress.Options.Sticky, progressID);
-            int spwPath = Progress.Start("Paths", null, Progress.Options.Sticky, progressID);
-            int terrainID = Progress.Start("Terrain", null, Progress.Options.Sticky, progressID);
-            yield return null;
-
-            yield return PrefabManager.DeletePrefabs(PrefabManager.CurrentMapPrefabs, delPrefab);
-            PathManager.DeletePaths(PathManager.CurrentMapPaths, delPath);
-            CentreSceneObjects(mapInfo);
-            TerrainManager.Load(mapInfo, terrainID);
-            PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab);
-            PathManager.SpawnPaths(mapInfo.pathData, spwPath);
-
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
-
-            while (Progress.GetProgressById(terrainID).progress < 0.99f || Progress.GetProgressById(spwPrefab).running || Progress.GetProgressById(spwPath).running)
-            {
-                if (sw.Elapsed.TotalMilliseconds > 0.05f)
-                {
-                    sw.Restart();
-                    yield return null;
-                }
-            }
-
-            Progress.Report(progressID, 0.99f, "Loaded");
-            Progress.Finish(terrainID, Progress.Status.Succeeded);
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-
-            Callbacks.OnMapLoaded(path);
-        }
-
-        public static IEnumerator Save(string path)
-        {
-            ProgressManager.RemoveProgressBars("Save:");
-
-            int progressID = Progress.Start("Save: " + path.Split('/').Last(), "Saving Map", Progress.Options.Sticky);
-            int prefabID = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
-            int pathID = Progress.Start("Paths", null, Progress.Options.Sticky, progressID);
-            int terrainID = Progress.Start("Terrain", null, Progress.Options.Sticky, progressID);
-
-            SaveLayer();
-            yield return null;
-            TerrainToWorld(Land, Water, (prefabID, pathID, terrainID)).Save(path);
-
-            Progress.Report(progressID, 0.99f, "Saved");
-            Progress.Finish(prefabID, Progress.Status.Succeeded);
-            Progress.Finish(pathID, Progress.Status.Succeeded);
-            Progress.Finish(terrainID, Progress.Status.Succeeded);
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-
-            Callbacks.OnMapSaved(path);
-        }
-
-        public static IEnumerator CreateMap(int size, int ground = 4, int biome = 1, float landHeight = 503f)
-        {
-            yield return EditorCoroutineUtility.StartCoroutineOwnerless(Load(EmptyMap(size, landHeight), "New Map"));
-        }
-		
-		public static IEnumerator SaveCustomPrefab(string path)
-        {
-            ProgressManager.RemoveProgressBars("Save:");
-
-            int progressID = Progress.Start("Save: " + path.Split('/').Last(), "Saving Map", Progress.Options.Sticky);
-            int prefabID = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
-            int circuitID = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);			
-            
-			//SaveLayer();
-            Debug.LogError(path);
-			
-			yield return null;
-            TerrainToCustomPrefab((prefabID, circuitID)).SaveREPrefab(path);
-
-            Progress.Report(progressID, 0.99f, "Saved");
-            Progress.Finish(prefabID, Progress.Status.Succeeded);
-			Progress.Finish(circuitID, Progress.Status.Succeeded);
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-
-            Callbacks.OnMapSaved(path);
-        }
 		
     }
+
+   private class Coroutines
+	{
+			public static IEnumerator LoadREPrefab(MapInfo mapInfo, string path = "")
+			{
+		#if UNITY_EDITOR
+				ProgressManager.RemoveProgressBars("Load:");
+
+				int progressID = Progress.Start("Load: " + path.Split('/').Last(), "Preparing Map", Progress.Options.Sticky);
+				int delPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
+				int spwPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
+				int spwCircuit = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);
+				int spwNPCs = Progress.Start("NPCs", null, Progress.Options.Sticky, progressID);
+				yield return null;
+
+				yield return PrefabManager.DeletePrefabs(PrefabManager.CurrentMapPrefabs, delPrefab);
+				PrefabManager.DeleteCircuits(PrefabManager.CurrentMapElectrics);
+				PrefabManager.DeleteNPCs(PrefabManager.CurrentMapNPCs);
+
+				CentreSceneObjects(mapInfo);
+				PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab);
+				PrefabManager.SpawnCircuits(mapInfo.circuitData, spwCircuit);
+				Debug.LogError("OK, boomer.");
+				PrefabManager.SpawnNPCs(mapInfo.npcData, spwNPCs);
+
+				var sw = new System.Diagnostics.Stopwatch();
+				while (Progress.GetProgressById(spwPrefab).running)
+				{
+					if (sw.Elapsed.TotalMilliseconds > 0.05f)
+					{
+						sw.Restart();
+						yield return null;
+					}
+				}
+
+				Progress.Report(progressID, 0.99f, "Loaded");
+				Progress.Finish(progressID, Progress.Status.Succeeded);
+
+				Callbacks.OnMapLoaded(path);
+		#else
+				PrefabManager.DeletePrefabs(PrefabManager.CurrentMapPrefabs);
+				PrefabManager.DeleteCircuits(PrefabManager.CurrentMapElectrics);
+				PrefabManager.DeleteNPCs(PrefabManager.CurrentMapNPCs);
+				CentreSceneObjects(mapInfo);
+				PrefabManager.SpawnPrefabs(mapInfo.prefabData);
+				PrefabManager.SpawnCircuits(mapInfo.circuitData);
+				PrefabManager.SpawnNPCs(mapInfo.npcData);
+				Callbacks.OnMapLoaded(path);
+				yield return null;
+		#endif
+			}
+
+			public static IEnumerator Load(MapInfo mapInfo, string path = "")
+			{
+		#if UNITY_EDITOR
+				ProgressManager.RemoveProgressBars("Load:");
+
+				int progressID = Progress.Start("Load: " + path.Split('/').Last(), "Preparing Map", Progress.Options.Sticky);
+				int delPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
+				int spwPrefab = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
+				int delPath = Progress.Start("Paths", null, Progress.Options.Sticky, progressID);
+				int spwPath = Progress.Start("Paths", null, Progress.Options.Sticky, progressID);
+				int terrainID = Progress.Start("Terrain", null, Progress.Options.Sticky, progressID);
+				yield return null;
+
+				yield return PrefabManager.DeletePrefabs(PrefabManager.CurrentMapPrefabs, delPrefab);
+				PathManager.DeletePaths(PathManager.CurrentMapPaths, delPath);
+				CentreSceneObjects(mapInfo);
+				TerrainManager.Load(mapInfo, terrainID);
+				PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab);
+				PathManager.SpawnPaths(mapInfo.pathData, spwPath);
+
+				var sw = new System.Diagnostics.Stopwatch();
+				sw.Start();
+
+				while (Progress.GetProgressById(terrainID).progress < 0.99f || Progress.GetProgressById(spwPrefab).running || Progress.GetProgressById(spwPath).running)
+				{
+					if (sw.Elapsed.TotalMilliseconds > 0.05f)
+					{
+						sw.Restart();
+						yield return null;
+					}
+				}
+
+				Progress.Report(progressID, 0.99f, "Loaded");
+				Progress.Finish(terrainID, Progress.Status.Succeeded);
+				Progress.Finish(progressID, Progress.Status.Succeeded);
+
+				Callbacks.OnMapLoaded(path);
+		#else
+				
+												
+				yield return PrefabManager.DeletePrefabs(PrefabManager.CurrentMapPrefabs, 0);
+				PathManager.DeletePaths(PathManager.CurrentMapPaths);
+				CentreSceneObjects(mapInfo);
+				TerrainManager.Load(mapInfo);
+				PrefabManager.SpawnPrefabs(mapInfo.prefabData);
+				PathManager.SpawnPaths(mapInfo.pathData);
+				Callbacks.OnMapLoaded(path);
+				yield return null;
+		#endif
+			}
+
+			public static IEnumerator Save(string path)
+			{
+				#if UNITY_EDITOR
+				ProgressManager.RemoveProgressBars("Save:");
+
+				int progressID = Progress.Start("Save: " + path.Split('/').Last(), "Saving Map", Progress.Options.Sticky);
+				int prefabID = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
+				int pathID = Progress.Start("Paths", null, Progress.Options.Sticky, progressID);
+				int terrainID = Progress.Start("Terrain", null, Progress.Options.Sticky, progressID);
+				#endif
+
+				SaveLayer();
+				yield return null;
+				#if UNITY_EDITOR
+				TerrainToWorld(Land, Water, (prefabID, pathID, terrainID)).Save(path);
+				#else
+				TerrainToWorld(Land, Water, (0, 0, 0)).Save(path);
+				#endif
+
+				#if UNITY_EDITOR
+				Progress.Report(progressID, 0.99f, "Saved");
+				Progress.Finish(prefabID, Progress.Status.Succeeded);
+				Progress.Finish(pathID, Progress.Status.Succeeded);
+				Progress.Finish(terrainID, Progress.Status.Succeeded);
+				Progress.Finish(progressID, Progress.Status.Succeeded);
+				#endif
+
+				Callbacks.OnMapSaved(path);
+
+
+			}
+
+			#if UNITY_EDITOR
+			public static IEnumerator CreateMap(int size, TerrainSplat.Enum ground, TerrainBiome.Enum biome, float landHeight = 503f)
+			{
+				yield return EditorCoroutineUtility.StartCoroutineOwnerless(Load(EmptyMap(size, landHeight, ground, biome), "New Map"));
+			}
+			#else
+			public static IEnumerator CreateMap(int size, TerrainSplat.Enum ground, TerrainBiome.Enum biome, float landHeight = 503f)
+			{
+				yield return CoroutineManager.Instance.StartCoroutine(Load(EmptyMap(size, landHeight, ground, biome), "New Map"));
+			}
+			#endif
+
+			public static IEnumerator SaveCustomPrefab(string path)
+			{
+				#if UNITY_EDITOR
+				ProgressManager.RemoveProgressBars("Save:");
+
+				int progressID = Progress.Start("Save: " + path.Split('/').Last(), "Saving Map", Progress.Options.Sticky);
+				int prefabID = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
+				int circuitID = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);
+
+				// SaveLayer();
+				Debug.LogError(path);
+				#endif
+				
+				yield return null;
+				
+				#if UNITY_EDITOR
+				TerrainToCustomPrefab((prefabID, circuitID)).SaveREPrefab(path);
+		
+				Progress.Report(progressID, 0.99f, "Saved");
+				Progress.Finish(prefabID, Progress.Status.Succeeded);
+				Progress.Finish(circuitID, Progress.Status.Succeeded);
+				Progress.Finish(progressID, Progress.Status.Succeeded);
+
+				Callbacks.OnMapSaved(path);
+				#else
+				TerrainToCustomPrefab((0, 0)).SaveREPrefab(path);
+				Callbacks.OnMapSaved(path);
+				#endif
+			}
+	}
+
 }

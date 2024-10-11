@@ -1,8 +1,11 @@
-﻿using UnityEditor;
+﻿
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System;
+#if UNITY_EDITOR
 using Unity.EditorCoroutines.Editor;
+using UnityEditor;
+#endif
 using System.Collections;
 using System.Threading.Tasks;
 using RustMapEditor.Maths;
@@ -11,6 +14,7 @@ using static AreaManager;
 
 public static class TerrainManager
 {
+	#if UNITY_EDITOR
     #region Init
     [InitializeOnLoadMethod]
     private static void Init()
@@ -18,18 +22,32 @@ public static class TerrainManager
 		
         TerrainCallbacks.heightmapChanged += HeightMapChanged;
         TerrainCallbacks.textureChanged += SplatMapChanged;
-        EditorApplication.update += OnProjectLoad;
 		
+		
+        EditorApplication.update += OnProjectLoad;
     }
 
     private static void OnProjectLoad()
     {
+			
 			EditorApplication.update -= OnProjectLoad;
+			
+			
 			FilterTexture = Resources.Load<Texture>("Textures/Brushes/White128");
 			SetTerrainReferences();
     }
     #endregion
-
+	#endif
+	
+	public static void RuntimeInit()
+	{
+		TerrainCallbacks.heightmapChanged += HeightMapChanged;
+        TerrainCallbacks.textureChanged += SplatMapChanged;
+		FilterTexture = Resources.Load<Texture>("Textures/Brushes/White128");
+        SetTerrainReferences();
+		SetTerrainLayers();
+	}
+	
     public static class Callbacks
     {
         public delegate void Layer(LayerType layer, int? topology = null);
@@ -149,6 +167,7 @@ public static class TerrainManager
 		LandMask.terrainData.SetAlphamaps(0, 0, CliffField);
 		
 	}
+
 	
 	public static void SetLandMask(float[,] array)
 	{
@@ -590,7 +609,12 @@ public static class TerrainManager
     {
         RegisterHeightMapUndo(TerrainType.Land, "Erode HeightMap");
 
+		#if UNITY_EDITOR
         Material mat = new Material((Shader)AssetDatabase.LoadAssetAtPath("Packages/com.unity.terrain-tools/Shaders/TerraceErosion.shader", typeof(Shader)));
+		#else
+		Material mat = new Material(Resources.Load<Shader>("Shaders/TerraceErosion"));
+		#endif
+		
         UnityEngine.TerrainTools.BrushTransform brushXform = UnityEngine.TerrainTools.TerrainPaintUtility.CalculateBrushTransform(Land, HeightMapCentre, Land.terrainData.size.x, 0.0f);
         UnityEngine.TerrainTools.PaintContext paintContext = UnityEngine.TerrainTools.TerrainPaintUtility.BeginPaintHeightmap(Land, brushXform.GetBrushXYBounds());
         Vector4 brushParams = new Vector4(1.0f, featureSize, interiorCornerWeight, 0.0f);
@@ -685,11 +709,22 @@ public static class TerrainManager
 
     /// <summary>Loads and sets up the terrain and associated splatmaps.</summary>
     /// <param name="mapInfo">Struct containing all info about the map to initialise.</param>
-    public static void Load(MapInfo mapInfo, int progressID)
+    
+	#if UNITY_EDITOR
+	public static void Load(MapInfo mapInfo, int progressID = 0)
     {
         if (!IsLoading)
             EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.Load(mapInfo, progressID));
     }
+	#else
+	public static void Load(MapInfo mapInfo, int progressID = 0)
+    {
+
+            CoroutineManager.Instance.StartCoroutine(Coroutines.Load(mapInfo, progressID));
+
+    }
+	#endif
+	
     #endregion
     #endregion
 
@@ -723,21 +758,21 @@ public static class TerrainManager
     /// <summary>Sets the TerrainLayer references in TerrainManager to the asset on disk.</summary>
     public static void SetTerrainLayers()
     {
-		
         GroundLayers = GetGroundLayers();
         BiomeLayers = GetBiomeLayers();
         TopologyLayers = GetTopologyLayers();
 		MaskLayers = GetMaskLayers();
 
+		#if UNITY_EDITOR
         AssetDatabase.SaveAssets();
-		
+		#endif
     }
 
+	#if UNITY_EDITOR
     private static TerrainLayer[] GetGroundLayers()
     {
 		TerrainLayer[] textures = new TerrainLayer[8];
-
-				if (SettingsManager.style)
+				if (SettingsManager.application.terrainTextureSet)
 				{		
 				textures[0] = AssetDatabase.LoadAssetAtPath<TerrainLayer>("Assets/Resources/Textures/Ground/Dirt.terrainlayer");
 				textures[0].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/dirt");
@@ -755,9 +790,9 @@ public static class TerrainManager
 				textures[6].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/stones");
 				textures[7] = AssetDatabase.LoadAssetAtPath<TerrainLayer>("Assets/Resources/Textures/Ground/Gravel.terrainlayer");
 				textures[7].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/gravel");
+				return textures;
 				}
-				else
-				{
+				
 				textures[0] = AssetDatabase.LoadAssetAtPath<TerrainLayer>("Assets/Resources/Textures/Ground1/Dirt.terrainlayer");
 				textures[0].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground1/dirt1");
 				textures[1] = AssetDatabase.LoadAssetAtPath<TerrainLayer>("Assets/Resources/Textures/Ground1/Snow.terrainlayer");
@@ -774,7 +809,6 @@ public static class TerrainManager
 				textures[6].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground1/stones1");
 				textures[7] = AssetDatabase.LoadAssetAtPath<TerrainLayer>("Assets/Resources/Textures/Ground1/Gravel.terrainlayer");
 				textures[7].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground1/gravel1");
-				}
 
 		
         return textures;
@@ -817,6 +851,112 @@ public static class TerrainManager
         return textures;
     }
 	
+	
+	#else
+	private static TerrainLayer[] GetGroundLayers()
+	{
+		TerrainLayer[] textures = new TerrainLayer[8];
+		
+		if (!SettingsManager.application.terrainTextureSet){
+			textures[0] = Resources.Load<TerrainLayer>("Textures/Ground1/Dirt"); 
+			textures[0].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground1/dirt1");
+			
+			textures[1] = Resources.Load<TerrainLayer>("Textures/Ground1/Snow"); 
+			textures[1].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground1/snow1");
+
+			textures[2] = Resources.Load<TerrainLayer>("Textures/Ground1/Sand"); 
+			textures[2].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground1/sand1");
+			
+			textures[3] = Resources.Load<TerrainLayer>("Textures/Ground1/Rock"); 
+			textures[3].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground1/rock1");
+
+			textures[4] = Resources.Load<TerrainLayer>("Textures/Ground1/Grass"); 
+			textures[4].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground1/grass1");
+
+			textures[5] = Resources.Load<TerrainLayer>("Textures/Ground1/Forest"); 
+			textures[5].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground1/forest1");
+
+			textures[6] = Resources.Load<TerrainLayer>("Textures/Ground1/Stones"); 
+			textures[6].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground1/stones1");
+
+			textures[7] = Resources.Load<TerrainLayer>("Textures/Ground1/Gravel"); 
+			textures[7].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/gravel1");
+			return textures;
+		}
+			
+			
+			textures[0] = Resources.Load<TerrainLayer>("Textures/Ground/Dirt"); 
+			textures[0].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/dirt");
+			
+			textures[1] = Resources.Load<TerrainLayer>("Textures/Ground/Snow"); 
+			textures[1].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/snow");
+
+			textures[2] = Resources.Load<TerrainLayer>("Textures/Ground/Sand"); 
+			textures[2].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/sand");
+			
+			textures[3] = Resources.Load<TerrainLayer>("Textures/Ground/Rock"); 
+			textures[3].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/rock");
+
+			textures[4] = Resources.Load<TerrainLayer>("Textures/Ground/Grass"); 
+			textures[4].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/grass");
+
+			textures[5] = Resources.Load<TerrainLayer>("Textures/Ground/Forest"); 
+			textures[5].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/forest");
+
+			textures[6] = Resources.Load<TerrainLayer>("Textures/Ground/Stones"); 
+			textures[6].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/stones");
+
+			textures[7] = Resources.Load<TerrainLayer>("Textures/Ground/Gravel"); 
+			textures[7].diffuseTexture = Resources.Load<Texture2D>("Textures/Ground/gravel");
+			return textures;
+	}
+
+	private static TerrainLayer[] GetBiomeLayers()
+	{
+		TerrainLayer[] textures = new TerrainLayer[4];
+		textures[0] = Resources.Load<TerrainLayer>("Textures/Biome/Arid");
+		textures[0].diffuseTexture = Resources.Load<Texture2D>("Textures/Biome/arid");
+
+		textures[1] = Resources.Load<TerrainLayer>("Textures/Biome/Temperate");
+		textures[1].diffuseTexture = Resources.Load<Texture2D>("Textures/Biome/temperate");
+
+		textures[2] = Resources.Load<TerrainLayer>("Textures/Biome/Tundra");
+		textures[2].diffuseTexture = Resources.Load<Texture2D>("Textures/Biome/tundra");
+
+		textures[3] = Resources.Load<TerrainLayer>("Textures/Biome/Arctic");
+		textures[3].diffuseTexture = Resources.Load<Texture2D>("Textures/Biome/arctic");
+
+		return textures;
+	}
+
+	private static TerrainLayer[] GetTopologyLayers()
+	{
+		TerrainLayer[] textures = new TerrainLayer[2];
+		textures[0] = Resources.Load<TerrainLayer>("Textures/Topology/Active");
+		textures[0].diffuseTexture = Resources.Load<Texture2D>("Textures/Topology/active");
+
+		textures[1] = Resources.Load<TerrainLayer>("Textures/Topology/Inactive");
+		textures[1].diffuseTexture = Resources.Load<Texture2D>("Textures/Topology/inactive");
+
+		return textures;
+	}
+
+	private static TerrainLayer[] GetMaskLayers()
+	{
+		TerrainLayer[] textures = new TerrainLayer[3];
+		textures[0] = Resources.Load<TerrainLayer>("Textures/Mask/Geology");
+		textures[0].diffuseTexture = Resources.Load<Texture2D>("Textures/Mask/geology");
+
+		textures[1] = Resources.Load<TerrainLayer>("Textures/Mask/LessGeology");
+		textures[1].diffuseTexture = Resources.Load<Texture2D>("Textures/Mask/lessgeology");
+
+		textures[2] = Resources.Load<TerrainLayer>("Textures/Mask/Placement");
+		textures[2].diffuseTexture = Resources.Load<Texture2D>("Textures/Mask/placement");
+
+		return textures;
+	}
+	
+	#endif
 
     #endregion
     #endregion
@@ -891,10 +1031,12 @@ public static class TerrainManager
     #endregion
 
     #region Other
+	#if UNITY_EDITOR
+	
     /// <summary>Registers changes made to the HeightMap after the function is called.</summary>
     /// <param name="terrain">HeightMap to record.</param>
     /// <param name="name">Name of the Undo object on the stack.</param>
-    public static void RegisterHeightMapUndo(TerrainType terrain, string name)
+	public static void RegisterHeightMapUndo(TerrainType terrain, string name)
     {
         Undo.RegisterCompleteObjectUndo(terrain == TerrainType.Land ? Land.terrainData.heightmapTexture : Water.terrainData.heightmapTexture, name);
     }
@@ -910,6 +1052,11 @@ public static class TerrainManager
         foreach (var tex in Land.terrainData.alphamapTextures)
             Undo.ClearUndo(tex);
     }
+	#else
+	public static void RegisterHeightMapUndo(TerrainType terrain, string name) {  }
+	public static void RegisterSplatMapUndo(string name) { }
+	public static void ClearSplatMapUndo() { }
+	#endif
     #endregion
 
     private class Coroutines
@@ -919,14 +1066,16 @@ public static class TerrainManager
         /// <param name="mapInfo">Struct containing all info about the map to initialise.</param>
         public static IEnumerator Load(MapInfo mapInfo, int progressID)
         {
+			
             IsLoading = true;
-
 			yield return SetTerrains(mapInfo, progressID);
             yield return SetSplatMaps(mapInfo, progressID);
-
             ClearSplatMapUndo();
             AreaManager.Reset();
+			
+			#if UNITY_EDITOR
             Progress.Report(progressID, .99f, "Loaded Terrain.");
+			#endif
             IsLoading = false;
         }
 
@@ -936,12 +1085,19 @@ public static class TerrainManager
             HeightMapRes = mapInfo.terrainRes;
 
             yield return SetupTerrain(mapInfo, Water);
+			#if UNITY_EDITOR
             Progress.Report(progressID, .2f, "Loaded: Water.");
-            yield return SetupTerrain(mapInfo, Land);
+			#endif
+           
+		   yield return SetupTerrain(mapInfo, Land);
+			#if UNITY_EDITOR
             Progress.Report(progressID, .5f, "Loaded: Land.");
+			#endif
 
 			yield return SetupTerrain(mapInfo, LandMask);
+			#if UNITY_EDITOR
 			Progress.Report(progressID, .2f, "Loaded: LandMask.");
+			#endif
 
         }
 
@@ -956,6 +1112,7 @@ public static class TerrainManager
                 terrain.terrainData.baseMapResolution = mapInfo.splatRes;
             }
             terrain.terrainData.SetHeights(0, 0, terrain.Equals(Land) ? mapInfo.land.heights : mapInfo.water.heights);
+			
             yield return null;
         }
 
@@ -964,12 +1121,14 @@ public static class TerrainManager
         private static IEnumerator SetSplatMaps(MapInfo mapInfo, int progressID)
         {
             SplatMapRes = mapInfo.splatRes;
-
             SetSplatMap(mapInfo.splatMap, LayerType.Ground);
             SetSplatMap(mapInfo.biomeMap, LayerType.Biome);
             SetAlphaMap(mapInfo.alphaMap);
             yield return null;
+			
+			#if UNITY_EDITOR
             Progress.Report(progressID, .8f, "Loaded: Splats.");
+			#endif
 
             TopologyData.Set(mapInfo.topology);
             Parallel.For(0, TerrainTopology.COUNT, i =>
@@ -978,7 +1137,10 @@ public static class TerrainManager
                     SetSplatMap(TopologyData.GetTopologyLayer(TerrainTopology.IndexToType(i)), LayerType.Topology, i);
             });
             SetSplatMap(TopologyData.GetTopologyLayer(TerrainTopology.IndexToType(TopologyLayer)), LayerType.Topology, TopologyLayer);
-            Progress.Report(progressID, .9f, "Loaded: Topologies.");
+            
+			#if UNITY_EDITOR
+			Progress.Report(progressID, .9f, "Loaded: Topologies.");
+			#endif
         }
     }
 }

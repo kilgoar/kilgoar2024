@@ -1,7 +1,11 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+
+#if UNITY_EDITOR
 using UnityEditor;
 using Unity.EditorCoroutines.Editor;
+#endif
+
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +16,9 @@ using RustMapEditor.Variables;
 
 public static class PrefabManager
 {
-    #region Init
+	#region Init
+	#if UNITY_EDITOR
+    
     [InitializeOnLoadMethod]
     private static void Init()
     {
@@ -34,8 +40,27 @@ public static class PrefabManager
                 AssetManager.Initialise(SettingsManager.RustDirectory + SettingsManager.BundlePathExt);
         }
     }
-    #endregion
-
+     
+	
+	#endif
+	#endregion
+	
+	public static void RuntimeInit()
+	{
+		DefaultPrefab = Resources.Load<GameObject>("Prefabs/DefaultPrefab");
+		
+		ElectricsParent = GameObject.FindGameObjectWithTag("Electrics").transform;
+        NPCsParent = GameObject.FindGameObjectWithTag("NPC").transform;
+		PrefabParent = GameObject.FindGameObjectWithTag("Prefabs").transform;
+		ModifiersParent = GameObject.FindGameObjectWithTag("Modifiers").transform;
+        if (DefaultPrefab != null && PrefabParent != null)
+        {
+            //EditorApplication.update -= OnProjectLoad;
+            if (!AssetManager.IsInitialised && SettingsManager.LoadBundleOnLaunch)
+                AssetManager.Initialise(SettingsManager.RustDirectory + SettingsManager.BundlePathExt);
+        }
+	}
+	
     public static class Callbacks
     {
         public delegate void PrefabManagerCallback(GameObject prefab);
@@ -126,42 +151,74 @@ public static class PrefabManager
     /// <param name="go">GameObject to process, should be from one of the asset bundles.</param>
     /// <param name="filePath">Asset filepath of the gameobject, used to get and set the PrefabID.</param>
     public static GameObject Setup(GameObject go, string filePath)
-    {
-        go.SetLayerRecursively(8);
-        go.SetTagRecursively("Untagged");
-        go.SetStaticRecursively(true);
-        go.RemoveNameUnderscore();
+{
+    go.SetLayerRecursively(8);
+    go.SetTagRecursively("Untagged");
+    go.SetStaticRecursively(true);
+    go.RemoveNameUnderscore();
 
-        foreach (var item in go.GetComponentsInChildren<MeshCollider>())
-        {
+    // Handle MeshColliders
+    foreach (var item in go.GetComponentsInChildren<MeshCollider>())
+    {
+        if (item.sharedMesh != null)         {
+			item.sharedMesh.MarkDynamic();
+		}
+		
             item.cookingOptions = MeshColliderCookingOptions.None;
-            item.enabled = true;
+            item.enabled = false;
+            
             item.isTrigger = false;
             item.convex = true;
-        }
-        foreach (var item in go.GetComponentsInChildren<Animator>())
-        {
+        
+    }
+
+    // Handle Animators
+    foreach (var item in go.GetComponentsInChildren<Animator>())
+    {
+        if (item != null)        {
             item.enabled = false;
             item.runtimeAnimatorController = null;
         }
-        foreach (var item in go.GetComponentsInChildren<Light>())
+    }
+
+    // Handle Lights
+    foreach (var item in go.GetComponentsInChildren<Light>())    {
+        if (item != null)        {
             item.enabled = false;
-        foreach (var item in go.GetComponentsInChildren<Canvas>())
+        }
+    }
+
+    // Canvases
+    foreach (var item in go.GetComponentsInChildren<Canvas>())    {
+        if (item != null)        {
             item.enabled = false;
-        foreach (var item in go.GetComponentsInChildren<CanvasGroup>())
+        }
+    }
+
+    // CanvasGroups
+    foreach (var item in go.GetComponentsInChildren<CanvasGroup>())    {
+        if (item != null)        {
             item.enabled = false;
-        foreach (var item in go.GetComponentsInChildren<ParticleSystem>())
+        }
+    }
+
+    // ParticleSystems
+    foreach (var item in go.GetComponentsInChildren<ParticleSystem>())    {
+        if (item != null)
         {
             var emission = item.emission;
             emission.enabled = false;
         }
+    }
 
+    // Add PrefabDataHolder
         PrefabDataHolder prefabDataHolder = go.AddComponent<PrefabDataHolder>();
         prefabDataHolder.prefabData = new PrefabData() { id = AssetManager.ToID(filePath) };
+    
 
-        go.SetActive(false);
-        return go;
-    }
+    go.SetActive(false);
+    return go;
+}
 
     /// <summary>Spawns a prefab, updates the PrefabData and parents to the selected transform.</summary>
     public static void Spawn(GameObject go, PrefabData prefabData, Transform parent)
@@ -268,6 +325,21 @@ public static class PrefabManager
     }
 
 	
+	public static void DeleteModifiers(ModifierDataHolder modifiers)
+    {
+		if (modifiers != null)
+		{
+			GameObject.DestroyImmediate(modifiers.gameObject);
+		}
+    }
+	
+	public static void SpawnModifiers(ModifierData modifiers)
+	{
+		Spawn(DefaultPrefab, modifiers, ModifiersParent);
+	}
+	
+	#if UNITY_EDITOR
+	
     /// <summary>Spawns prefabs for map load.</summary>
     public static void SpawnPrefabs(PrefabData[] prefabs, int progressID)
     {
@@ -284,10 +356,7 @@ public static class PrefabManager
         if (!IsChangingPrefabs)
             EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.SpawnCircuits(circuits, progressID));
     }
-	public static void SpawnModifiers(ModifierData modifiers)
-	{
-		Spawn(DefaultPrefab, modifiers, ModifiersParent);
-	}
+
 	public static void SpawnNPCs(NPCData[] bots, int progressID)
     {
         if (!IsChangingPrefabs)
@@ -305,14 +374,6 @@ public static class PrefabManager
     {
         if (!IsChangingPrefabs)
            EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.DeleteCircuits(circuits, progressID));
-    }
-	
-	public static void DeleteModifiers(ModifierDataHolder modifiers)
-    {
-		if (modifiers != null)
-		{
-			GameObject.DestroyImmediate(modifiers.gameObject);
-		}
     }
 	
 	public static void DeleteNPCs(NPCDataHolder[] npcs, int progressID = 0)
@@ -355,6 +416,84 @@ public static class PrefabManager
     {
         EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.RenamePrefabIDs(prefabs, id, replace));
     }
+	#else
+	    /// <summary>Spawns prefabs for map load.</summary>
+    public static void SpawnPrefabs(PrefabData[] prefabs, int progressID = 0)
+    {
+        if (!IsChangingPrefabs)
+            CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.SpawnPrefabs(prefabs, progressID));
+    }
+	public static void SpawnPrefabs(PrefabData[] prefabs, int progressID, Transform parent)
+    {
+        if (!IsChangingPrefabs)
+            CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.SpawnPrefabs(prefabs, progressID, parent));
+    }
+    public static void SpawnCircuits(CircuitData[] circuits, int progressID = 0)
+    {
+        if (!IsChangingPrefabs)
+            CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.SpawnCircuits(circuits, progressID));
+    }
+
+	public static void SpawnNPCs(NPCData[] bots, int progressID = 0)
+    {
+        if (!IsChangingPrefabs)
+            CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.SpawnNPCs(bots, progressID));
+    }
+
+    /// <summary>Deletes prefabs from scene.</summary>
+    public static IEnumerator DeletePrefabs(PrefabDataHolder[] prefabs, int progressID = 0)
+    {
+        if (!IsChangingPrefabs)
+            yield return CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.DeletePrefabs(prefabs, progressID));
+    }
+	
+	public static void DeleteCircuits(CircuitDataHolder[] circuits, int progressID = 0)
+    {
+        if (!IsChangingPrefabs)
+           CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.DeleteCircuits(circuits, progressID));
+    }
+	
+	public static void DeleteNPCs(NPCDataHolder[] npcs, int progressID = 0)
+    {
+        if (!IsChangingPrefabs)
+            CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.DeleteNPCs(npcs, progressID));
+    }
+
+    /// <summary>Replaces the selected prefabs with ones from the Rust bundles.</summary>
+    public static void ReplaceWithLoaded(PrefabDataHolder[] prefabs, int progressID)
+    {
+        if (AssetManager.IsInitialised && !IsChangingPrefabs)
+        {
+            IsChangingPrefabs = true;
+            CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.ReplaceWithLoaded(prefabs, progressID));
+        }
+    }
+
+    /// <summary>Replaces the selected prefabs with the default prefabs.</summary>
+    public static void ReplaceWithDefault(PrefabDataHolder[] prefabs, int progressID)
+    {
+        if (!IsChangingPrefabs)
+        {
+            IsChangingPrefabs = true;
+            CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.ReplaceWithDefault(prefabs, progressID));
+        }
+    }
+
+    public static void RenamePrefabCategories(PrefabDataHolder[] prefabs, string name)
+    {
+        CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.RenamePrefabCategories(prefabs, name));
+    }
+	
+	public static void RenameNPCs(NPCDataHolder[] bots, string name)
+    {
+        CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.RenameNPCs(bots, name));
+    }
+
+    public static void RenamePrefabIDs(PrefabDataHolder[] prefabs, uint id, bool replace)
+    {
+        CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.RenamePrefabIDs(prefabs, id, replace));
+    }
+	#endif
 
     /// <summary>Rotates all prefabs in map 90° Clockwise or Counter Clockwise.</summary>
     /// <param name="CW">True = 90°, False = 270°</param>
@@ -1214,11 +1353,12 @@ public static class PrefabManager
 		}
 		return fragments;
 	}
-	
+	#if UNITY_EDITOR
 	public static void loadFragments(MonumentData monumentFragments, BreakerTreeView breakerTree)
 	{
 		breakerTree.LoadFragments(monumentFragments);
-	}
+	}	
+	#endif
 
 	public static Vector3 transformPosition(Vector3 prefabPosition)
 	{
@@ -1944,251 +2084,294 @@ public static class PrefabManager
             }
         }
 	
-    private static class Coroutines
-    {
-        public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID)
-        {
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+	private static class Coroutines
+	{
+		public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID)
+		{
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
 
-            for (int i = 0; i < prefabs.Length; i++)
-            {
-                if (sw.Elapsed.TotalSeconds > 4f)
-                {
-                    yield return null;
-                    Progress.Report(progressID, (float)i / prefabs.Length, "Spawning Prefabs: " + i + " / " + prefabs.Length);
-                    sw.Restart();
-                }
-                Spawn(Load(prefabs[i].id), prefabs[i], PrefabParent);
-            }
-
-            Progress.Report(progressID, 0.99f, "Spawned " + prefabs.Length + " prefabs.");
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-        }
-
-        public static IEnumerator DeletePrefabs(PrefabDataHolder[] prefabs, int progressID = 0)
-        {
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
-
-            if (progressID == 0)
-                progressID = Progress.Start("Delete Prefabs", null, Progress.Options.Sticky);
-
-            for (int i = 0; i < prefabs.Length; i++)
-            {
-                if (sw.Elapsed.TotalSeconds > 0.25f)
-                {
-                    yield return null;
-                    Progress.Report(progressID, (float)i / prefabs.Length, "Deleting Prefabs: " + i + " / " + prefabs.Length);
-                    sw.Restart();
-                }
-                GameObject.DestroyImmediate(prefabs[i].gameObject);
-            }
-			
-			List<GameObject> children = new List<GameObject>();
-			foreach (Transform child in PrefabParent)
+			for (int i = 0; i < prefabs.Length; i++)
 			{
-				children.Add(child.gameObject);
+				if (sw.Elapsed.TotalSeconds > 4f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressID, (float)i / prefabs.Length, "Spawning Prefabs: " + i + " / " + prefabs.Length);
+					#endif
+					sw.Restart();
+				}
+				Spawn(Load(prefabs[i].id), prefabs[i], PrefabParent);
 			}
-			children.ForEach(child => GameObject.DestroyImmediate(child));
-			
-			
-            Progress.Report(progressID, 0.99f, "Deleted " + prefabs.Length + " prefabs.");
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-        }
 
-        public static IEnumerator ReplaceWithLoaded(PrefabDataHolder[] prefabs, int progressID)
-        {
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+			#if UNITY_EDITOR
+			Progress.Report(progressID, 0.99f, "Spawned " + prefabs.Length + " prefabs.");
+			Progress.Finish(progressID, Progress.Status.Succeeded);
+			#endif
+		}
 
-            for (int i = 0; i < prefabs.Length; i++)
-            {
-                if (sw.Elapsed.TotalSeconds > 4f)
-                {
-                    yield return null;
-                    Progress.Report(progressID, (float)i / prefabs.Length, "Replacing Prefabs: " + i + " / " + prefabs.Length);
-                    sw.Restart();
-                }
-                prefabs[i].UpdatePrefabData();
-                Spawn(Load(prefabs[i].prefabData.id), prefabs[i].prefabData, GetParent(prefabs[i].prefabData.category));
-                GameObject.DestroyImmediate(prefabs[i].gameObject);
-            }
+		public static IEnumerator DeletePrefabs(PrefabDataHolder[] prefabs, int progressID = 0)
+		{
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
 
-            Progress.Report(progressID, 0.99f, "Replaced " + prefabs.Length + " prefabs.");
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-            IsChangingPrefabs = false;
-        }
+			#if UNITY_EDITOR
+			if (progressID == 0)
+				progressID = Progress.Start("Delete Prefabs", null, Progress.Options.Sticky);
+			#endif
 
-        public static IEnumerator ReplaceWithDefault(PrefabDataHolder[] prefabs, int progressID)
-        {
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+			for (int i = 0; i < prefabs.Length; i++)
+			{
+				if (sw.Elapsed.TotalSeconds > 0.25f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressID, (float)i / prefabs.Length, "Deleting Prefabs: " + i + " / " + prefabs.Length);
+					#endif
+					sw.Restart();
+				}
+				GameObject.DestroyImmediate(prefabs[i].gameObject);
+			}
 
-            for (int i = 0; i < prefabs.Length; i++)
-            {
-                if (sw.Elapsed.TotalSeconds > 0.05f)
-                {
-                    yield return null;
-                    Progress.Report(progressID, (float)i / prefabs.Length, "Replacing Prefabs: " + i + " / " + prefabs.Length);
-                    sw.Restart();
-                }
-                prefabs[i].UpdatePrefabData();
-                Spawn(DefaultPrefab, prefabs[i].prefabData, GetParent(prefabs[i].prefabData.category));
-                GameObject.DestroyImmediate(prefabs[i].gameObject);
-            }
+			#if UNITY_EDITOR
+			Progress.Report(progressID, 0.99f, "Deleted " + prefabs.Length + " prefabs.");
+			Progress.Finish(progressID, Progress.Status.Succeeded);
+			#endif
+		}
 
-            Progress.Report(progressID, 0.99f, "Replaced " + prefabs.Length + " prefabs.");
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-            IsChangingPrefabs = false;
-        }
+		public static IEnumerator ReplaceWithLoaded(PrefabDataHolder[] prefabs, int progressID)
+		{
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
+
+			for (int i = 0; i < prefabs.Length; i++)
+			{
+				if (sw.Elapsed.TotalSeconds > 4f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressID, (float)i / prefabs.Length, "Replacing Prefabs: " + i + " / " + prefabs.Length);
+					#endif
+					sw.Restart();
+				}
+				prefabs[i].UpdatePrefabData();
+				Spawn(Load(prefabs[i].prefabData.id), prefabs[i].prefabData, GetParent(prefabs[i].prefabData.category));
+				GameObject.DestroyImmediate(prefabs[i].gameObject);
+			}
+
+			#if UNITY_EDITOR
+			Progress.Report(progressID, 0.99f, "Replaced " + prefabs.Length + " prefabs.");
+			Progress.Finish(progressID, Progress.Status.Succeeded);
+			#endif
+			IsChangingPrefabs = false;
+		}
+
+		public static IEnumerator ReplaceWithDefault(PrefabDataHolder[] prefabs, int progressID)
+		{
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
+
+			for (int i = 0; i < prefabs.Length; i++)
+			{
+				if (sw.Elapsed.TotalSeconds > 0.05f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressID, (float)i / prefabs.Length, "Replacing Prefabs: " + i + " / " + prefabs.Length);
+					#endif
+					sw.Restart();
+				}
+				prefabs[i].UpdatePrefabData();
+				Spawn(DefaultPrefab, prefabs[i].prefabData, GetParent(prefabs[i].prefabData.category));
+				GameObject.DestroyImmediate(prefabs[i].gameObject);
+			}
+
+			#if UNITY_EDITOR
+			Progress.Report(progressID, 0.99f, "Replaced " + prefabs.Length + " prefabs.");
+			Progress.Finish(progressID, Progress.Status.Succeeded);
+			#endif
+			IsChangingPrefabs = false;
+		}
 
 		public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID, Transform parent)
-        {
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+		{
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
 
-            for (int i = 0; i < prefabs.Length; i++)
-            {
-                if (sw.Elapsed.TotalSeconds > 4f)
-                {
-                    yield return null;
-                    Progress.Report(progressID, (float)i / prefabs.Length, "Spawning Prefabs: " + i + " / " + prefabs.Length);
-                    sw.Restart();
-                }
-				
-                SpawnCustoms(Load(prefabs[i].id), prefabs[i], parent);
-            }
-            Progress.Report(progressID, 0.99f, "Spawned " + prefabs.Length + " prefabs.");
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-        }
-		
-		public static IEnumerator SpawnCircuits(CircuitData[] circuitData, int progressID)
-        {
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+			for (int i = 0; i < prefabs.Length; i++)
+			{
+				if (sw.Elapsed.TotalSeconds > 4f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressID, (float)i / prefabs.Length, "Spawning Prefabs: " + i + " / " + prefabs.Length);
+					#endif
+					sw.Restart();
+				}
 
-            for (int i = circuitData.Length-1; i > -1; i--)
-            {
-                if (sw.Elapsed.TotalSeconds > 4f)
-                {
-                    yield return null;
-                    Progress.Report(progressID, (float)i / circuitData.Length, "Spawning Electric: " + i + " / " + circuitData.Length);
-                    sw.Restart();
-                }
-                Spawn(DefaultPrefab, circuitData[i], ElectricsParent);
-            }
-            Progress.Report(progressID, 0.99f, "Spawned " + circuitData.Length + " circuits.");
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-        }
+				SpawnCustoms(Load(prefabs[i].id), prefabs[i], parent);
+			}
 
-		public static IEnumerator SpawnNPCs(NPCData[] bots, int progressID)
-        {
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
-			
-            for (int i = 0; i < bots.Length; i++)
-            {
-                if (sw.Elapsed.TotalSeconds > 4f)
-                {
-                    yield return null;
-                    Progress.Report(progressID, (float)i / bots.Length, "Spawning NPCs: " + i + " / " + bots.Length);
-                    sw.Restart();
-                }
-                Spawn(DefaultPrefab, bots[i], NPCsParent);
-            }
-            Progress.Report(progressID, 0.99f, "Spawned " + bots.Length + " npcs.");
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-        }
-		
+			#if UNITY_EDITOR
+			Progress.Report(progressID, 0.99f, "Spawned " + prefabs.Length + " prefabs.");
+			Progress.Finish(progressID, Progress.Status.Succeeded);
+			#endif
+		}
+
+		public static IEnumerator SpawnCircuits(CircuitData[] circuitData, int progressID = 0)
+		{
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
+
+			for (int i = circuitData.Length - 1; i > -1; i--)
+			{
+				if (sw.Elapsed.TotalSeconds > 4f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressID, (float)i / circuitData.Length, "Spawning Electric: " + i + " / " + circuitData.Length);
+					#endif
+					sw.Restart();
+				}
+				Spawn(DefaultPrefab, circuitData[i], ElectricsParent);
+			}
+
+			#if UNITY_EDITOR
+			Progress.Report(progressID, 0.99f, "Spawned " + circuitData.Length + " circuits.");
+			Progress.Finish(progressID, Progress.Status.Succeeded);
+			#endif
+		}
+
+		public static IEnumerator SpawnNPCs(NPCData[] bots, int progressID = 0)
+		{
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
+
+			for (int i = 0; i < bots.Length; i++)
+			{
+				if (sw.Elapsed.TotalSeconds > 4f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressID, (float)i / bots.Length, "Spawning NPCs: " + i + " / " + bots.Length);
+					#endif
+					sw.Restart();
+				}
+				Spawn(DefaultPrefab, bots[i], NPCsParent);
+			}
+
+			#if UNITY_EDITOR
+			Progress.Report(progressID, 0.99f, "Spawned " + bots.Length + " npcs.");
+			Progress.Finish(progressID, Progress.Status.Succeeded);
+			#endif
+		}
+
 		public static IEnumerator DeleteCircuits(CircuitDataHolder[] circuits, int progressID = 0)
-        {
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+		{
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
 
-            if (progressID == 0)
-                progressID = Progress.Start("Delete Circuits", null, Progress.Options.Sticky);
+			#if UNITY_EDITOR
+			if (progressID == 0)
+				progressID = Progress.Start("Delete Circuits", null, Progress.Options.Sticky);
+			#endif
 
-            for (int i = 0; i < circuits.Length; i++)
-            {
-                if (sw.Elapsed.TotalSeconds > 0.25f)
-                {
-                    yield return null;
-                    Progress.Report(progressID, (float)i / circuits.Length, "Deleting Circuits: " + i + " / " + circuits.Length);
-                    sw.Restart();
-                }
-                GameObject.DestroyImmediate(circuits[i].gameObject);
-            }
-            Progress.Report(progressID, 0.99f, "Deleted " + circuits.Length + " circuits.");
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-        }
-		
+			for (int i = 0; i < circuits.Length; i++)
+			{
+				if (sw.Elapsed.TotalSeconds > 0.25f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressID, (float)i / circuits.Length, "Deleting Circuits: " + i + " / " + circuits.Length);
+					#endif
+					sw.Restart();
+				}
+				GameObject.DestroyImmediate(circuits[i].gameObject);
+			}
+
+			#if UNITY_EDITOR
+			Progress.Report(progressID, 0.99f, "Deleted " + circuits.Length + " circuits.");
+			Progress.Finish(progressID, Progress.Status.Succeeded);
+			#endif
+		}
+
 		public static IEnumerator DeleteNPCs(NPCDataHolder[] npcs, int progressID = 0)
-        {
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+		{
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
 
-            if (progressID == 0)
-                progressID = Progress.Start("Delete NPCs", null, Progress.Options.Sticky);
+			#if UNITY_EDITOR
+			if (progressID == 0)
+				progressID = Progress.Start("Delete NPCs", null, Progress.Options.Sticky);
+			#endif
 
-            for (int i = 0; i < npcs.Length; i++)
-            {
-                if (sw.Elapsed.TotalSeconds > 0.25f)
-                {
-                    yield return null;
-                    Progress.Report(progressID, (float)i / npcs.Length, "Deleting Circuits: " + i + " / " + npcs.Length);
-                    sw.Restart();
-                }
-                GameObject.DestroyImmediate(npcs[i].gameObject);
-            }
-            Progress.Report(progressID, 0.99f, "Deleted " + npcs.Length + " NPCs.");
-            Progress.Finish(progressID, Progress.Status.Succeeded);
-        }
-		
+			for (int i = 0; i < npcs.Length; i++)
+			{
+				if (sw.Elapsed.TotalSeconds > 0.25f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressID, (float)i / npcs.Length, "Deleting NPCs: " + i + " / " + npcs.Length);
+					#endif
+					sw.Restart();
+				}
+				GameObject.DestroyImmediate(npcs[i].gameObject);
+			}
+
+			#if UNITY_EDITOR
+			Progress.Report(progressID, 0.99f, "Deleted " + npcs.Length + " npcs.");
+			Progress.Finish(progressID, Progress.Status.Succeeded);
+			#endif
+		}
+
 		public static IEnumerator RenameNPCs(NPCDataHolder[] bots, string name)
-        {
-		
+		{
+			#if UNITY_EDITOR
 			ProgressManager.RemoveProgressBars("Rename NPC Categories");
-            int progressId = Progress.Start("Rename NPC Categories", null, Progress.Options.Sticky);
+			int progressId = Progress.Start("Rename NPC Categories", null, Progress.Options.Sticky);
+			#endif
 
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
 
-            for (int i = 0; i < bots.Length; i++)
-            {
+			for (int i = 0; i < bots.Length; i++)
+			{
 				bots[i].bots.category = name;
 				if (sw.Elapsed.TotalSeconds > 0.2f)
-                {
-                    yield return null;
-                    Progress.Report(progressId, (float)i / bots.Length, "Renaming NPC Categories: " + i + " / " + bots.Length);
-                    sw.Restart();
-                }
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressId, (float)i / bots.Length, "Renaming NPCs: " + i + " / " + bots.Length);
+					#endif
+					sw.Restart();
+				}
 			}
-			
-			
-            
 
-            Progress.Report(progressId, 0.99f, "Renamed: " + bots.Length + " npcs.");
-            Progress.Finish(progressId);
-        }
+			#if UNITY_EDITOR
+			Progress.Report(progressId, 0.99f, "Renamed " + bots.Length + " npcs.");
+			Progress.Finish(progressId, Progress.Status.Succeeded);
+			#endif
+		}
+
+
            
 
-        public static IEnumerator RenamePrefabCategories(PrefabDataHolder[] prefabs, string name)
-        {
-			
-            ProgressManager.RemoveProgressBars("Rename Prefab Categories");
-            int progressId = Progress.Start("Rename Prefab Categories", null, Progress.Options.Sticky);
+		public static IEnumerator RenamePrefabCategories(PrefabDataHolder[] prefabs, string name)
+		{
+			#if UNITY_EDITOR
+			ProgressManager.RemoveProgressBars("Rename Prefab Categories");
+			int progressId = Progress.Start("Rename Prefab Categories", null, Progress.Options.Sticky);
+			#endif
 
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
 			string shopkeeper = "";
 
-            for (int i = 0; i < prefabs.Length; i++)
-            {
-				
+			for (int i = 0; i < prefabs.Length; i++)
+			{
 				if (prefabs[i].prefabData.id == 1724395471)
 				{
-					//do not rename monument marker
+					// Do not rename monument marker
 				}
 				else if (prefabs[i].prefabData.id == 856899687 || prefabs[i].prefabData.id == 3604512213)
 				{
@@ -2196,58 +2379,69 @@ public static class PrefabManager
 				}
 				else if (prefabs[i].prefabData.category == "Dungeon")
 				{
-					//do not rename Dungeon
-				}				
+					// Do not rename Dungeon
+				}
 				else if (prefabs[i].prefabData.id == 858853278)
 				{
-					//preserve shopkeeper tags
+					// Preserve shopkeeper tags
 					shopkeeper = prefabs[i].prefabData.category.Split(':').Last();
 					prefabs[i].prefabData.category = name + shopkeeper;
 				}
 				else
-				{					
+				{
 					prefabs[i].prefabData.category = name;
 				}
 
-                if (sw.Elapsed.TotalSeconds > 0.2f)
-                {
-                    yield return null;
-                    Progress.Report(progressId, (float)i / prefabs.Length, "Renaming Prefab: " + i + " / " + prefabs.Length);
-                    sw.Restart();
-                }
-            }
+				if (sw.Elapsed.TotalSeconds > 0.2f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressId, (float)i / prefabs.Length, "Renaming Prefab: " + i + " / " + prefabs.Length);
+					#endif
+					sw.Restart();
+				}
+			}
 
-            Progress.Report(progressId, 0.99f, "Renamed: " + prefabs.Length + " prefabs.");
-            Progress.Finish(progressId);
-        }
+			#if UNITY_EDITOR
+			Progress.Report(progressId, 0.99f, "Renamed: " + prefabs.Length + " prefabs.");
+			Progress.Finish(progressId);
+			#endif
+		}
 
-        public static IEnumerator RenamePrefabIDs(PrefabDataHolder[] prefabs, uint id, bool replace)
-        {
-            ProgressManager.RemoveProgressBars("Rename Prefab IDs");
-            int progressId = Progress.Start("Rename Prefab IDs", null, Progress.Options.Sticky);
+		public static IEnumerator RenamePrefabIDs(PrefabDataHolder[] prefabs, uint id, bool replace)
+		{
+			#if UNITY_EDITOR
+			ProgressManager.RemoveProgressBars("Rename Prefab IDs");
+			int progressId = Progress.Start("Rename Prefab IDs", null, Progress.Options.Sticky);
+			#endif
 
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+			var sw = new System.Diagnostics.Stopwatch();
+			sw.Start();
 
-            for (int i = 0; i < prefabs.Length; i++)
-            {
-                prefabs[i].prefabData.id = id;
-                if (replace)
-                {
-                    prefabs[i].UpdatePrefabData();
-                    Spawn(Load(prefabs[i].prefabData.id), prefabs[i].prefabData, GetParent(prefabs[i].prefabData.category));
-                    GameObject.DestroyImmediate(prefabs[i].gameObject);
-                }
-                if (sw.Elapsed.TotalSeconds > 0.2f)
-                {
-                    yield return null;
-                    Progress.Report(progressId, (float)i / prefabs.Length, "Renaming Prefab: " + i + " / " + prefabs.Length);
-                    sw.Restart();
-                }
-            }
+			for (int i = 0; i < prefabs.Length; i++)
+			{
+				prefabs[i].prefabData.id = id;
+				if (replace)
+				{
+					prefabs[i].UpdatePrefabData();
+					Spawn(Load(prefabs[i].prefabData.id), prefabs[i].prefabData, GetParent(prefabs[i].prefabData.category));
+					GameObject.DestroyImmediate(prefabs[i].gameObject);
+				}
+				if (sw.Elapsed.TotalSeconds > 0.2f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressId, (float)i / prefabs.Length, "Renaming Prefab: " + i + " / " + prefabs.Length);
+					#endif
+					sw.Restart();
+				}
+			}
 
-            Progress.Report(progressId, 0.99f, "Renamed: " + prefabs.Length + " prefabs.");
-            Progress.Finish(progressId);
-        }
+			#if UNITY_EDITOR
+			Progress.Report(progressId, 0.99f, "Renamed: " + prefabs.Length + " prefabs.");
+			Progress.Finish(progressId);
+			#endif
+		}
+
     }
 }

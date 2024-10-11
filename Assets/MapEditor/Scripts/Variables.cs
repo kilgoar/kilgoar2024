@@ -2,11 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor.IMGUI.Controls;
 using ProtoBuf;
+
+#if UNITY_EDITOR
+	using UnityEditor.IMGUI.Controls;
+#endif
 
 namespace RustMapEditor.Variables
 {
+	
     public struct Conditions
     {
         public GroundConditions GroundConditions;
@@ -343,6 +347,7 @@ namespace RustMapEditor.Variables
 		}
 	}
 	
+	#if UNITY_EDITOR
 		
 	public class BreakingItem : TreeViewItem 
 	{
@@ -513,6 +518,8 @@ namespace RustMapEditor.Variables
 			return root;
 		}
 	}
+	
+	#endif
 	
 	[Serializable]
 	public struct FragmentPair
@@ -728,6 +735,22 @@ namespace RustMapEditor.Variables
 		public float flatness;
 		public float zOff;
 		public int x, y;
+	}
+	
+	[Serializable]
+	public struct FilePreset
+	{
+		    public string rustDirectory;
+			public float prefabRenderDistance;
+			public float pathRenderDistance;
+			public float waterTransparency;
+			public bool loadbundleonlaunch;
+			public bool terrainTextureSet;
+			
+			public int newSize;
+			public float newHeight;
+			public TerrainBiome.Enum newBiome;
+			public TerrainSplat.Enum newSplat;
 	}
 	
 	
