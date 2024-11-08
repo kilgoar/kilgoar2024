@@ -507,11 +507,16 @@ public static class MapManager
     #endregion
 
     /// <summary>Centres the Prefab and Path parent objects.</summary>
-    static void CentreSceneObjects(MapInfo mapInfo)
-    {
-        PrefabManager.PrefabParent.GetComponent<LockObject>().SetPosition(new Vector3(mapInfo.size.x / 2, 500, mapInfo.size.z / 2));
-        PathManager.PathParent.GetComponent<LockObject>().SetPosition(new Vector3(mapInfo.size.x / 2, 500, mapInfo.size.z / 2));
-    }
+	static void CentreSceneObjects(MapInfo mapInfo)
+	{
+		Vector3 centerPosition = new Vector3(mapInfo.size.x / 2, 500, mapInfo.size.z / 2);
+
+		PrefabManager.PrefabParent.GetComponent<LockObject>().SetPosition(centerPosition);
+		if( PrefabManager.EditorSpace.GetComponent<LockObject>() != null){
+			PrefabManager.EditorSpace.GetComponent<LockObject>().SetPosition(centerPosition);
+			}
+		PathManager.PathParent.GetComponent<LockObject>().SetPosition(centerPosition);
+	}
 
 	#if UNITY_EDITOR
     /// <summary>Loads and sets up the map.</summary>
@@ -555,15 +560,23 @@ public static class MapManager
 		string name = path.Split('/').Last().Split('.')[0];
 		PrefabManager.RenamePrefabCategories(PrefabManager.CurrentMapPrefabs, ":" + name + "::");
 		PrefabManager.RenameNPCs(PrefabManager.CurrentMapNPCs, ":" + name + "::");
-		Debug.LogError("saving custom prefab");
         CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.SaveCustomPrefab(path));
     }
+	
 	#endif
+	public static void SaveJson(string path)
+    {
+		string name = path.Split('/').Last().Split('.')[0];
+		PrefabManager.RenamePrefabCategories(PrefabManager.CurrentMapPrefabs, ":" + name + "::");
+		PrefabManager.RenameNPCs(PrefabManager.CurrentMapNPCs, ":" + name + "::");
+		TerrainToCustomPrefab((-1, 0)).SavePrefabJSON(path);
+		Callbacks.OnMapSaved(path);
+    }
+	
     /// <summary>Creates a new flat terrain.</summary>
     /// <param name="size">The size of the terrain.</param>
     public static void CreateMap(int size, TerrainSplat.Enum ground, TerrainBiome.Enum biome, float landHeight = 503f)
     {
-		
 		#if UNITY_EDITOR
         EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.CreateMap(size, ground, biome, landHeight));
 		#else
@@ -660,7 +673,6 @@ public static class MapManager
 				CentreSceneObjects(mapInfo);
 				PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab);
 				PrefabManager.SpawnCircuits(mapInfo.circuitData, spwCircuit);
-				Debug.LogError("OK, boomer.");
 				PrefabManager.SpawnNPCs(mapInfo.npcData, spwNPCs);
 
 				var sw = new System.Diagnostics.Stopwatch();
@@ -794,8 +806,6 @@ public static class MapManager
 				int prefabID = Progress.Start("Prefabs", null, Progress.Options.Sticky, progressID);
 				int circuitID = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);
 
-				// SaveLayer();
-				Debug.LogError(path);
 				#endif
 				
 				yield return null;

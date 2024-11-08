@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -59,9 +60,10 @@ public static class AssetManager
 	public static Dictionary<string, uint> PathLookup { get; private set; } = new Dictionary<string, uint>();
 	public static Dictionary<string, AssetBundle> BundleLookup { get; private set; } = new Dictionary<string, AssetBundle>();
 	public static Dictionary<string, uint> PrefabLookup { get; private set; } = new Dictionary<string, uint>();
-
+	
 	public static Dictionary<string, AssetBundle> BundleCache { get; private set; } = new Dictionary<string, AssetBundle>(System.StringComparer.OrdinalIgnoreCase);
-	public static Dictionary<string, Object> AssetCache { get; private set; } = new Dictionary<string, Object>();
+	
+	public static Dictionary<string, UnityEngine.Object> AssetCache { get; private set; } = new Dictionary<string, UnityEngine.Object>();
 	public static Dictionary<string, GameObject> VolumesCache { get; private set; } = new Dictionary<string, GameObject>();
 	public static Dictionary<string, Texture2D> PreviewCache { get; private set; } = new Dictionary<string, Texture2D>();
 
@@ -69,9 +71,10 @@ public static class AssetManager
 
 	public static bool IsInitialised { get; private set; }
 
+    public static Dictionary<string, string> MaterialLookup { get; private set; } = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+	public static Dictionary<string, Shader> ShaderCache    { get; private set; } = new Dictionary<string, Shader>(System.StringComparer.OrdinalIgnoreCase);
 
-	
-	private static T GetAsset<T>(string filePath) where T : Object
+	private static T GetAsset<T>(string filePath) where T : UnityEngine.Object
 	{
 		if (!BundleLookup.TryGetValue(filePath, out AssetBundle bundle))
 			return null;
@@ -118,7 +121,7 @@ public static class AssetManager
 	}
 	#endif
 
-    public static T LoadAsset<T>(string filePath) where T : Object
+    public static T LoadAsset<T>(string filePath) where T : UnityEngine.Object
 	{
 		T asset;
 
@@ -153,6 +156,7 @@ public static class AssetManager
             return PrefabManager.DefaultPrefab;
         }
     }
+	
 
 	/// <summary>Returns a preview image of the asset located at the filepath. Caches the results.</summary>
 	public static Texture2D GetPreview(string filePath)
@@ -204,7 +208,7 @@ public static class AssetManager
 								
 								 VolumesCache.Add(lineSplit[1], (GameObject)AssetCache[lineSplit[1]]);
 								 GameObject transCube = Resources.Load<GameObject>("Prefabs/TranslucentCube");
-								 GameObject instantiatedTransCube = Object.Instantiate(transCube, VolumesCache[lineSplit[1]].transform);
+								 GameObject instantiatedTransCube = UnityEngine.Object.Instantiate(transCube, VolumesCache[lineSplit[1]].transform);
                            
 								
 								
@@ -567,6 +571,18 @@ public static class AssetManager
 		return 0;
 	}
 	
+	public static string MaterialPath(string str)
+	{
+		str = str+".mat";
+		if (string.IsNullOrEmpty(str)){
+			return "";
+		}
+		if (MaterialLookup.TryGetValue(str, out string path)){
+			return path;
+		}
+		
+		return "";
+	}	
 
 	private static class Coroutines
     {
@@ -602,7 +618,9 @@ public static class AssetManager
 			#else
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(LoadBundles(bundlesRoot, (0, 0, 0)));
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetBundleReferences((0, 0)));
-			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetMaterials(0));
+			yield return CoroutineManager.Instance.StartRuntimeCoroutine(PopulateMaterialLookup());
+			yield return CoroutineManager.Instance.StartRuntimeCoroutine(LoadShaderCache());
+			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetMaterials(0));			
 			#endif
 			
 
@@ -616,6 +634,63 @@ public static class AssetManager
 			PrefabManager.ReplaceWithLoaded(PrefabManager.CurrentMapPrefabs, 0);
 			#endif
 		}
+		
+		public static IEnumerator PopulateMaterialLookup()
+		{
+			MaterialLookup.Clear();
+			string[] parse;
+			string name;
+				foreach (string path in BundleLookup.Keys)	{
+					if(path.EndsWith(".mat",StringComparison.Ordinal))
+					{
+						parse = path.Split('/');
+						name = parse[parse.Length -1];
+						try
+						{
+							MaterialLookup.Add(name, path);
+						}
+						catch
+						{
+							
+						}
+					}
+					
+				}
+				
+				yield return null;
+		}
+		
+    public static IEnumerator LoadShaderCache()
+    {
+        ShaderCache.Clear();
+        
+        foreach (string path in BundleLookup.Keys)
+        {
+            if (path.EndsWith(".shader", StringComparison.Ordinal))
+            {
+                try
+                {
+                    Shader shader = LoadAsset<Shader>(path);
+                    if (shader != null)
+                    {
+                        ShaderCache[shader.name] = shader;
+						Debug.LogWarning(shader.name + " loaded from " + path);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"Shader not found at path: {path}");
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"Error loading shader from path: {path}. Exception: {e.Message}");
+                }
+            }
+        }
+        
+        yield return null;
+    }
+
 
 		public static IEnumerator Dispose() 
 		{
@@ -719,7 +794,7 @@ public static class AssetManager
 			rootBundle.Unload(true);
 		}
 
-		public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
+	public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 		{
 			var sw = new System.Diagnostics.Stopwatch();
 			sw.Start();
@@ -818,7 +893,11 @@ public static class AssetManager
 
 		public static IEnumerator SetMaterials(int materialID)
 		{
-			if (File.Exists(MaterialsListPath))
+
+			bool performance = false;
+			int count=0;
+			
+			if (File.Exists(MaterialsListPath) && performance)
 			{
 				Shader std = Shader.Find("Standard");
 				Shader spc = Shader.Find("Standard (Specular setup)");
@@ -882,6 +961,24 @@ public static class AssetManager
 				Progress.Finish(materialID, Progress.Status.Succeeded);
 				#endif
 			}
+			
+			if (!performance)				{
+					
+					foreach (string path in MaterialLookup.Values)					{
+						Material material = LoadAsset<Material>(path);
+
+						if (material == null)	{
+							continue; 
+						}
+
+						//yield return UpdateShader(material, material.shader);
+						
+					}
+				}
+
+	
+
+
 		}
 
 		public static IEnumerator UpdateShader(Material mat, Shader shader)

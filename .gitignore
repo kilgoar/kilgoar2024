@@ -8,6 +8,7 @@ Library/*
 /Temp/
 /Logs/
 /Builds/
+/Assets/UIRecycleTree/
 *.log
 *.info
 *.log

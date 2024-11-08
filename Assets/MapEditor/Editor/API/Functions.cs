@@ -2173,8 +2173,8 @@ namespace RustMapEditor.UI
 			
         }
 		
-				public static void CustomPrefab()
-		{
+		public static void CustomPrefab()		{
+			
 			EditorGUILayout.Space();
 			GUILayout.Label("Custom Prefab Editor");
 			if (GUILayout.Button("Load"))
@@ -2184,11 +2184,7 @@ namespace RustMapEditor.UI
 				MergeCustomPrefabPanel();
 			
 			if (GUILayout.Button("Save"))
-				SaveCustomPrefabPanel();
-			
-			
-				
-			
+				SaveCustomPrefabPanel();				
 		}
 
         public static void SaveCustomPrefabPanel(string mapName = "customprefab")

@@ -151,8 +151,6 @@ namespace RustMapEditor.Variables
 		public int x,y,width,height;
 	}
 	
-	
-
 	public enum ColliderLayer
 	{
 		All = Physics.AllLayers,
@@ -611,6 +609,17 @@ namespace RustMapEditor.Variables
 		public uint prefabID;
 		public int emphasis;
 		
+	public GeologyItem Clone()
+    {
+        return new GeologyItem
+        {
+            custom = this.custom,
+            customPrefab = this.customPrefab,
+            prefabID = this.prefabID,
+            emphasis = this.emphasis
+        };
+    }
+		
 		public GeologyItem(uint prefabID)
 		{
 			this.prefabID = prefabID;
@@ -640,6 +649,8 @@ namespace RustMapEditor.Variables
 			this.radius = geoCollisions.radius;
 			this.layer = geoCollisions.layer;
 		}
+		public GeologyCollisions()
+		{		}
 	}
 		
 	[Serializable]
@@ -751,6 +762,8 @@ namespace RustMapEditor.Variables
 			public float newHeight;
 			public TerrainBiome.Enum newBiome;
 			public TerrainSplat.Enum newSplat;
+			
+			public List<string> recentFiles;
 	}
 	
 	

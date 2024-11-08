@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UIRecycleTreeNamespace;
 
 public class WindowManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 {
@@ -13,8 +14,28 @@ public class WindowManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 	public Toggle lockToggle;
 	public GameObject WindowsPanel;
 	public GameObject Window;
+	public UIRecycleTree Tree;
 	public bool isRescaling = false;
 	public Button rescaleButton;
+
+	private RectTransform windowRectTransform;
+    private RectTransform treeRectTransform;
+
+    private void Start()
+    {
+		if (Tree != null){
+        windowRectTransform = Window.GetComponent<RectTransform>();
+        treeRectTransform = Tree.GetComponent<RectTransform>();
+		Tree.onNodeSelected.AddListener(SetFocus);
+		SyncTreeWithWindow();
+		}
+    }
+
+	public void SetFocus(Node node)	{
+			transform.SetAsLastSibling();
+			WindowsPanel.transform.SetAsLastSibling();
+			SyncTreeWithWindow();
+	}
 
     public void OnPointerDown(PointerEventData eventData)
     {
@@ -23,11 +44,15 @@ public class WindowManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 			if (RectTransformUtility.RectangleContainsScreenPoint(rescaleButton.GetComponent<RectTransform>(), eventData.position, eventData.pressEventCamera))	{
 				isRescaling = true;
 				Rescale(eventData);
+				SyncTreeWithWindow();
 			}
-			else { isRescaling = false; }
+			else { 
+				isRescaling = false; 
+				transform.localPosition += new Vector3(eventData.delta.x, eventData.delta.y, 0f); }
 			
-			transform.SetAsLastSibling();
-			WindowsPanel.transform.SetAsLastSibling();
+				transform.SetAsLastSibling();
+				WindowsPanel.transform.SetAsLastSibling();
+				SyncTreeWithWindow();
 		}
     }
 	
@@ -44,6 +69,7 @@ public class WindowManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 			}
 			
 		transform.localPosition += new Vector3(eventData.delta.x, eventData.delta.y, 0f);
+		SyncTreeWithWindow();
 	}
     
 	
@@ -65,7 +91,19 @@ public class WindowManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         Vector2 adjustedSize = rectTransform.sizeDelta * rectTransform.localScale;
         Vector2 offset = new Vector2((adjustedSize.x / 2) - 5f, (adjustedSize.y / -2) + 5f);
         rectTransform.localPosition = localPoint - offset;		
-		
+		SyncTreeWithWindow();
+	}
+	
+	
+	
+	private void SyncTreeWithWindow()
+	{
+		if (treeRectTransform != null && windowRectTransform != null)
+		{
+			treeRectTransform.position = windowRectTransform.position;
+			treeRectTransform.localScale = windowRectTransform.localScale;
+			Tree.transform.SetAsLastSibling();
+		}
 	}
 
 }

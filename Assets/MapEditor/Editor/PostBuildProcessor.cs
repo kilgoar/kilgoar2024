@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 using System.IO;
-//needs streamingAssets copies to set defaults for shipment
+using System;
 public class PostBuildProcessor
 {
     [MenuItem("Rust Map Editor/Build")]
@@ -12,44 +12,57 @@ public class PostBuildProcessor
 
         string appDataPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "RustMapper");
 		
-        CopyDirectory("Presets", Path.Combine(appDataPath, "Presets"));
-        CopyDirectory("Custom", Path.Combine(appDataPath, "Custom"));
-        CopyEditorSettings(Path.Combine(appDataPath, "EditorSettings.json"));
+        SettingsManager.CopyDirectory("Presets", Path.Combine(appDataPath, "Presets"));
+        SettingsManager.CopyDirectory("Custom", Path.Combine(appDataPath, "Custom"));
+        SettingsManager.CopyEditorSettings(Path.Combine(appDataPath, "EditorSettings.json"));
     }
-
-    public static void CopyDirectory(string sourceDir, string destinationDir)
+	
+	[MenuItem("Rust Map Editor/Build Release")]
+	public static void BuildRelease()
     {
-        if (!Directory.Exists(destinationDir))
-        {
-            Directory.CreateDirectory(destinationDir);
-        }
-
-        foreach (var file in Directory.GetFiles(sourceDir))
-        {
-            string fileName = Path.GetFileName(file);
-            string destFile = Path.Combine(destinationDir, fileName);
-            File.Copy(file, destFile, true);
-        }
-
-        foreach (var directory in Directory.GetDirectories(sourceDir))
-        {
-            string directoryName = Path.GetFileName(directory);
-            CopyDirectory(directory, Path.Combine(destinationDir, directoryName));
-        }
+        string buildPath = "E:/RustMapper/RustMapper.exe";
+        BuildPipeline.BuildPlayer(EditorBuildSettings.scenes, buildPath, BuildTarget.StandaloneWindows64, BuildOptions.None);
+		
+        SettingsManager.CopyDirectory("Presets", "E:/RustMapper/Presets");
+        SettingsManager.CopyDirectory("Custom", "E:/RustMapper/Custom");
+        SettingsManager.CopyEditorSettings("E:/RustMapper/EditorSettings.json");
+		RemoveDirectory("E:/RustMapper/RustMapper_BurstDebugInformation_DoNotShip");
     }
-
-    public static void CopyEditorSettings(string destinationFile)
+	
+	public static void RemoveDirectory(string directoryPath)
     {
-        string sourceFile = "EditorSettings.json"; 
-
-        if (File.Exists(sourceFile))
+        if (string.IsNullOrWhiteSpace(directoryPath))
         {
-            File.Copy(sourceFile, destinationFile, true);
-            Debug.Log($"Copied EditorSettings.json to: {destinationFile}");
+            Debug.LogError("Directory path is null or empty.");
+            return;
+        }
+
+        if (Directory.Exists(directoryPath))
+        {
+            try
+            {
+                foreach (var file in Directory.GetFiles(directoryPath))                {
+                    File.Delete(file);
+                }
+				
+                foreach (var subDir in Directory.GetDirectories(directoryPath))                {
+                    RemoveDirectory(subDir); 
+                }
+
+                // Finally, delete the directory itself
+                Directory.Delete(directoryPath, true);
+                Debug.Log($"Directory '{directoryPath}' and its contents have been deleted.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to delete directory '{directoryPath}'. Error: {ex.Message}");
+            }
         }
         else
         {
-            Debug.LogWarning("EditorSettings.json not found at: " + sourceFile);
+            Debug.LogWarning($"Directory '{directoryPath}' does not exist.");
         }
     }
+	
+
 }

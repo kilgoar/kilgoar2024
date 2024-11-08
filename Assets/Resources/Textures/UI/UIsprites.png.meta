@@ -192,8 +192,8 @@ TextureImporter:
       name: button
       rect:
         serializedVersion: 2
-        x: 766
-        y: 1022
+        x: 764
+        y: 1021
         width: 206
         height: 32
       alignment: 1
@@ -423,10 +423,10 @@ TextureImporter:
       name: cornerButton
       rect:
         serializedVersion: 2
-        x: 711
-        y: 928
-        width: 39
-        height: 39
+        x: 705
+        y: 923
+        width: 49
+        height: 49
       alignment: 8
       pivot: {x: 1, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -491,7 +491,7 @@ TextureImporter:
         width: 40
         height: 40
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -512,7 +512,7 @@ TextureImporter:
         width: 40
         height: 40
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -520,6 +520,681 @@ TextureImporter:
       bones: []
       spriteID: 051284e0704e4dc42af037fc698fc0f1
       internalID: 1619840099
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RangeSlide
+      rect:
+        serializedVersion: 2
+        x: 791
+        y: 919
+        width: 18
+        height: 44
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 6, y: 9, z: 6, w: 9}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f21678c82d1dc1a4b83d8df154762a80
+      internalID: 1661449659
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: addPrefab
+      rect:
+        serializedVersion: 2
+        x: 781
+        y: 823
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 712f1a623c46e5e4898a69a200b23ca3
+      internalID: -1929624688
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: addPrefabGreen
+      rect:
+        serializedVersion: 2
+        x: 781
+        y: 762
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 67d64dabdf4fe6d41857c68763217567
+      internalID: -2121188648
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: breakerGreen
+      rect:
+        serializedVersion: 2
+        x: 839
+        y: 824
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: eb64f9a0c621748489296daeb3ec3a40
+      internalID: 226577705
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: breaker
+      rect:
+        serializedVersion: 2
+        x: 839
+        y: 763
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: de98555c66ab24b44b44969844d23b07
+      internalID: -435862801
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: prefabListGreen
+      rect:
+        serializedVersion: 2
+        x: 896
+        y: 762
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 740fda6908d682e4c9f362280a4e7b6c
+      internalID: 1569333959
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: prefabList
+      rect:
+        serializedVersion: 2
+        x: 896
+        y: 819
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 436732c2c8f117f45bca7fcc5fbc89bd
+      internalID: -1071875092
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: DisabledButton
+      rect:
+        serializedVersion: 2
+        x: 983
+        y: 1111
+        width: 203
+        height: 44
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 6, y: 6, z: 5, w: 6}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4626cce6860dad54091c21437cee2d8f
+      internalID: 770358251
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ButtonBright2
+      rect:
+        serializedVersion: 2
+        x: 981
+        y: 1066
+        width: 206
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 4, y: 4, z: 4, w: 4}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 402f4bfe01572c241a054c164edbffb7
+      internalID: -2129174379
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: trash green
+      rect:
+        serializedVersion: 2
+        x: 937
+        y: 921
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e7136fe404ecd324e85cad84621112d8
+      internalID: -1524247354
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: trash
+      rect:
+        serializedVersion: 2
+        x: 984
+        y: 921
+        width: 39
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fbbc0cab846763c468fef71e9ea96b8a
+      internalID: -1978091892
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: less than
+      rect:
+        serializedVersion: 2
+        x: 889
+        y: 927
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ca349a987f9b07c4dbac067519c95ac9
+      internalID: 2010630619
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: greater than
+      rect:
+        serializedVersion: 2
+        x: 839
+        y: 927
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3fd9cc87f1de0cf4abbac5d3d704e0b8
+      internalID: 1184929559
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: folder
+      rect:
+        serializedVersion: 2
+        x: 1032
+        y: 921
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 463782a74f6e50247882cac16fd0ec3c
+      internalID: -1578959667
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: folder open
+      rect:
+        serializedVersion: 2
+        x: 1083
+        y: 921
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 44f9d0954b789f04aa47f3bf0d6374a2
+      internalID: 911976114
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mapicon
+      rect:
+        serializedVersion: 2
+        x: 1034
+        y: 875
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0d015c4624c93274dafd6aa2d6fafeb2
+      internalID: -451219018
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: gear
+      rect:
+        serializedVersion: 2
+        x: 1086
+        y: 876
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6859f60c461ad0246bbeedb547c37ccc
+      internalID: 1788931696
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: binoculars
+      rect:
+        serializedVersion: 2
+        x: 1085
+        y: 823
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8265d211f529f1247946884da468751f
+      internalID: -211829242
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: map icon new
+      rect:
+        serializedVersion: 2
+        x: 984
+        y: 874
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4d82e467205c0ea42b1c51cfdb1687d8
+      internalID: -260897487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: collapsed green
+      rect:
+        serializedVersion: 2
+        x: 716
+        y: 873
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 77341c117e2da8d4bbeb4b574814c4fe
+      internalID: 2062437151
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: collapsed red
+      rect:
+        serializedVersion: 2
+        x: 776
+        y: 873
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e5e53378699e06f4a980a3756724e7d7
+      internalID: 1737603700
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: plus sign blue
+      rect:
+        serializedVersion: 2
+        x: 782
+        y: 700
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3f924ddcebb2f0d408b379268a8aba7e
+      internalID: -981460359
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RustMapper
+      rect:
+        serializedVersion: 2
+        x: 941
+        y: 878
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 78fff2efd5a7b14448437488d20212bc
+      internalID: 536033391
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TransformPlaneGreen
+      rect:
+        serializedVersion: 2
+        x: 57
+        y: 620
+        width: 57
+        height: 57
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape:
+      - - {x: -28.5, y: 28.5}
+        - {x: -28.5, y: -28.5}
+        - {x: 28.5, y: -28.5}
+        - {x: 28.5, y: 28.5}
+      - - {x: -28.5, y: 28.5}
+        - {x: 28.5, y: 28.5}
+        - {x: 28.5, y: -28.5}
+        - {x: -28.5, y: -28.5}
+      tessellationDetail: 0.54
+      bones: []
+      spriteID: 0f2b6ca8311bd7d4f99c67e7352b4e85
+      internalID: -1269379925
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TransformPlaneRed
+      rect:
+        serializedVersion: 2
+        x: 149
+        y: 620
+        width: 57
+        height: 57
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape:
+      - - {x: -28.5, y: 28.5}
+        - {x: -28.5, y: -28.5}
+        - {x: 28.5, y: -28.5}
+        - {x: 28.5, y: 28.5}
+      - - {x: -28.5, y: 28.5}
+        - {x: 28.5, y: 28.5}
+        - {x: 28.5, y: -28.5}
+        - {x: -28.5, y: -28.5}
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5d45ccb897d614342af67faf11bf3d64
+      internalID: -204680525
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TransformPlaneBlue
+      rect:
+        serializedVersion: 2
+        x: 236
+        y: 620
+        width: 57
+        height: 57
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape:
+      - - {x: -28.5, y: 28.5}
+        - {x: -28.5, y: -28.5}
+        - {x: 28.5, y: -28.5}
+        - {x: 28.5, y: 28.5}
+      - - {x: -28.5, y: 28.5}
+        - {x: 28.5, y: 28.5}
+        - {x: 28.5, y: -28.5}
+        - {x: -28.5, y: -28.5}
+      tessellationDetail: 0
+      bones: []
+      spriteID: 00620e1398e17144bafb89c4d71c5551
+      internalID: 295999035
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TransformArrowRed
+      rect:
+        serializedVersion: 2
+        x: 327
+        y: 575
+        width: 29
+        height: 189
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape:
+      - - {x: -0.5553589, y: 94.5}
+        - {x: -14.5, y: 43.712463}
+        - {x: -4.924408, y: 49.196045}
+        - {x: -3.9237366, y: -94.5}
+        - {x: 5.3107605, y: -94.412415}
+        - {x: 4.04422, y: 48.92627}
+        - {x: 14.5, y: 43.334167}
+      tessellationDetail: 0.12
+      bones: []
+      spriteID: f0ad20b5d9c931545bce2e4928906c59
+      internalID: -1044279211
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TransformArrowBlue
+      rect:
+        serializedVersion: 2
+        x: 364
+        y: 575
+        width: 30
+        height: 189
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape:
+      - - {x: 0, y: 94.5}
+        - {x: -14, y: 44.5}
+        - {x: -5, y: 48.5}
+        - {x: -4, y: -94.5}
+        - {x: 6, y: -94.5}
+        - {x: 5, y: 48.5}
+        - {x: 15, y: 43.5}
+      tessellationDetail: 0.14
+      bones: []
+      spriteID: 857d47a4c2211794ca52d73cc1c15d9c
+      internalID: 1493251540
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TransformArrowGreen
+      rect:
+        serializedVersion: 2
+        x: 402
+        y: 575
+        width: 31
+        height: 189
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape:
+      - - {x: -0.5553589, y: 94.5}
+        - {x: -14.5, y: 43.712463}
+        - {x: -4.924408, y: 49.196045}
+        - {x: -3.9237366, y: -94.5}
+        - {x: 5.3107605, y: -94.412415}
+        - {x: 4.04422, y: 48.92627}
+        - {x: 14.5, y: 43.334167}
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5c15fdd9088365c40903a6ef3ec9a33e
+      internalID: 1480471322
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: colorcube
+      rect:
+        serializedVersion: 2
+        x: 954
+        y: 823
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6380e7b673c782241bc4f345890560e4
+      internalID: 113845868
       vertices: []
       indices: 
       edges: []
@@ -535,25 +1210,55 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
+      ButtonBright2: -2129174379
+      DisabledButton: 770358251
       GeologyGreen: 1458959956
       GeologyWhite: 1619840099
       LockEnabled: -945521933
+      RangeSlide: 1661449659
+      RustMapper: 536033391
       Slide: 1315434967
       SliderActive: -2088628973
+      TransformArrowBlue: 1493251540
+      TransformArrowGreen: 1480471322
+      TransformArrowRed: -1044279211
+      TransformPlaneBlue: 295999035
+      TransformPlaneGreen: -1269379925
+      TransformPlaneRed: -204680525
       UnlockEnabled: -404917473
+      addPrefab: -1929624688
+      addPrefabGreen: -2121188648
+      binoculars: -211829242
+      breaker: -435862801
+      breakerGreen: 226577705
       button: 592952389
       buttonBright: -1740230695
       checkDisabled: -360705485
       checkEnabled: 1676189322
+      collapsed green: 2062437151
+      collapsed red: 1737603700
+      colorcube: 113845868
       cornerButton: 93494374
       doorIcon: -1871782716
       doorIconGreen: -1492946611
       enumPopupButton: 685871163
+      folder: -1578959667
+      folder open: 911976114
+      gear: 1788931696
       gearIcon: -440914037
       gearIconGreen: 2044013127
+      greater than: 1184929559
+      less than: 2010630619
+      map icon new: -260897487
+      mapicon: -451219018
+      plus sign blue: -981460359
+      prefabList: -1071875092
+      prefabListGreen: 1569333959
       selectedTab: -152325550
       sliderInactive: 1029772902
       textField: -34682274
+      trash: -1978091892
+      trash green: -1524247354
       windowUI: -441366200
   spritePackingTag: 
   pSDRemoveMatte: 0

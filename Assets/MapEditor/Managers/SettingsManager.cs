@@ -9,6 +9,7 @@ using UnityEditor;
 using UnityEngine;
 using RustMapEditor.Variables;
 using static BreakerSerialization;
+using UIRecycleTreeNamespace;
 
 public static class SettingsManager
 {
@@ -33,9 +34,9 @@ public static class SettingsManager
     {
 		SettingsPath = AppDataPath() + "EditorSettings.json";
         if (!File.Exists(SettingsPath)){
-            using (StreamWriter write = new StreamWriter(SettingsPath, false))
-                write.Write(JsonUtility.ToJson(new EditorSettings(), true));
-				Debug.LogError("Config file not found!");
+                CopyDirectory("Presets", Path.Combine(AppDataPath(), "Presets"));
+				CopyDirectory("Custom", Path.Combine(AppDataPath(), "Custom"));
+				CopyEditorSettings(Path.Combine(AppDataPath(), "EditorSettings.json"));
 		}
 		
         LoadSettings();
@@ -50,7 +51,251 @@ public static class SettingsManager
 			return Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "RustMapper/");
 		#endif
 	}
-    
+	
+	    public static void CopyDirectory(string sourceDir, string destinationDir)
+    {
+        if (!Directory.Exists(destinationDir))
+        {
+            Directory.CreateDirectory(destinationDir);
+        }
+
+        foreach (var file in Directory.GetFiles(sourceDir))
+        {
+            string fileName = Path.GetFileName(file);
+            string destFile = Path.Combine(destinationDir, fileName);
+            File.Copy(file, destFile, true);
+        }
+
+        foreach (var directory in Directory.GetDirectories(sourceDir))
+        {
+            string directoryName = Path.GetFileName(directory);
+            CopyDirectory(directory, Path.Combine(destinationDir, directoryName));
+        }
+    }
+
+    public static void CopyEditorSettings(string destinationFile)
+    {
+        string sourceFile = "EditorSettings.json"; 
+
+        if (File.Exists(sourceFile))
+        {
+            File.Copy(sourceFile, destinationFile, true);
+            Debug.Log($"Copied EditorSettings.json to: {destinationFile}");
+        }
+        else
+        {
+            Debug.LogWarning("EditorSettings.json not found at: " + sourceFile);
+        }
+    }
+	
+	public static List<string> AddFilePaths(string path, string extension)
+	{
+		List<string> pathsList = new List<string>();
+
+		try
+		{
+			// Validate the path
+			if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+			{
+				Debug.LogWarning("Invalid directory path: " + path);
+				return pathsList;
+			}
+
+			// Enumerate directories
+			foreach (string directory in Directory.EnumerateDirectories(path, "*", SearchOption.TopDirectoryOnly))
+			{
+				pathsList.Add(Path.GetFullPath(directory) + Path.DirectorySeparatorChar);
+			}
+
+			// Enumerate files with specified extension
+			foreach (string file in Directory.EnumerateFiles(path, "*." + extension, SearchOption.TopDirectoryOnly))
+			{
+				pathsList.Add(Path.GetFullPath(file));
+			}
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			Debug.LogWarning("Access denied to path: " + path + ". " + ex.Message);
+		}
+		catch (PathTooLongException ex)
+		{
+			Debug.LogWarning("Path too long: " + path + ". " + ex.Message);
+		}
+		catch (IOException ex)
+		{
+			Debug.LogWarning("IO exception for path: " + path + ". " + ex.Message);
+		}
+
+		return pathsList;
+	}
+
+	
+
+	
+	public static List<string> GetDataPaths(string path, string root, string extension = ".prefab")
+	{
+		List<string> pathsList = new List<string>();
+
+		try
+		{
+			// Validate the directory path
+			if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+			{
+				Debug.LogWarning("Invalid directory path: " + path);
+				return pathsList;
+			}
+
+			// Check if path contains root for relative path display
+			int index = path.IndexOf(root, StringComparison.OrdinalIgnoreCase);
+			if (index != -1)
+			{
+				pathsList.Add("~" + path.Substring(index));
+			}
+
+			// Recursively collect paths from subdirectories
+			foreach (string directory in Directory.GetDirectories(path))
+			{
+				pathsList.AddRange(GetDataPaths(directory, root, extension));
+			}
+
+			// Collect files with the specified extension
+			foreach (string file in Directory.GetFiles(path))
+			{
+				if (Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase))
+				{
+					int fileIndex = file.IndexOf(root, StringComparison.OrdinalIgnoreCase);
+					if (fileIndex != -1)
+					{
+						pathsList.Add("~" + file.Substring(fileIndex));
+					}
+				}
+			}
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			Debug.LogWarning("Access denied to path: " + path + ". " + ex.Message);
+		}
+		catch (PathTooLongException ex)
+		{
+			Debug.LogWarning("Path too long: " + path + ". " + ex.Message);
+		}
+		catch (IOException ex)
+		{
+			Debug.LogWarning("IO exception for path: " + path + ". " + ex.Message);
+		}
+
+		return pathsList;
+	}
+
+	
+	public static void AddPathsAsNodes(UIRecycleTree tree, List<string> paths)
+	{
+		Dictionary<string, Node> nodeMap = new Dictionary<string, Node>();
+
+		foreach (Node existingNode in tree.rootNode.nodes)
+		{
+			PopulateNodeMap(existingNode, nodeMap, string.Empty);
+		}
+
+		foreach (string path in paths)
+		{
+			string normalizedPath = path.Replace("\\", "/", StringComparison.Ordinal);
+			string[] parts = normalizedPath.Split('/');
+			Node currentNode = null;
+
+			for (int i = 0; i < parts.Length; i++)
+			{
+				string part = parts[i];
+				string fullPath = string.Join("/", parts, 0, i + 1);
+
+				if (!nodeMap.TryGetValue(fullPath, out currentNode))
+				{
+					currentNode = new Node(part);
+					nodeMap[fullPath] = currentNode;
+
+					if (i == 0)					{						
+						tree.rootNode.nodes.Add(currentNode);
+					}
+					else					{
+						string parentPath = string.Join("/", parts, 0, i);
+						if (nodeMap.TryGetValue(parentPath, out Node parentNode))
+						{
+							parentNode.nodes.Add(currentNode);
+							currentNode.parentNode = parentNode;
+						}
+					}
+
+					currentNode.tree = tree;
+				}
+			}
+		}
+	}
+
+	private static void PopulateNodeMap(Node node, Dictionary<string, Node> nodeMap, string parentPath)
+	{
+		string fullPath = string.IsNullOrEmpty(parentPath) ? node.name : $"{parentPath}/{node.name}";
+		nodeMap[fullPath] = node;
+
+		foreach (Node child in node.nodes)		{
+			PopulateNodeMap(child, nodeMap, fullPath);
+		}
+	}
+	
+	public static void ConvertPathsToNodes(UIRecycleTree tree, List<string> paths, string extension = ".prefab", string searchQuery = "")    {
+
+		tree.Clear();
+
+        Dictionary<string, Node> nodeMap = new Dictionary<string, Node>();
+
+        foreach (string path in paths)
+        {
+            //bypass this extension check for bundle extractions
+			if (path.EndsWith(extension, StringComparison.Ordinal) || extension.Equals("override", StringComparison.Ordinal))
+            {
+                string searchPath = path.Replace(extension, "", StringComparison.Ordinal);
+				searchPath = searchPath.Replace("\\", "/", StringComparison.Ordinal);
+                if (string.IsNullOrEmpty(searchQuery) || searchPath.Contains(searchQuery, StringComparison.Ordinal))
+                {
+                    string[] parts = searchPath.Split('/');
+                    Node currentNode = null;
+
+                    for (int i = 0; i < parts.Length; i++)
+                    {
+                        string part = parts[i];
+                        string fullPath = string.Join("/", parts, 0, i + 1);
+
+						
+                        if (!nodeMap.TryGetValue(fullPath, out currentNode))
+                        {
+                            currentNode = new Node(part);
+                            nodeMap[fullPath] = currentNode;
+
+                            if (i == 0)
+                            {
+                                tree.rootNode.nodes.Add(currentNode);
+                            }
+                            else
+                            {
+                                string parentPath = string.Join("/", parts, 0, i);
+                                if (nodeMap.TryGetValue(parentPath, out Node parentNode))
+                                {
+                                    parentNode.nodes.Add(currentNode);
+                                    currentNode.parentNode = parentNode;
+                                }
+                            }
+
+                            currentNode.tree = tree;
+                        }
+                    }
+                }
+            }
+        }
+    }
+	
+
+	
+	
+	
     public const string BundlePathExt = @"\Bundles\Bundles";
 	
 	public static bool style { get; set; }
@@ -72,6 +317,7 @@ public static class SettingsManager
 	public static ReplacerPreset replacer { get; set; }
 	public static string[] breakerPresets { get; set; }
 	public static string[] geologyPresets { get; set; }
+	public static string[] geologyPresetLists { get; set; }
     public static string[] PrefabPaths { get; private set; }
 	public static GeologyPreset[] macro {get; set; }
 	public static bool macroSources {get; set; }
@@ -119,7 +365,7 @@ public static class SettingsManager
 	
 	public static void SaveFragmentLookup()
 	{
-		using (StreamWriter write = new StreamWriter($"Presets/breakerFragments.json", false))
+		using (StreamWriter write = new StreamWriter(AppDataPath() + $"Presets/breakerFragments.json", false))
         {
             write.Write(JsonUtility.ToJson(fragmentIDs, true));
 			fragmentIDs.Deserialize();
@@ -129,7 +375,7 @@ public static class SettingsManager
 	public static void LoadFragmentLookup()
     {
 		fragmentIDs  = new FragmentLookup();
-		using (StreamReader reader = new StreamReader($"Presets/breakerFragments.json"))
+		using (StreamReader reader = new StreamReader(AppDataPath() + $"Presets/breakerFragments.json"))
 			{
 				fragmentIDs  = JsonUtility.FromJson<FragmentLookup>(reader.ReadToEnd());
 				fragmentIDs.Deserialize();
@@ -140,7 +386,7 @@ public static class SettingsManager
 	public static void SaveBreakerPreset(string filename)
     {
 		breakerSerializer.breaker = breaker;
-		breakerSerializer.Save($"Presets/Breaker/{filename}.breaker");
+		breakerSerializer.Save(AppDataPath() + $"Presets/Breaker/{filename}.breaker");
 		/*       
 	   using (StreamWriter write = new StreamWriter($"Presets/Breaker/{breaker.title}.breaker", false))
         {
@@ -151,7 +397,7 @@ public static class SettingsManager
 	
 	public static void LoadBreakerPreset(string filename)
 	{
-		breaker = breakerSerializer.Load(Path.Combine( $"Presets/Breaker/{filename}.breaker"));
+		breaker = breakerSerializer.Load(Path.Combine(AppDataPath() +  $"Presets/Breaker/{filename}.breaker"));
 		/*
 		using (StreamReader reader = new StreamReader($"Presets/Breaker/{filename}.breaker"))
 			{
@@ -161,17 +407,28 @@ public static class SettingsManager
 		*/
 	}
 	
+	
 	public static void SaveGeologyPreset()
     {
-        using (StreamWriter write = new StreamWriter($"Presets/Geology/{geology.title}.json", false))
+        using (StreamWriter write = new StreamWriter(AppDataPath() + $"Presets/Geology/{geology.title}.json", false))
         {
             write.Write(JsonUtility.ToJson(geology, true));
         }
     }
 	
+	public static void DeleteGeologyPreset()
+	{
+		string path = AppDataPath() + $"Presets/Geology/{geology.title}.json";
+		if (File.Exists(path))
+		{
+			File.Delete(path);
+		}
+	}
+
+	
 	public static void SaveReplacerPreset()
     {
-        using (StreamWriter write = new StreamWriter($"Presets/Geology/{geology.title}.json", false))
+        using (StreamWriter write = new StreamWriter(AppDataPath() + $"Presets/Geology/{geology.title}.json", false))
         {
             write.Write(JsonUtility.ToJson(replacer, true));
         }
@@ -181,7 +438,7 @@ public static class SettingsManager
 	
 	public static void LoadGeologyPreset(string filename)
 	{
-		using (StreamReader reader = new StreamReader($"Presets/Geology/{filename}.json"))
+		using (StreamReader reader = new StreamReader(AppDataPath() + $"Presets/Geology/{filename}.json"))
 			{
 				geology = JsonUtility.FromJson<GeologyPreset>(reader.ReadToEnd());
 			}
@@ -203,7 +460,7 @@ public static class SettingsManager
 	
 	public static void LoadReplacerPreset(string filename)
 	{
-		using (StreamReader reader = new StreamReader($"Presets/Replacer/{filename}.json"))
+		using (StreamReader reader = new StreamReader(AppDataPath() + $"Presets/Replacer/{filename}.json"))
 			{
 				replacer = JsonUtility.FromJson<ReplacerPreset>(reader.ReadToEnd());
 			}
@@ -212,7 +469,7 @@ public static class SettingsManager
 	public static void LoadGeologyMacro(string filename)
 	{
 			int length;
-			using (StreamReader reader = new StreamReader($"Presets/Geology/Macros/{filename}.macro"))
+			using (StreamReader reader = new StreamReader(AppDataPath() + $"Presets/Geology/Macros/{filename}.macro"))
 			{
 				string macroFile = reader.ReadToEnd();
 				
@@ -252,7 +509,7 @@ public static class SettingsManager
 			macroFile += JsonUtility.ToJson(macro[i], true) + "*";
 		}
 		
-        using (StreamWriter write = new StreamWriter($"Presets/Geology/Macros/{macroTitle}.macro", false))
+        using (StreamWriter write = new StreamWriter(AppDataPath() + $"Presets/Geology/Macros/{macroTitle}.macro", false))
         {
             write.Write(macroFile);
         }
@@ -281,7 +538,7 @@ public static class SettingsManager
 	public static void AddToMacro(string macroTitle)
 	{
 		int append  = 0;
-		if (File.Exists($"Presets/Geology/Macros/{macroTitle}.macro"))
+		if (File.Exists(AppDataPath() + $"Presets/Geology/Macros/{macroTitle}.macro"))
 			{
 				LoadGeologyMacro(macroTitle);
 			}
@@ -343,13 +600,14 @@ public static class SettingsManager
 	
 	public static void LoadPresets()
 	{
-		string[] geologyPresets = Directory.GetFiles(AppDataPath() + "Presets/Geology/");
-		string[] breakerPresets = Directory.GetFiles(AppDataPath() + "Presets/Breaker");
+		geologyPresets = Directory.GetFiles(AppDataPath() + "Presets/Geology/");
+		breakerPresets = Directory.GetFiles(AppDataPath() + "Presets/Breaker");
 	}
 	
 	public static void LoadMacros()
 	{
-		string[] geologyPresets = Directory.GetFiles(AppDataPath() + "Presets/Geology/Macros/");
+		Debug.LogError(AppDataPath() + "Presets/Geology/Macros/");
+		geologyPresetLists = SettingsManager.GetPresetTitles(AppDataPath() + "Presets/Geology/Macros/");
 	}
 	
 	public static string[] GetPresetTitles(string path)

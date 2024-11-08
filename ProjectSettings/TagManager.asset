@@ -12,14 +12,17 @@ TagManager:
   - Water
   - Modifiers
   - LandMask
+  - Prefab
+  - TransformTool
+  - EditorSpace
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Prefabs
   - Water
   - UI
-  - 
+  - WorldTool
   - 
   - 
   - 

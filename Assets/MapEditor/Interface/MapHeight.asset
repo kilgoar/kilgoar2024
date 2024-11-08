@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxSetting: 1
   minSetting: 0
-  title: Map Height
+  title: HEIGHT
   whole: 0

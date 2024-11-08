@@ -40,7 +40,7 @@ public static class WorldConverter
     }
     
     public static MapInfo EmptyMap(int size, float landHeight, TerrainSplat.Enum ground = TerrainSplat.Enum.Grass, TerrainBiome.Enum biome = TerrainBiome.Enum.Temperate)
-    {
+    {		
         MapInfo terrains = new MapInfo();
 
         int splatRes = Mathf.Clamp(Mathf.NextPowerOfTwo((int)(size * 0.50f)), 512, 2048);

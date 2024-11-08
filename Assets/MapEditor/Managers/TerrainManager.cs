@@ -46,6 +46,8 @@ public static class TerrainManager
 		FilterTexture = Resources.Load<Texture>("Textures/Brushes/White128");
         SetTerrainReferences();
 		SetTerrainLayers();
+		HideLandMask();		
+		SetWaterTransparency(.3f);
 	}
 	
     public static class Callbacks

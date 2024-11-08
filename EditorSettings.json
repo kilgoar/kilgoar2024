@@ -11,12 +11,25 @@
         "prefabRenderDistance": 5000.0,
         "pathRenderDistance": 5000.0,
         "waterTransparency": 0.2511078417301178,
-        "loadbundleonlaunch": false,
+        "loadbundleonlaunch": true,
         "terrainTextureSet": true,
         "newSize": 1000,
-        "newHeight": 0.5022156834602356,
-        "newBiome": 1,
-        "newSplat": 16
+        "newHeight": 0.5096011757850647,
+        "newBiome": 2,
+        "newSplat": 16,
+        "recentFiles": [
+            "F:\\Marsv10v1.0.8cliffsores.map",
+            "F:\\Marsv9v1.1.2terrainonly.map",
+            "F:\\all of the old desktop\\anasazi3k.v20.map",
+            "F:\\blanket.map",
+            "F:\\Marsv17-2500v1.0.6emptyprefabs.map",
+            "F:\\Marsv12v1.0.7terrain.map",
+            "F:\\newfolder3\\3kwangen2.map",
+            "F:\\newfolder3\\3kwangen1.map",
+            "F:\\blank.map",
+            "F:\\newfolder3\\3kwangen3.winning.map",
+            "F:\\Marsv10v1.0.8cliffsores"
+        ]
     },
     "crazing": {
         "title": "",
@@ -71,49 +84,37 @@
             {
                 "customPrefab": "",
                 "custom": false,
-                "prefabID": 3830715959,
-                "emphasis": 8
+                "prefabID": 3548275561,
+                "emphasis": 1
             },
             {
                 "customPrefab": "",
                 "custom": false,
-                "prefabID": 2506672559,
-                "emphasis": 8
-            },
-            {
-                "customPrefab": "Custom/extra arid formations/Formation Large Arid C.prefab",
-                "custom": true,
-                "prefabID": 0,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "Custom/extra arid formations/Formation Large Arid D.prefab",
-                "custom": true,
-                "prefabID": 0,
+                "prefabID": 1692752459,
                 "emphasis": 1
             }
         ],
         "geologyCollisions": [
             {
                 "minMax": true,
-                "radius": 7.0,
+                "radius": 20.0,
                 "layer": 256
             },
             {
                 "minMax": true,
-                "radius": 50.0,
+                "radius": 0.0,
                 "layer": 512
             }
         ],
         "newCollisions": {
-            "minMax": false,
+            "minMax": true,
             "radius": 50.0,
             "layer": 256
         },
-        "filename": "Presets/Geology/mars formations large.json",
-        "title": "mars formations large",
-        "density": 145,
-        "frequency": 97,
+        "filename": "Presets/Geology/mars overhang rocks.json",
+        "title": "mars overhang rocks",
+        "density": 132,
+        "frequency": 96,
         "floor": 505,
         "ceiling": 1000,
         "biomeIndex": 0,
@@ -124,9 +125,9 @@
         "closeColliderLayer": 0,
         "avoidTopo": true,
         "flipping": true,
-        "tilting": false,
+        "tilting": true,
         "normalizeX": false,
-        "normalizeY": false,
+        "normalizeY": true,
         "normalizeZ": false,
         "biomeExclusive": true,
         "cliffTest": false,
@@ -152,9 +153,9 @@
         "jitterMenu": true,
         "preview": true,
         "scalesLow": {
-            "x": 1.0326086282730103,
-            "y": 1.0326087474822999,
-            "z": 1.0326083898544312
+            "x": 1.0,
+            "y": 1.0,
+            "z": 1.0
         },
         "scalesHigh": {
             "x": 1.0326086282730103,
@@ -168,16 +169,16 @@
         },
         "rotationsHigh": {
             "x": 0.0,
-            "y": 360.0,
+            "y": 3.5880398750305177,
             "z": 0.0
         },
         "jitterLow": {
-            "x": -1.5149500370025635,
+            "x": -6.033222675323486,
             "y": 0.0,
-            "z": 0.0
+            "z": -4.101365089416504
         },
         "jitterHigh": {
-            "x": -1.0897009372711182,
+            "x": -5.475083351135254,
             "y": 0.0,
             "z": 0.0
         },
@@ -185,19 +186,19 @@
         "colliderDistance": 0.0,
         "closeColliderDistance": 0.0,
         "balance": 0.0,
-        "slopeLow": 0.0,
-        "slopeHigh": 4.349505424499512,
+        "slopeLow": 26.410537719726564,
+        "slopeHigh": 147.50717163085938,
         "heights": {
-            "slopeLow": 2.0630366802215578,
-            "slopeHigh": 18.79076385498047,
+            "slopeLow": 26.410537719726564,
+            "slopeHigh": 147.50717163085938,
             "heightMin": 0.5049999952316284,
             "heightMax": 1.0,
-            "curveMin": -0.022817835211753846,
-            "curveMax": 0.005730673670768738,
-            "slopeWeight": 0.0,
-            "curveWeight": 0.0
+            "curveMin": -2.0,
+            "curveMax": 2.0,
+            "slopeWeight": 1.0,
+            "curveWeight": 1.0
         },
-        "topologies": 2147480573
+        "topologies": 2147483647
     },
     "replacer": {
         "prefabID0": 0,

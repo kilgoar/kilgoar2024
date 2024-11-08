@@ -91,6 +91,9 @@
     "monument": false,
     "dither": false,
     "useSeed": false,
+    "slopeRange": true,
+    "curveRange": false,
+    "heightRange": true,
     "featureMenu": true,
     "rotationMenu": true,
     "scaleMenu": false,
@@ -98,7 +101,7 @@
     "collisionMenu": true,
     "presetMenu": true,
     "jitterMenu": true,
-    "preview": false,
+    "preview": true,
     "scalesLow": {
         "x": 1.013292908668518,
         "y": 1.0166773796081544,
@@ -133,15 +136,17 @@
     "colliderDistance": 30.0,
     "closeColliderDistance": 0.0,
     "balance": 0.0,
+    "slopeLow": 19.085372924804689,
+    "slopeHigh": 180.0,
     "heights": {
-        "slopeLow": 64.65009307861328,
+        "slopeLow": 19.085372924804689,
         "slopeHigh": 180.0,
-        "heightMin": 0.48336467146873476,
+        "heightMin": 0.4594308137893677,
         "heightMax": 1.0,
-        "curveMin": -70.0,
-        "curveMax": -70.0,
-        "slopeWeight": 2.7202072143554689,
-        "curveWeight": 0.0
+        "curveMin": -2.0,
+        "curveMax": -2.0,
+        "slopeWeight": 1.0,
+        "curveWeight": 1.0
     },
     "topologies": -1
 }

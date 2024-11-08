@@ -1738,14 +1738,14 @@ public static class GenerativeManager
 		return cliffMap;
 		
 	}
-	
+	/*
 	public static bool spawnGeology(int i, int j, float balance, int density)
 	{
 		int odds = (int)(GaussCurve(TerrainManager.CliffMap[i,j],balance,.6f)*density);
 		return (odds<=(.332f*density-2f) && (UnityEngine.Random.Range(0,odds))==0);
 		
 	}
-	
+	*/
 	public static List<GeologyItem> OddsList(List<GeologyItem> geologyItems)
 	{
 		List<GeologyItem> oddsList = new List<GeologyItem>();
@@ -1814,7 +1814,7 @@ public static class GenerativeManager
 	
 	public static void spawnCustom(GeologyItem geoItem, Vector3 position, Vector3 rotation, Vector3 scale, Transform parent)
 	{
-		PrefabManager.placeCustomPrefab(geoItem.customPrefab, position, rotation, scale, parent);
+		PrefabManager.placeCustomPrefab(SettingsManager.AppDataPath() + geoItem.customPrefab, position, rotation, scale, parent);
 	}
 	
 	public static void spawnItem(GeologyItem geoItem, Transform transItem)
@@ -1838,9 +1838,9 @@ public static class GenerativeManager
 	}
 	
 
-	public static void MakeCliffMap(GeologyPreset geo)
+	public static void MakeCliffMap(GeologyPreset geo, Action onComplete = null)
 	{
-		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.MakeCliffMap(geo));
+		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.MakeCliffMap(geo, onComplete));
 	}
 	
 	
@@ -1859,6 +1859,7 @@ public static class GenerativeManager
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.ApplyGeologyPreset(geo));
 	}
 	
+	
 	public static void PreviewDither()
 	{
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.PreviewDither());
@@ -1872,9 +1873,9 @@ public static class GenerativeManager
 		}
 		
 
-		public static void MakeCliffMap(GeologyPreset geo)
+		public static void MakeCliffMap(GeologyPreset geo, Action onComplete = null)
 		{
-			CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.MakeCliffMap(geo));
+			CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.MakeCliffMap(geo, onComplete));
 		}
 		
 		
@@ -1925,7 +1926,7 @@ public static class GenerativeManager
 				makeCliffMapRunning = true;
 				GenerativeManager.MakeCliffMap(geo);
 				yield return new WaitUntil(() => !makeCliffMapRunning && !makeCliffsRunning);
-
+				
 				makeCliffsRunning = true;
 				GenerativeManager.MakeCliffs(geo);
 				yield return new WaitUntil(() => !makeCliffsRunning && !makeCliffMapRunning);
@@ -2015,8 +2016,8 @@ public static class GenerativeManager
 					
 					if(TerrainManager.SpawnMap[i,j])
 					{
-													if(prefabCollisions){yield return null;}
-													
+													//if(prefabCollisions){yield return null;}
+													yield return null;
 
 												
 													if(geo.flipping)
@@ -2149,7 +2150,7 @@ public static class GenerativeManager
 			makeCliffsRunning = false;
 		}
 		
-		public static IEnumerator MakeCliffMap(GeologyPreset geo)
+		public static IEnumerator MakeCliffMap(GeologyPreset geo, Action onComplete = null)
 		{
 			makeCliffMapRunning = true;
 			TerrainManager.UpdateHeightCache();
@@ -2286,6 +2287,8 @@ public static class GenerativeManager
 				}
 				else
 				{ makeCliffMapRunning = false; yield return null; }
+			
+			onComplete?.Invoke();
 		}
 		
 

@@ -53,12 +53,21 @@ public static class PrefabManager
         NPCsParent = GameObject.FindGameObjectWithTag("NPC").transform;
 		PrefabParent = GameObject.FindGameObjectWithTag("Prefabs").transform;
 		ModifiersParent = GameObject.FindGameObjectWithTag("Modifiers").transform;
+		
+		TransformTool = GameObject.FindGameObjectWithTag("TransformTool").transform;
+		
+		
+		
+		EditorSpace = GameObject.FindGameObjectWithTag("EditorSpace").transform;
+		
         if (DefaultPrefab != null && PrefabParent != null)
         {
             //EditorApplication.update -= OnProjectLoad;
             if (!AssetManager.IsInitialised && SettingsManager.LoadBundleOnLaunch)
                 AssetManager.Initialise(SettingsManager.RustDirectory + SettingsManager.BundlePathExt);
         }
+		
+		TransformToolManager.ToggleTransformTool(false);
 	}
 	
     public static class Callbacks
@@ -72,11 +81,13 @@ public static class PrefabManager
         /// <summary>Called after prefab ID is changed.</summary>
         public static event PrefabManagerCallback PrefabIDChanged;
 
+		
         public static void OnPrefabLoaded(GameObject prefab) => PrefabLoaded?.Invoke(prefab);
         public static void OnPrefabCategoryChanged(GameObject prefab) => PrefabCategoryChanged?.Invoke(prefab);
         public static void OnPrefabIDChanged(GameObject prefab) => PrefabIDChanged?.Invoke(prefab);
     }
-
+	public static Transform TransformTool;
+	
     public static GameObject DefaultPrefab { get; private set; }
 	
     public static Transform PrefabParent { get; private set; }
@@ -87,21 +98,37 @@ public static class PrefabManager
 	public static Transform ElectricsParent { get; private set; }
 	public static Transform ModifiersParent { get; private set; }
 	public static Transform NPCsParent { get; private set; }
-   
+	public static Transform EditorSpace { get; private set; }
 
    	public static CircuitDataHolder[] CurrentMapElectrics { get => ElectricsParent.gameObject.GetComponentsInChildren<CircuitDataHolder>(); }
 	public static NPCDataHolder[] CurrentMapNPCs { get => NPCsParent.gameObject.GetComponentsInChildren<NPCDataHolder>(); }
 	public static ModifierDataHolder CurrentModifiers { get => ModifiersParent.gameObject.GetComponentInChildren<ModifierDataHolder>(); }
 	
-	
+
     /// <summary>List of prefab names from the asset bundle.</summary>
     private static List<string> Prefabs;
 
     /// <summary>Prefabs currently spawned on the map.</summary>
     public static PrefabDataHolder[] CurrentMapPrefabs { get => PrefabParent.gameObject.GetComponentsInChildren<PrefabDataHolder>(); }
+	public static PrefabDataHolder CurrentSelection { get; private set; }
 
     public static Dictionary<string, Transform> PrefabCategories = new Dictionary<string, Transform>();
 
+	public static void SetSelection(PrefabDataHolder prefab){
+		CurrentSelection = prefab;
+		if(CurrentSelection!=null){
+			TransformToolManager.ToggleTransformTool(true);
+			TransformTool.transform.localPosition = prefab.prefabData.position;
+			return;
+		}
+		TransformToolManager.ToggleTransformTool(false);
+	}
+	
+	public static void SyncSelection(Transform moveLocation){
+			CurrentSelection.prefabData.position = moveLocation.localPosition;
+			CurrentSelection.CastPrefabData();
+	}
+	
     public static bool IsChangingPrefabs { get; private set; }
 
     /// <summary>Loads, sets up and returns the prefab at the asset path.</summary>
@@ -151,74 +178,79 @@ public static class PrefabManager
     /// <param name="go">GameObject to process, should be from one of the asset bundles.</param>
     /// <param name="filePath">Asset filepath of the gameobject, used to get and set the PrefabID.</param>
     public static GameObject Setup(GameObject go, string filePath)
-{
-    go.SetLayerRecursively(8);
-    go.SetTagRecursively("Untagged");
-    go.SetStaticRecursively(true);
-    go.RemoveNameUnderscore();
-
-    // Handle MeshColliders
-    foreach (var item in go.GetComponentsInChildren<MeshCollider>())
-    {
-        if (item.sharedMesh != null)         {
-			item.sharedMesh.MarkDynamic();
-		}
+	{
+		go.SetLayerRecursively(8);
+		go.SetTagRecursively("Untagged");
+		go.tag = "Prefab";
+		go.SetStaticRecursively(true);
+		go.RemoveNameUnderscore();
 		
-            item.cookingOptions = MeshColliderCookingOptions.None;
-            item.enabled = false;
-            
-            item.isTrigger = false;
-            item.convex = true;
-        
-    }
+		// Handle MeshColliders
+		foreach (var item in go.GetComponentsInChildren<MeshCollider>())
+		{
+			if (item.sharedMesh != null)         {
+				item.sharedMesh.MarkDynamic();
+			}
+			
+				item.cookingOptions = MeshColliderCookingOptions.None;
+				item.enabled = true;
+				
+				item.isTrigger = false;
+				item.convex = true;
+			
+		}
 
-    // Handle Animators
-    foreach (var item in go.GetComponentsInChildren<Animator>())
-    {
-        if (item != null)        {
-            item.enabled = false;
-            item.runtimeAnimatorController = null;
-        }
-    }
+		// Handle Animators
+		foreach (var item in go.GetComponentsInChildren<Animator>())
+		{
+			if (item != null)        {
+				item.enabled = false;
+				item.runtimeAnimatorController = null;
+			}
+		}
 
-    // Handle Lights
-    foreach (var item in go.GetComponentsInChildren<Light>())    {
-        if (item != null)        {
-            item.enabled = false;
-        }
-    }
+		// Handle Lights
+		foreach (var item in go.GetComponentsInChildren<Light>())    {
+			if (item != null)        {
+				item.enabled = true;
+			}
+		}
 
-    // Canvases
-    foreach (var item in go.GetComponentsInChildren<Canvas>())    {
-        if (item != null)        {
-            item.enabled = false;
-        }
-    }
+		// Canvases
+		foreach (var item in go.GetComponentsInChildren<Canvas>())    {
+			if (item != null)        {
+				item.enabled = true;
+			}
+		}
 
-    // CanvasGroups
-    foreach (var item in go.GetComponentsInChildren<CanvasGroup>())    {
-        if (item != null)        {
-            item.enabled = false;
-        }
-    }
+		// CanvasGroups
+		foreach (var item in go.GetComponentsInChildren<CanvasGroup>())    {
+			if (item != null)        {
+				item.enabled = true;
+			}
+		}
 
-    // ParticleSystems
-    foreach (var item in go.GetComponentsInChildren<ParticleSystem>())    {
-        if (item != null)
-        {
-            var emission = item.emission;
-            emission.enabled = false;
-        }
-    }
+		// ParticleSystems
+		foreach (var item in go.GetComponentsInChildren<ParticleSystem>())    {
+			if (item != null)
+			{
+				var emission = item.emission;
+				emission.enabled = false;
+			}
+		}
 
-    // Add PrefabDataHolder
-        PrefabDataHolder prefabDataHolder = go.AddComponent<PrefabDataHolder>();
-        prefabDataHolder.prefabData = new PrefabData() { id = AssetManager.ToID(filePath) };
-    
+		// Add PrefabDataHolder
+			PrefabDataHolder prefabDataHolder = go.AddComponent<PrefabDataHolder>();
+			prefabDataHolder.prefabData = new PrefabData() { id = AssetManager.ToID(filePath) };
+		
 
-    go.SetActive(false);
-    return go;
-}
+		go.SetActive(false);
+		return go;
+	}
+
+	
+	
+	
 
     /// <summary>Spawns a prefab, updates the PrefabData and parents to the selected transform.</summary>
     public static void Spawn(GameObject go, PrefabData prefabData, Transform parent)
