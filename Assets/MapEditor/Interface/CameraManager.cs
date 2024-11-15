@@ -31,12 +31,53 @@ public class CameraManager : MonoBehaviour
 
     FilePreset settings;
 	
+	
+	public static CameraManager Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;            
+            DontDestroyOnLoad(gameObject); // Keep the camera across scenes
+        }
+        else
+        {
+            Destroy(gameObject); // Destroy duplicate camera objects
+        }
+    }
 
     void Start()
     {
         Configure();
 		MapManager.Callbacks.MapLoaded += OnMapLoaded;
     }
+
+	public void SetCamera(Vector3 targetPosition)
+	{
+		float distance = 25.0f;
+		
+		Vector3 initialPosition = cam.transform.position;
+		initialPosition.y = targetPosition.y;
+		cam.transform.position = initialPosition;
+		
+		Vector3 directionToTarget = targetPosition - cam.transform.position;
+		Quaternion lookRotation = Quaternion.LookRotation(directionToTarget);
+
+		cam.transform.rotation = lookRotation;
+
+		Vector3 offset = directionToTarget.normalized * distance;
+		cam.transform.position = targetPosition - offset;
+
+		Vector3 forward = cam.transform.forward;
+
+		yaw = Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
+
+		pitch = Mathf.Asin(forward.y) * Mathf.Rad2Deg;
+
+		Quaternion finalRotation = Quaternion.Euler(pitch, yaw, 0f);
+		cam.transform.rotation = finalRotation;
+	}
 
 	public void Configure()
 	{
@@ -178,41 +219,62 @@ public class CameraManager : MonoBehaviour
         cam.transform.position += globalMove;
     }
 	
-	void SelectPrefab(){
-		
-			Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
-			RaycastHit hit;
-			
-				if (Physics.Raycast(ray, out hit, Mathf.Infinity)){
-					Transform hitTransform = hit.transform;
-					Transform highestParent = hitTransform;
+	void SelectPrefab()
+	{
+		Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+		RaycastHit hit;
 
-					while (hitTransform.parent != null) {
-						hitTransform = hitTransform.parent;
+		if (Physics.Raycast(ray, out hit, Mathf.Infinity))
+		{
+			Transform hitTransform = hit.transform;
 
-						if (hitTransform.CompareTag("Prefab")) 	{
-							
-							PrefabDataHolder dataHolder = hitTransform.GetComponent<PrefabDataHolder>();
+			// Check if the hit object itself is a Prefab
+			if (hitTransform.CompareTag("Prefab"))
+			{
+				PrefabDataHolder dataHolder = hitTransform.GetComponent<PrefabDataHolder>();
+				
+				// Traverse up to check if the prefab is part of a "Collection" and store the highest "Collection" parent
+				Transform collectionParent = null;
+				Transform current = hitTransform;
 
-							if (dataHolder != null) {
-								Node selection = new Node();
-								selection = itemTree.rootNode.FindNodeByDataRecursive(dataHolder);
-								
-								if (selection!= null)		{
-									selection.isSelected = true;
-									itemTree.FocusOn(selection);
-									}
-								
-								PrefabManager.SetSelection(dataHolder);
-								return;
-							}							
-						}					
-
-						highestParent = hitTransform;
+				while (current.parent != null)
+				{
+					current = current.parent;
+					
+					if (current.CompareTag("Collection"))
+					{
+						collectionParent = current;
+						break;
 					}
 				}
-		
-		PrefabManager.SetSelection(null);
+
+				// If a "Collection" parent is found, select it; otherwise, select the original "Prefab"
+				if (collectionParent != null)
+				{
+					Node selection = itemTree.rootNode.FindNodeByDataRecursive(collectionParent);
+					if (selection != null)
+					{
+						selection.isSelected = true;
+						itemTree.FocusOn(selection);
+					}
+					PrefabManager.SetSelection(collectionParent);
+				}
+				else
+				{
+					Node selection = itemTree.rootNode.FindNodeByDataRecursive(dataHolder);
+					if (selection != null)
+					{
+						selection.isSelected = true;
+						itemTree.FocusOn(selection);
+					}
+					PrefabManager.SetSelection(dataHolder);
+				}
+				return;
+			}
+		}
+
+		// If no selection was made, clear any current selection in PrefabManager
+		PrefabManager.SetSelection();
 	}
 	
 	

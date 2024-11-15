@@ -20,6 +20,7 @@ public class PostBuildProcessor
 	[MenuItem("Rust Map Editor/Build Release")]
 	public static void BuildRelease()
     {
+		RemoveDirectory("E:/RustMapper");
         string buildPath = "E:/RustMapper/RustMapper.exe";
         BuildPipeline.BuildPlayer(EditorBuildSettings.scenes, buildPath, BuildTarget.StandaloneWindows64, BuildOptions.None);
 		

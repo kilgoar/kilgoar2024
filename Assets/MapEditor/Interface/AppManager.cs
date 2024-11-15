@@ -18,6 +18,10 @@ public class AppManager : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void RuntimeInit()
     {
+		GameObject loadingObject = GameObject.FindGameObjectWithTag("loading");
+        loadingObject.transform.SetAsLastSibling();
+        loadingObject.SetActive(true);
+		
         SceneController.InitializeScene();
         SettingsManager.RuntimeInit();
         TerrainManager.RuntimeInit();

@@ -15,6 +15,9 @@ TagManager:
   - Prefab
   - TransformTool
   - EditorSpace
+  - Collection
+  - raytestTemplate
+  - loading
   layers:
   - Default
   - TransparentFX
@@ -26,7 +29,7 @@ TagManager:
   - 
   - 
   - 
-  - 
+  - Land
   - 
   - 
   - 

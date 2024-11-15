@@ -652,6 +652,12 @@ namespace RustMapEditor.Variables
 		public GeologyCollisions()
 		{		}
 	}
+	
+	[Serializable]
+	public class GeologyMacroWrapper
+	{
+		public List<string> macroList;
+	}
 		
 	[Serializable]
 	public struct GeologyPreset

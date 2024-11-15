@@ -52,7 +52,7 @@ public static class SettingsManager
 		#endif
 	}
 	
-	    public static void CopyDirectory(string sourceDir, string destinationDir)
+	public static void CopyDirectory(string sourceDir, string destinationDir)
     {
         if (!Directory.Exists(destinationDir))
         {
@@ -129,59 +129,29 @@ public static class SettingsManager
 		return pathsList;
 	}
 
-	
-
-	
-	public static List<string> GetDataPaths(string path, string root, string extension = ".prefab")
+	public static List<string> GetDataPaths(string path, string root, string extension = ".prefab")    
 	{
 		List<string> pathsList = new List<string>();
 
-		try
-		{
-			// Validate the directory path
-			if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
-			{
-				Debug.LogWarning("Invalid directory path: " + path);
-				return pathsList;
-			}
+		string[] directories = Directory.GetDirectories(path);
+		string[] files = Directory.GetFiles(path);
 
-			// Check if path contains root for relative path display
-			int index = path.IndexOf(root, StringComparison.OrdinalIgnoreCase);
-			if (index != -1)
-			{
-				pathsList.Add("~" + path.Substring(index));
-			}
+		int index = path.IndexOf(root, StringComparison.Ordinal);
+		
+		if (index != -1)		{
+			pathsList.Add("~" + path.Substring(index));
+		}
 
-			// Recursively collect paths from subdirectories
-			foreach (string directory in Directory.GetDirectories(path))
-			{
-				pathsList.AddRange(GetDataPaths(directory, root, extension));
-			}
+		foreach (string directory in directories)   		{
+			pathsList.AddRange(GetDataPaths(directory, root));
+		}
 
-			// Collect files with the specified extension
-			foreach (string file in Directory.GetFiles(path))
-			{
-				if (Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase))
-				{
-					int fileIndex = file.IndexOf(root, StringComparison.OrdinalIgnoreCase);
-					if (fileIndex != -1)
-					{
-						pathsList.Add("~" + file.Substring(fileIndex));
-					}
-				}
+		foreach (string file in files)    		{
+			int fileIndex = file.IndexOf(root, StringComparison.Ordinal);
+			
+			if (fileIndex != -1)        			{
+				pathsList.Add("~" + file.Substring(fileIndex));
 			}
-		}
-		catch (UnauthorizedAccessException ex)
-		{
-			Debug.LogWarning("Access denied to path: " + path + ". " + ex.Message);
-		}
-		catch (PathTooLongException ex)
-		{
-			Debug.LogWarning("Path too long: " + path + ". " + ex.Message);
-		}
-		catch (IOException ex)
-		{
-			Debug.LogWarning("IO exception for path: " + path + ". " + ex.Message);
 		}
 
 		return pathsList;
@@ -241,56 +211,63 @@ public static class SettingsManager
 		}
 	}
 	
-	public static void ConvertPathsToNodes(UIRecycleTree tree, List<string> paths, string extension = ".prefab", string searchQuery = "")    {
-
+	public static void ConvertPathsToNodes(UIRecycleTree tree, List<string> paths, string extension = ".prefab", string searchQuery = "")
+	{
 		tree.Clear();
+		Dictionary<string, Node> nodeMap = new Dictionary<string, Node>();
 
-        Dictionary<string, Node> nodeMap = new Dictionary<string, Node>();
-
-        foreach (string path in paths)
-        {
-            //bypass this extension check for bundle extractions
+		foreach (string path in paths)
+		{
 			if (path.EndsWith(extension, StringComparison.Ordinal) || extension.Equals("override", StringComparison.Ordinal))
-            {
-                string searchPath = path.Replace(extension, "", StringComparison.Ordinal);
-				searchPath = searchPath.Replace("\\", "/", StringComparison.Ordinal);
-                if (string.IsNullOrEmpty(searchQuery) || searchPath.Contains(searchQuery, StringComparison.Ordinal))
-                {
-                    string[] parts = searchPath.Split('/');
-                    Node currentNode = null;
+			{
+				// Remove the "~Geology" prefix from the path
+				string searchPath = path.Replace(extension, "", StringComparison.Ordinal)
+										.Replace("\\", "/", StringComparison.Ordinal);
+				
+				// Strip the prefix "~Geology/" if present
+				if (searchPath.StartsWith("~Geology/", StringComparison.Ordinal))
+				{
+					searchPath = searchPath.Substring("~Geology/".Length);
+				}
 
-                    for (int i = 0; i < parts.Length; i++)
-                    {
-                        string part = parts[i];
-                        string fullPath = string.Join("/", parts, 0, i + 1);
+				// Proceed if it matches the search query or if the query is empty
+				if (string.IsNullOrEmpty(searchQuery) || searchPath.Contains(searchQuery, StringComparison.Ordinal))
+				{
+					string[] parts = searchPath.Split('/');
+					Node currentNode = null;
 
-						
-                        if (!nodeMap.TryGetValue(fullPath, out currentNode))
-                        {
-                            currentNode = new Node(part);
-                            nodeMap[fullPath] = currentNode;
+					for (int i = 0; i < parts.Length; i++)
+					{
+						string part = parts[i];
+						string fullPath = string.Join("/", parts, 0, i + 1);
 
-                            if (i == 0)
-                            {
-                                tree.rootNode.nodes.Add(currentNode);
-                            }
-                            else
-                            {
-                                string parentPath = string.Join("/", parts, 0, i);
-                                if (nodeMap.TryGetValue(parentPath, out Node parentNode))
-                                {
-                                    parentNode.nodes.Add(currentNode);
-                                    currentNode.parentNode = parentNode;
-                                }
-                            }
+						if (!nodeMap.TryGetValue(fullPath, out currentNode))
+						{
+							currentNode = new Node(part);
+							nodeMap[fullPath] = currentNode;
 
-                            currentNode.tree = tree;
-                        }
-                    }
-                }
-            }
-        }
-    }
+							if (i == 0)
+							{
+								// Add children of "~Geology" directly to the tree root
+								tree.rootNode.nodes.Add(currentNode);
+							}
+							else
+							{
+								string parentPath = string.Join("/", parts, 0, i);
+								if (nodeMap.TryGetValue(parentPath, out Node parentNode))
+								{
+									parentNode.nodes.Add(currentNode);
+									currentNode.parentNode = parentNode;
+								}
+							}
+
+							currentNode.tree = tree;
+						}
+					}
+				}
+			}
+		}
+	}
 	
 
 	
@@ -319,7 +296,7 @@ public static class SettingsManager
 	public static string[] geologyPresets { get; set; }
 	public static string[] geologyPresetLists { get; set; }
     public static string[] PrefabPaths { get; private set; }
-	public static GeologyPreset[] macro {get; set; }
+	public static List<string> macro { get; set; } = new List<string>();
 	public static bool macroSources {get; set; }
  	public static RustCityPreset city {get; set; }
 	public static BreakerPreset breaker {get; set;}
@@ -468,100 +445,51 @@ public static class SettingsManager
 	
 	public static void LoadGeologyMacro(string filename)
 	{
-			int length;
-			using (StreamReader reader = new StreamReader(AppDataPath() + $"Presets/Geology/Macros/{filename}.macro"))
-			{
-				string macroFile = reader.ReadToEnd();
-				
-				
-				char[] delimiters = { '*'};
-				string[] parse = macroFile.Split(delimiters);
-				length = parse.Length-1;
-				GeologyPreset[] newMacro = new GeologyPreset[length];
-				
-				for(int i = 0; i < length; i++)
-					{
-						newMacro[i] = JsonUtility.FromJson<GeologyPreset>(parse[i]);
-					}
-				macro = newMacro;
-			}
-			
-			if(macroSources)
-			{
-				GeologyPreset[] fileMacro = new GeologyPreset[length];
-				
-				for(int i = 0; i < length; i++)
-				{
-					fileMacro[i] = GetGeologyPreset(macro[i].filename);
-				}
-				macro = fileMacro;
-			}
+		// Initialize the macro list
+		macro = new List<string>();
 
+		string macroPath = AppDataPath() + $"Presets/Geology/Macros/{filename}.macro";
 
+		// Read and deserialize JSON content
+		using (StreamReader reader = new StreamReader(macroPath))
+		{
+			string jsonContent = reader.ReadToEnd();
+			GeologyMacroWrapper wrapper = JsonUtility.FromJson<GeologyMacroWrapper>(jsonContent);
+
+			if (wrapper != null && wrapper.macroList != null)
+			{
+				macro = wrapper.macroList;
+			}
+		}
 	}
 	
-	
 	public static void SaveGeologyMacro(string macroTitle)
-    {
-		string macroFile="";
-		for (int i = 0; i < macro.Length; i++)
-		{
-			macroFile += JsonUtility.ToJson(macro[i], true) + "*";
-		}
-		
-        using (StreamWriter write = new StreamWriter(AppDataPath() + $"Presets/Geology/Macros/{macroTitle}.macro", false))
-        {
-            write.Write(macroFile);
-        }
-    }
-	
-	public static void RemovePreset(string macroTitle)
 	{
-		int newlength = macro.Length -1;
-		
-		
-		if (newlength >= 0)
+		GeologyMacroWrapper wrapper = new GeologyMacroWrapper { macroList = macro };
+
+		string jsonContent = JsonUtility.ToJson(wrapper, true);
+
+		string macroPath = AppDataPath() + $"Presets/Geology/Macros/{macroTitle}.macro";
+		using (StreamWriter writer = new StreamWriter(macroPath, false))
 		{
-			GeologyPreset[] newMacro = new GeologyPreset[newlength];
-			
-			for (int i = 0; i < newlength; i++)
-			{	
-					newMacro[i] = macro[i];
-			}
-			macro = newMacro;
-			SaveGeologyMacro(macroTitle);
+			writer.Write(jsonContent);
 		}
-		
+	}
+	
+	public static void RemovePreset(int index)
+	{
+		if (index >= 0 && index < macro.Count)
+		{
+			macro.RemoveAt(index);
+		}
 	}
 	
 	
 	public static void AddToMacro(string macroTitle)
 	{
-		int append  = 0;
-		if (File.Exists(AppDataPath() + $"Presets/Geology/Macros/{macroTitle}.macro"))
-			{
-				LoadGeologyMacro(macroTitle);
-			}
-		else
-			{
-				macro = new GeologyPreset[0];
-			}
-
-		if (macro != null)
-		{
-		 append = macro.Length;
-		}
-		
-		GeologyPreset[] newMacro = new GeologyPreset[append+1];
-		for (int i = 0; i < append; i++)
-			{	
-					newMacro[i] = macro[i];
-			}
-		
-		newMacro[append] = geology;
-		macro = newMacro;
+		string macroPath = AppDataPath() + $"Presets/Geology/{macroTitle}.json";
+		macro.Add(macroPath);
 		SaveGeologyMacro(macroTitle);
-	
 	}
 	
 
@@ -606,7 +534,7 @@ public static class SettingsManager
 	
 	public static void LoadMacros()
 	{
-		Debug.LogError(AppDataPath() + "Presets/Geology/Macros/");
+		
 		geologyPresetLists = SettingsManager.GetPresetTitles(AppDataPath() + "Presets/Geology/Macros/");
 	}
 	

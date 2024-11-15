@@ -25,6 +25,13 @@ public class PrefabDataHolder : MonoBehaviour
         prefabData.scale = transform.localScale;
     }
 	
+	public void UpdatePrefabDataWrong()
+	{
+		prefabData.position = gameObject.transform.position;
+        prefabData.rotation = transform.rotation;
+        prefabData.scale = transform.localScale;
+	}
+	
 	public void EnableColliders()
 	{
 			Collider[] colliders = gameObject.GetComponentsInChildren(typeof(Collider), true) as Collider[];

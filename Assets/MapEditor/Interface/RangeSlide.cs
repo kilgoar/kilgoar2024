@@ -2,9 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Events;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
+
 public class RangeSlide : MonoBehaviour
 {
     public SliderFieldSO sfData; 
@@ -31,8 +29,8 @@ public class RangeSlide : MonoBehaviour
         titleText = GetComponentInChildren<Text>();
     }
 
-    public void Configure()    {
-
+    public void Configure()
+    {
         lowSlider.minValue = sfData.minSetting;
         highSlider.minValue = sfData.minSetting;
 
@@ -40,55 +38,64 @@ public class RangeSlide : MonoBehaviour
         highSlider.maxValue = sfData.maxSetting;
 
         titleText.text = sfData.title;
-
-        lowSlider.wholeNumbers = isWhole;
-        highSlider.wholeNumbers = isWhole;
-
-		if (sfData.whole)		{
-			lowField.contentType = InputField.ContentType.IntegerNumber;
-			highField.contentType = InputField.ContentType.IntegerNumber;
-		}
-		else		{
-			lowField.contentType = InputField.ContentType.DecimalNumber;
-			highField.contentType = InputField.ContentType.DecimalNumber;
-		}
+        lowSlider.wholeNumbers = sfData.whole;
+        highSlider.wholeNumbers = sfData.whole;
 
         lowField.characterLimit = 6;
         highField.characterLimit = 6;
-		
-		lowField.onEndEdit.AddListener(FieldChanged);
-		highField.onEndEdit.AddListener(FieldChanged);
-		lowSlider.onValueChanged.AddListener(SliderChanged);
-		highSlider.onValueChanged.AddListener(SliderChanged);
-		
+
+        UpdateFieldsFromSliders();
+
+        lowField.onEndEdit.AddListener(_ => FieldChanged());
+        highField.onEndEdit.AddListener(_ => FieldChanged());
+        lowSlider.onValueChanged.AddListener(_ => SliderChanged());
+        highSlider.onValueChanged.AddListener(_ => SliderChanged());
     }
 
-	public void FieldChanged(string value)    {
-		float lowValue = float.Parse(lowField.text);
-		float highValue = float.Parse(highField.text);
+    private void FieldChanged()
+    {
 
-		lowValue = Mathf.Clamp(lowValue, lowSlider.minValue, highSlider.value);
-		highValue = Mathf.Clamp(highValue, lowSlider.value, highSlider.maxValue);
-				
-		lowSlider.value = float.Parse(lowField.text);
-        highSlider.value = float.Parse(highField.text);
-				
+
+        if (float.TryParse(lowField.text, out float lowValue) && float.TryParse(highField.text, out float highValue))
+        {
+            lowValue = Mathf.Clamp(lowValue, lowSlider.minValue, highSlider.value);
+            highValue = Mathf.Clamp(highValue, lowSlider.value, highSlider.maxValue);
+
+            lowSlider.value = lowValue;
+            highSlider.value = highValue;
+        }
+
+    }
+
+    private void SliderChanged()
+    {
+
+        lowSlider.value = Mathf.Clamp(lowSlider.value, lowSlider.minValue, highSlider.value);
+        highSlider.value = Mathf.Clamp(highSlider.value, lowSlider.value, highSlider.maxValue);
+
+        UpdateFieldsFromSliders();
+
+    }
+
+	private void UpdateFieldsFromSliders()
+	{
+		if (sfData.whole)
+		{
+			lowField.SetTextWithoutNotify(lowSlider.value.ToString());
+			highField.SetTextWithoutNotify(highSlider.value.ToString());
+		}
+		else
+		{
+			lowField.SetTextWithoutNotify(lowSlider.value.ToString("F3"));
+			highField.SetTextWithoutNotify(highSlider.value.ToString("F3"));
+		}
 	}
 
-    public void SliderChanged(float value)    {
-		lowSlider.value = Mathf.Clamp(lowSlider.value, lowSlider.minValue, highSlider.value);
-		highSlider.value = Mathf.Clamp(highSlider.value, lowSlider.value, highSlider.maxValue);
-
-		
-        if (!sfData.whole){
-			lowField.text = lowSlider.value.ToString("F3");
-			highField.text = highSlider.value.ToString("F3");
-			return;
-		}
-		lowField.text = lowSlider.value.ToString("F3");
-		highField.text = highSlider.value.ToString("F3");
-    }
-
+	private void OnEnable()
+	{
+		UpdateFieldsFromSliders();
+	}
+	
     private void OnValidate()
     {
         Init();

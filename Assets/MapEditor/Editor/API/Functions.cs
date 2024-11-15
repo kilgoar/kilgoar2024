@@ -2114,8 +2114,8 @@ namespace RustMapEditor.UI
 						}
 					if (GUILayout.Button("Remove"))
 						{
-							SettingsManager.RemovePreset(macroTitle);
-							macroList = SettingsManager.GetPresetTitles("Presets/Geology/Macros/");
+							//SettingsManager.RemovePreset(macroTitle);
+							//macroList = SettingsManager.GetPresetTitles("Presets/Geology/Macros/");
 							
 						}
 						
@@ -2133,7 +2133,7 @@ namespace RustMapEditor.UI
 						macroDisplay = "Preset List";
 						SettingsManager.LoadGeologyMacro(macroTitle);			
 						
-						
+						/*
 						foreach (GeologyPreset pre in SettingsManager.macro)
 						{
 							macroDisplay += "\n" + pre.title;
@@ -2141,6 +2141,7 @@ namespace RustMapEditor.UI
 							if (SettingsManager.macroSources)
 								macroDisplay += ".json";
 						}
+						*/
 					}
 					
 					macroTitle = EditorGUILayout.TextField("Multi Preset Name", macroTitle);

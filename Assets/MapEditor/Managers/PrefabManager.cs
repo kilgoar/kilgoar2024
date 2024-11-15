@@ -111,23 +111,101 @@ public static class PrefabManager
     /// <summary>Prefabs currently spawned on the map.</summary>
     public static PrefabDataHolder[] CurrentMapPrefabs { get => PrefabParent.gameObject.GetComponentsInChildren<PrefabDataHolder>(); }
 	public static PrefabDataHolder CurrentSelection { get; private set; }
+	public static Transform CollectionSelection { get; private set; }
 
     public static Dictionary<string, Transform> PrefabCategories = new Dictionary<string, Transform>();
 
-	public static void SetSelection(PrefabDataHolder prefab){
-		CurrentSelection = prefab;
-		if(CurrentSelection!=null){
+
+	public static void SetSelection(){
+		CollectionSelection = null;
+		CurrentSelection = null;
+		TransformToolManager.ToggleTransformTool(false);
+	}
+
+	public static void SetSelection(Transform collection)
+	{
+		CurrentSelection = null;
+		CollectionSelection = collection;
+
+		if (CollectionSelection != null)
+		{
 			TransformToolManager.ToggleTransformTool(true);
-			TransformTool.transform.localPosition = prefab.prefabData.position;
+			TransformTool.transform.localPosition = collection.localPosition;
 			return;
 		}
 		TransformToolManager.ToggleTransformTool(false);
 	}
-	
-	public static void SyncSelection(Transform moveLocation){
-			CurrentSelection.prefabData.position = moveLocation.localPosition;
-			CurrentSelection.CastPrefabData();
+
+	public static void SetSelection(PrefabDataHolder prefab)
+	{
+		// Null out the collection selection
+		CollectionSelection = null;
+		CurrentSelection = prefab;
+
+		if (CurrentSelection != null)
+		{
+			// Calculate the final position using the helper method
+			Vector3 finalPosition = GetCollectionAdjustedPosition(prefab.transform);
+
+			// Set the final calculated position to the transform tool's local position
+			TransformToolManager.ToggleTransformTool(true);
+			TransformTool.transform.localPosition = finalPosition;
+		}
+		else
+		{
+			TransformToolManager.ToggleTransformTool(false);
+		}
 	}
+
+	public static void SyncSelection(Transform moveLocation)
+	{
+		if (CurrentSelection != null)
+		{
+			// Calculate the final position using the helper method
+			Vector3 finalPosition = GetCollectionAdjustedPosition(moveLocation, true);
+
+			// Update prefab data and cast it
+			CurrentSelection.prefabData.position = finalPosition;
+			CurrentSelection.CastPrefabData();
+		}
+		else if (CollectionSelection != null)
+		{
+			SyncTransformData(CollectionSelection, moveLocation);
+		}
+	}
+
+	public static Vector3 GetCollectionAdjustedPosition(Transform transform, bool subtract = false)
+	{
+		Vector3 adjustedPosition = transform.localPosition;
+		Transform parent = transform.parent;
+
+		// Traverse up the hierarchy and adjust position based on Collection parents
+		while (parent != null)
+		{
+			if (parent.CompareTag("Collection"))
+			{
+				if (subtract)
+				{
+					adjustedPosition -= parent.localPosition;
+				}
+				else
+				{
+					adjustedPosition += parent.localPosition;
+				}
+			}
+			parent = parent.parent;
+		}
+
+		return adjustedPosition;
+	}
+
+
+	private static void SyncTransformData(Transform target, Transform source)
+	{
+		if (target == null || source == null) return;
+		target.localPosition = source.localPosition;
+	}
+
 	
     public static bool IsChangingPrefabs { get; private set; }
 
@@ -248,8 +326,6 @@ public static class PrefabManager
 		return go;
 	}
 
-	
-	
 	
 
     /// <summary>Spawns a prefab, updates the PrefabData and parents to the selected transform.</summary>
@@ -541,8 +617,10 @@ public static class PrefabManager
             world.LoadREPrefab(loadPath);
 			
 			GameObject newObj = new GameObject(loadPath);
+			newObj.tag = "Collection";
 			
-			string baseName = loadPath.Split('\\').Last().Split('.')[0];
+			string baseName = loadPath.Split('/').Last().Split('.')[0];
+			
 			string newObjName = baseName + "" + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10);
 
 			while(PrefabManager.PrefabCategories.ContainsKey(newObjName)) 
@@ -830,9 +908,14 @@ public static class PrefabManager
 		return prefab;
 	}
 	
-	public static void createPrefab(string category, uint id, Vector3 position, Vector3 rotation, Vector3 scale)
+	public static void createPrefab(string category, uint id, Vector3 position, Vector3 rotation, Vector3 scale, Transform parent = null)
     {
-		Transform prefabsParent = GameObject.FindGameObjectWithTag("Prefabs").transform;
+		Transform prefabsParent;
+		if (parent == null){
+			prefabsParent = GameObject.FindGameObjectWithTag("Prefabs").transform;
+		}
+		else { prefabsParent = parent; }
+		
 		GameObject defaultObj = Load(id);
 		PrefabData newPrefab = new PrefabData();
 		defaultObj.SetActive(true);
@@ -1428,106 +1511,35 @@ public static class PrefabManager
 		{  return false; }	
 	}
 
-	public static bool inTerrain(PrefabData prefab)
+	public static bool inTerrain(PrefabData prefab, List<PrefabData> rayData)
 	{
-		
-		Vector3 direction = new Vector3();
-		Vector3 frontAngle =  new Vector3(70f,0f,0f);
-		Vector3 sideAngle = new Vector3(0f,135f,0f);
-		Vector3 debugAdjustment = new Vector3(90f,0f,0f);
-		Vector3 rotateAgain = new Vector3(0f,0f,0f);
-		Vector3 rayOrigin = new Vector3(0f,0f,0f);
-		RaycastHit hit;
-		int rayTest = 0;
-		//int count = 0;
-		int groundmask = 1<<10;
-		GameObject raycaster = GameObject.Find("Raycaster");
+		int groundMask = 1 << 10;
+		Quaternion prefabRotation = Quaternion.Euler(prefab.rotation.x, prefab.rotation.y, prefab.rotation.z);
+		Quaternion additionalRotation = Quaternion.Euler(0, 90, 0);
 		
 		
-		
-		
-		raycaster.transform.rotation = Quaternion.Euler(prefab.rotation + frontAngle);
-		direction = Quaternion.Euler(prefab.rotation + frontAngle) * raycaster.transform.forward;
-		
+		foreach (PrefabData rayPrefab in rayData)    {
+			Vector3 rotatedRayPosition = prefabRotation * additionalRotation * (Vector3)rayPrefab.position;
+			Vector3 rayOrigin = prefab.position + rotatedRayPosition + PrefabParent.position;
+			Vector3 rayDirection = prefabRotation * Vector3.down;
+			Vector3 prefabDirection = prefabRotation * Vector3.up;
+			
+			bool rayhit=false;
 
-		
-		
-		rayOrigin = transformPosition(prefab.position);
-		rayOrigin -= raycaster.transform.forward * 10f;
-		rayOrigin -= raycaster.transform.up * -10f;
-		raycaster.transform.position = rayOrigin;
-		
-		Ray cliffray = new Ray(rayOrigin, direction);
-		
-		
-		rotateAgain = raycaster.transform.rotation.eulerAngles;
-		rotateAgain.x += debugAdjustment.x;
-		//createPrefab("decor",  576463322, prefabPosition(cliffray.origin), rotateAgain, new Vector3(1f,8f,1f));
-		
-		if (Physics.Raycast(cliffray, out hit, 18f, groundmask))
-			{	rayTest ++;	}
-			else
-			{   return false;	}
-		
-		raycaster.transform.Rotate(100f,0f,0f);
-		rotateAgain.x += 100f;
-		cliffray.direction = raycaster.transform.forward;
-		//createPrefab("decor",  576463322, prefabPosition(cliffray.origin), rotateAgain, new Vector3(1f,8f,1f));	
-			
-		if (Physics.Raycast(cliffray, out hit, 18f, groundmask))
-			{	rayTest ++;	}
-			else
-			{   return false;	}
-		
-		raycaster.transform.Rotate(0f,0f,45f);
-		rotateAgain.z += 45f;
-		cliffray.direction = raycaster.transform.forward;
-		
-		//createPrefab("decor",  576463322, prefabPosition(cliffray.origin), rotateAgain, new Vector3(1f,8f,1f));	
-		
-		if (Physics.Raycast(cliffray, out hit, 18f, groundmask))
-			{	rayTest ++;	}
-			else
-			{   return false;	}
-		
-		raycaster.transform.Rotate(0f,0f,-90f);
-		rotateAgain.z -= 90f;
-		cliffray.direction = raycaster.transform.forward;
-		
-		//createPrefab("decor",  576463322, prefabPosition(cliffray.origin), rotateAgain, new Vector3(1f,8f,1f));	
-			
-		if (Physics.Raycast(cliffray, out hit, 18f, groundmask))
-			{	rayTest ++;	}
-			else
-			{   return false;	}
-		
-		/*
-		
-		for (float testAngle = 0f; testAngle < 98f; testAngle += angle)
-		{
-			count ++;
-			
-			createPrefab("decor",  576463322, prefabPosition(cliffray.origin), rotateAgain, new Vector3(1f,18f,1f));
-			
-			
-			if (Physics.Raycast(cliffray, out hit, 18f, groundmask))
-			{
+			if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, 5f * rayPrefab.scale.y, groundMask))        {
 				
-				rayTest ++;
+				rayhit = true;
 			}
-			else
-			{
+			else        {
 				return false;
 			}
-			
-			raycaster.transform.Rotate(angle,0f,0f);
-			rotateAgain.x += angle;
-			cliffray.direction = raycaster.transform.forward;
+			//Color rayColor = (rayhit) ? Color.green : Color.red;
+			//Debug.DrawRay(rayOrigin, rayDirection * 5f * rayPrefab.scale.y, rayColor, 1.5f);
 		}
-		*/
-		//Debug.LogError(rayTest);
+
 		return true;
 	}
+
 	
 	public static void FoliageCube(Vector3 glassPosition, Vector3 glassScale)
 	{
@@ -2152,6 +2164,7 @@ public static class PrefabManager
 				progressID = Progress.Start("Delete Prefabs", null, Progress.Options.Sticky);
 			#endif
 
+			// Delete specified prefabs
 			for (int i = 0; i < prefabs.Length; i++)
 			{
 				if (sw.Elapsed.TotalSeconds > 0.25f)
@@ -2162,11 +2175,25 @@ public static class PrefabManager
 					#endif
 					sw.Restart();
 				}
-				GameObject.DestroyImmediate(prefabs[i].gameObject);
+				GameObject.Destroy(prefabs[i].gameObject);
+			}
+
+			GameObject[] collections = GameObject.FindGameObjectsWithTag("Collection");
+			for (int j = 0; j < collections.Length; j++)
+			{
+				if (sw.Elapsed.TotalSeconds > 0.25f)
+				{
+					yield return null;
+					#if UNITY_EDITOR
+					Progress.Report(progressID, 0.99f, "Deleting Collection: " + j + " / " + collections.Length);
+					#endif
+					sw.Restart();
+				}
+				GameObject.Destroy(collections[j]);
 			}
 
 			#if UNITY_EDITOR
-			Progress.Report(progressID, 0.99f, "Deleted " + prefabs.Length + " prefabs.");
+			Progress.Report(progressID, 1f, "Deleted " + prefabs.Length + " prefabs and " + collections.Length + " collections.");
 			Progress.Finish(progressID, Progress.Status.Succeeded);
 			#endif
 		}

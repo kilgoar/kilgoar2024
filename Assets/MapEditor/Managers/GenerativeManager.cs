@@ -1771,33 +1771,42 @@ public static class GenerativeManager
 	
 	
 
-    public static class RandomTS
-    {
-        private static System.Random _global = new System.Random();
-        [ThreadStatic]
-        private static System.Random _local;
+	public static class RandomTS
+	{
+		private static System.Random _global = new System.Random();
+		[ThreadStatic]
+		private static System.Random _local;
 
-        public static int Next(int max)
-        {
-            if(max <=0)
-				{  return 0; }
-			
-			System.Random inst = _local;
-            if (inst == null)
-            {
-                int seed;
-                lock (_global) seed = _global.Next();
-                _local = inst = new System.Random(seed);
-            }
-			
-		
-			return inst.Next() % max;
-        }
+		private static System.Random GetLocalRandom()
+		{
+			if (_local == null)
+			{
+				int seed;
+				lock (_global)
+				{
+					seed = _global.Next();
+				}
+				_local = new System.Random(seed);
+			}
+			return _local;
+		}
+
+		public static int Next(int max)
+		{
+			if (max <= 0) return 0;
+			return GetLocalRandom().Next() % max;
+		}
+
+		public static double NextDouble()
+		{
+			return GetLocalRandom().NextDouble();
+		}
+
 		public static int GetGlobalSeed()
 		{
 			lock (_global)
 			{
-				return ((System.Random)_global).Next();
+				return _global.Next();
 			}
 		}
 
@@ -1805,36 +1814,34 @@ public static class GenerativeManager
 		{
 			lock (_global)
 			{
-				_global = new System.Random(seed);
+				_global = new System.Random(seed); // Reassign _global with new seed
 			}
 		}
-    }
+	}
+
 
 	
 	
 	public static void spawnCustom(GeologyItem geoItem, Vector3 position, Vector3 rotation, Vector3 scale, Transform parent)
 	{
-		PrefabManager.placeCustomPrefab(SettingsManager.AppDataPath() + geoItem.customPrefab, position, rotation, scale, parent);
+		PrefabManager.placeCustomPrefab(SettingsManager.AppDataPath() + geoItem.customPrefab + ".prefab", position, rotation, scale, parent);
 	}
 	
 	public static void spawnItem(GeologyItem geoItem, Transform transItem)
 	{
-
 			PrefabManager.createPrefab("Decor", geoItem.prefabID, transItem);
 	}
 	
-	public static void spawnGeoItem(GeologyItem geoItem, Vector3 position, Vector3 rotation, Vector3 scale)
+	public static void spawnGeoItem(GeologyItem geoItem, Vector3 position, Vector3 rotation, Vector3 scale, Transform parent = null)
 	{
-
-			PrefabManager.createPrefab("Decor", geoItem.prefabID, position, rotation, scale);
-
+			PrefabManager.createPrefab("Decor", geoItem.prefabID, position, rotation, scale, parent);
 	}
 	
 	#if UNITY_EDITOR
 	
 	public static void insertPrefabCliffs(GeologyPreset geo)
 	{
-		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.insertPrefabCliffs(geo));
+		
 	}
 	
 
@@ -1869,7 +1876,7 @@ public static class GenerativeManager
 		//runtime coroutines
 		public static void insertPrefabCliffs(GeologyPreset geo)
 		{
-			CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.insertPrefabCliffs(geo));
+			//CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.insertPrefabCliffs(geo));
 		}
 		
 
@@ -1908,7 +1915,15 @@ public static class GenerativeManager
 
 		public static IEnumerator ApplyGeologyTemplate()
 		{
-			foreach (GeologyPreset pre in SettingsManager.macro)
+			List<GeologyPreset> geologyPresets = new List<GeologyPreset>();
+
+			foreach (string filename in SettingsManager.macro)
+			{
+				GeologyPreset preset = LoadGeologyPreset(filename); 
+				geologyPresets.Add(preset);
+			}
+
+			foreach (GeologyPreset pre in geologyPresets)
 			{
 				makeCliffMapRunning = true;
 				GenerativeManager.MakeCliffMap(pre);
@@ -1943,685 +1958,317 @@ public static class GenerativeManager
 			yield return null;
 		}
 		
-		public static IEnumerator MakeCliffs(GeologyPreset geo)
+	public static IEnumerator MakeCliffs(GeologyPreset geo)
+	{
+		makeCliffsRunning = true;
+
+		Transform parentContainer = GameObject.FindGameObjectWithTag("Prefabs").transform;
+		string uniqueName = $"{geo.title}_{UnityEngine.Random.Range(10000, 99999)}";
+		Transform parentObject = new GameObject(uniqueName).transform;
+		parentObject.tag = "Collection";
+		parentObject.SetParent(parentContainer);
+		parentObject.position = parentContainer.position;
+
+		Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
+		List<GeologyItem> oddsList = OddsList(geo.geologyItems);
+		int selection;
+
+		Vector3 rotationRange1 = geo.rotationsLow;
+		Vector3 rotationRange2 = geo.rotationsHigh;
+		Vector3 scaleRange1 = geo.scalesLow;
+		Vector3 scaleRange2 = geo.scalesHigh;
+
+		int res = TerrainManager.HeightMapRes;
+		int splatRes = TerrainManager.SpawnMap.GetLength(0);
+		float resRatio = 1f * res / splatRes;
+
+		int count = 0;
+		int cullcount = 0;
+		bool testing = geo.cliffTest;
+
+		float size = land.terrainData.size.x;
+		float sizeZ = land.terrainData.size.y;
+		float ratio = size / splatRes;
+
+		bool prefabCollisions = geo.geologyCollisions.Exists(collision => collision.layer == ColliderLayer.Prefabs);
+		if (prefabCollisions) Debug.Log("Testing Prefab Collision, Generating may take longer than normal");
+
+		float[,] baseMap = land.terrainData.GetHeights(0, 0, land.terrainData.heightmapResolution, land.terrainData.heightmapResolution);
+
+		List<PrefabData> rayList = GetRayDataFromTemplate();
+
+		for (int i = 2; i < splatRes - 2; i++)
 		{
-			/*string message = "Do you want to proceed with " + GeologySpawns + " prefab spawns?";
-			bool response = EditorUtility.DisplayDialog("Confirmation", message, "Yes", "No");
-			if(!response)
+			for (int j = 2; j < splatRes - 2; j++)
 			{
-				yield break;
-			}*/
-			makeCliffsRunning = true;
-			Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
-			List<GeologyItem> oddsList = OddsList(geo.geologyItems);
-			int selection;
-			
-			Vector3 rotationRange1 = geo.rotationsLow;
-			Vector3 rotationRange2 = geo.rotationsHigh;
-			Vector3 scaleRange1 = geo.scalesLow;
-			Vector3 scaleRange2 = geo.scalesHigh;
-			
-			int res = TerrainManager.HeightMapRes;
-			int splatRes = TerrainManager.SpawnMap.GetLength(0);
-			float resRatio = 1f * res/splatRes;
-			
-			int heightMapsX, heightMapsY;
-			float[,] baseMap = land.terrainData.GetHeights(0, 0, land.terrainData.heightmapResolution, land.terrainData.heightmapResolution);
-			
-			int count = 0;
-			int cullcount=0;
-			bool testing = geo.cliffTest;
-			
-			float geology = new float();
-			int flipX=0;
-			int flipZ=0;
-			//float slope=0;
-			int size = (int)land.terrainData.size.x;
-			int sizeZ = (int)land.terrainData.size.y;
-			
-			float zOffset = 0f;
-			float slopeOffset = 0f;
-			float sideOffset = 0f;
-			
-			Vector3 position, prePosition;
-			Vector3 rRotate, preRotate;
-			Vector3 rScale;
-			Vector3 normal = new Vector3(0,0,0);
-			Quaternion qRotate;
-			
-			Vector3 upWard = new Vector3(0, 1, 0);
-			Vector3 offsetPerpendicular = new Vector3(0, 0, 1);
-			Vector3 antiNormal = new Vector3(1, 0, 0);
-			
-			float[] heights = new float[9];
-			
-			float height=0f;
-			//float tempHeight=0f;
-			int odds=0;
-			
-			float ratio = 1f* land.terrainData.size.x / splatRes;
-			
-			bool prefabCollisions = false;
-			foreach (GeologyCollisions collision in geo.geologyCollisions)
-			{ prefabCollisions |= (collision.layer ==  ColliderLayer.Prefabs);}
-			
-			if (prefabCollisions)
-			{Debug.Log("Testing Prefab Collision, Generating may take longer than normal");}
-			
-			for (int i = 2; i < splatRes-2; i++)
-			{
-				//EditorUtility.DisplayProgressBar("Spawning", "Geology features",(i*1f/splatRes-1));
-				for (int j = 2; j < splatRes-2; j++)
+				if (!TerrainManager.SpawnMap[i, j]) continue;
+				yield return null;
+
+				int flipX = geo.flipping ? UnityEngine.Random.Range(0, 2) * 180 : 0;
+				int flipZ = geo.flipping ? UnityEngine.Random.Range(0, 2) * 180 : 0;
+				float geology = geo.tilting ? Mathf.PerlinNoise(i * 0.0125f, j * 0.0125f) * 20 : 0f;
+
+				int heightMapsX = Mathf.Clamp((int)(i * resRatio), 0, res - 1);
+				int heightMapsY = Mathf.Clamp((int)(j * resRatio), 0, res - 1);
+				float height = baseMap[heightMapsX, heightMapsY];
+
+				Vector3 normal = land.terrainData.GetInterpolatedNormal((float)j / splatRes, (float)i / splatRes).normalized;
+				Vector3 prePosition = new Vector3((j * ratio) - (size / 2f), (height * sizeZ) - (sizeZ * 0.5f), (i * ratio) - (size / 2f));
+
+				Vector3 offsetPerpendicular = Vector3.Cross(normal, Vector3.up);
+				Vector3 antiNormal = Vector3.Cross(normal, offsetPerpendicular);
+
+				Vector3 position = prePosition
+								   + antiNormal * UnityEngine.Random.Range(geo.jitterLow.z, geo.jitterHigh.z)
+								   + normal * UnityEngine.Random.Range(geo.jitterLow.x, geo.jitterHigh.x)
+								   + offsetPerpendicular * UnityEngine.Random.Range(geo.jitterLow.y, geo.jitterHigh.y);
+
+				Vector3 rRotate = new Vector3(
+					UnityEngine.Random.Range(rotationRange1.x, rotationRange2.x) + geology + flipX,
+					UnityEngine.Random.Range(rotationRange1.y, rotationRange2.y),
+					UnityEngine.Random.Range(rotationRange1.z, rotationRange2.z) + flipZ
+				);
+
+				Vector3 rScale = new Vector3(
+					UnityEngine.Random.Range(scaleRange1.x, scaleRange2.x),
+					UnityEngine.Random.Range(scaleRange1.y, scaleRange2.y),
+					UnityEngine.Random.Range(scaleRange1.z, scaleRange2.z)
+				);
+
+				AdjustRotationForNormalization(ref rRotate, geo, normal, land, i, j, splatRes);
+
+				selection = UnityEngine.Random.Range(0, oddsList.Count);
+				bool placeFeature = true;
+
+				
+				
+				if (testing && !PrefabManager.inTerrain(new PrefabData("f", 261440689, position, Quaternion.Euler(rRotate), rScale), rayList))
 				{
-					
-					if(TerrainManager.SpawnMap[i,j])
+					placeFeature = false;
+				}
+
+				foreach (GeologyCollisions collision in geo.geologyCollisions)
+				{
+					bool sphere = PrefabManager.sphereCollision(position, collision.radius, (int)collision.layer);
+					if (collision.minMax == sphere)
 					{
-													//if(prefabCollisions){yield return null;}
-													yield return null;
-
-												
-													if(geo.flipping)
-													{
-													flipX = UnityEngine.Random.Range(0,2) * 180;
-													flipZ = UnityEngine.Random.Range(0,2) * 180;
-													}
-													
-													if(geo.tilting)
-													{
-													geology = (Mathf.PerlinNoise(i*1f/80,j*1f/80))*20;
-													}
-													
-													heightMapsX = (int)(i * resRatio);
-													heightMapsY = (int)(j * resRatio);
-													heightMapsX = (int)Mathf.Clamp(heightMapsX, 0f, res *1f);
-													heightMapsY = (int)Mathf.Clamp(heightMapsY, 0f, res *1f);
-													height = baseMap[heightMapsX, heightMapsY];
-													
-													
-													prePosition = new Vector3(((j) *ratio)-(size/2f), (height * sizeZ) - (sizeZ*.5f),((i) *ratio)-(size/2f));
-													normal = land.terrainData.GetInterpolatedNormal(1f * j / splatRes, 1f * i / splatRes).normalized;
-													
-													offsetPerpendicular = Vector3.Cross(normal, upWard);													
-													antiNormal = Vector3.Cross(normal, offsetPerpendicular);
-													
-													zOffset = UnityEngine.Random.Range(geo.jitterLow.z,geo.jitterHigh.z);
-													slopeOffset = UnityEngine.Random.Range(geo.jitterLow.x,geo.jitterHigh.x);
-													sideOffset = UnityEngine.Random.Range(geo.jitterLow.y,geo.jitterHigh.y);
-													
-													position = new Vector3(
-													
-													prePosition.x + (antiNormal.x * zOffset) + (normal.x * slopeOffset) + (offsetPerpendicular.x * sideOffset), 
-													prePosition.y + (antiNormal.y * zOffset) + (normal.y * slopeOffset) + (offsetPerpendicular.y * sideOffset),
-													prePosition.z + (antiNormal.z * zOffset) + (normal.z * slopeOffset) + (offsetPerpendicular.z * sideOffset)
-													
-													);
-
-													
-													
-													//position = new Vector3((j *ratio)-(size/2f), (height * sizeZ) - (sizeZ*.5f),(i *ratio)-(size/2f));
-													
-
-													
-													
-													rRotate = new Vector3(
-													UnityEngine.Random.Range(rotationRange1.x, rotationRange2.x) + geology + flipX, 
-													UnityEngine.Random.Range(rotationRange1.y, rotationRange2.y), 
-													UnityEngine.Random.Range(rotationRange1.z,rotationRange2.z) + flipZ);
-													
-													rScale = new Vector3(
-													UnityEngine.Random.Range(scaleRange1.x, scaleRange2.x), 
-													UnityEngine.Random.Range(scaleRange1.y, scaleRange2.y), 
-													UnityEngine.Random.Range(scaleRange1.z,scaleRange2.z));
-													
-													if(geo.normalizeY)
-													{
-													normal = land.terrainData.GetInterpolatedNormal(1f*j/splatRes, 1f*i/splatRes);
-													qRotate = Quaternion.LookRotation(normal);
-													preRotate = qRotate.eulerAngles;
-													rRotate.y += preRotate.y;
-													}
-													
-													if(geo.normalizeX)
-													{
-													normal = land.terrainData.GetInterpolatedNormal(1f*j/splatRes, 1f*i/splatRes);
-													qRotate = Quaternion.LookRotation(normal);
-													preRotate = qRotate.eulerAngles;
-													rRotate.x += preRotate.x;
-													}
-													
-													if(geo.normalizeZ)
-													{
-													normal = land.terrainData.GetInterpolatedNormal(1f*j/splatRes, 1f*i/splatRes);
-													qRotate = Quaternion.LookRotation(normal);
-													preRotate = qRotate.eulerAngles;
-													rRotate.z += preRotate.z;
-													}
-													GameObject raycaster = GameObject.Find("Raycaster");
-													raycaster.transform.position = position;
-													raycaster.transform.localScale = rScale;
-													raycaster.transform.eulerAngles = rRotate;
-													
-													selection = UnityEngine.Random.Range(0, oddsList.Count);
-													
-													bool collisions = true;
-													bool skirts = true;
-													
-													if(testing)
-													{
-														skirts = PrefabManager.inTerrain(new PrefabData("f", 261440689, position, Quaternion.Euler(rRotate), rScale));
-													}
-												
-													foreach (GeologyCollisions collision in geo.geologyCollisions)
-													{
-														
-														bool sphere = PrefabManager.sphereCollision(position, collision.radius,(int)collision.layer);
-														collisions &= collision.minMax ? !sphere : sphere;
-													}
-												
-													if (collisions && skirts)
-														{
-															
-															if(!oddsList[selection].custom)
-																{ spawnGeoItem(oddsList[selection], position, rRotate, rScale); count++; }
-															else
-																{ spawnCustom(oddsList[selection], position, rRotate, rScale, GameObject.FindGameObjectWithTag("Prefabs").transform); count++; }
-															
-															if(prefabCollisions){yield return null;}
-														}
-													else
-														{
-															cullcount++;
-														}
-											
-										
-										
-										
-										
+						placeFeature = false;
+						break;
 					}
 				}
-			}
-			
-			//EditorUtility.ClearProgressBar();
-			Debug.LogError("Geology Complete: " + count + " Features Placed.");
-			if (cullcount >0)
-			{
-				Debug.LogError(cullcount + " prefabs culled");
-			}
-			makeCliffsRunning = false;
-		}
-		
-		public static IEnumerator MakeCliffMap(GeologyPreset geo, Action onComplete = null)
-		{
-			makeCliffMapRunning = true;
-			TerrainManager.UpdateHeightCache();
-		
-			int odds = 0;
-			int spawnCount = 0;
-			float[,,] field = TerrainManager.Topology[0];
-			float[,,] cliff = TerrainManager.Topology[1];
-			float[,,] summit = TerrainManager.Topology[2];
-			float[,,] beachside = TerrainManager.Topology[3];
-			float[,,] beach = TerrainManager.Topology[4];
-			float[,,] forest = TerrainManager.Topology[5];
-			float[,,] forestside = TerrainManager.Topology[6];
-			float[,,] ocean = TerrainManager.Topology[7];
-			float[,,] oceanside = TerrainManager.Topology[8];
-			float[,,] decor = TerrainManager.Topology[9];
-			float[,,] monument = TerrainManager.Topology[10];
-			float[,,] road = TerrainManager.Topology[11];			
-			float[,,] roadside = TerrainManager.Topology[12];
-			float[,,] swamp = TerrainManager.Topology[13];
-			float[,,] river = TerrainManager.Topology[14];
-			float[,,] riverside = TerrainManager.Topology[15];
-			float[,,] lake = TerrainManager.Topology[16];
-			float[,,] lakeside = TerrainManager.Topology[17];
-			float[,,] offshore = TerrainManager.Topology[18];
-			float[,,] powerline = TerrainManager.Topology[19];
-			float[,,] runway = TerrainManager.Topology[20];
-			float[,,] building = TerrainManager.Topology[21];
-			float[,,] cliffside = TerrainManager.Topology[22];
-			float[,,] mountain = TerrainManager.Topology[23];
-			float[,,] clutter = TerrainManager.Topology[24];
-			float[,,] alt = TerrainManager.Topology[25];
-			float[,,] tier0 = TerrainManager.Topology[26];
-			float[,,] tier1 = TerrainManager.Topology[27];
-			float[,,] tier2 = TerrainManager.Topology[28];
-			float[,,] mainland = TerrainManager.Topology[29];
-			float[,,] hilltop = TerrainManager.Topology[30];			
-			float[,,] biomeMap = TerrainManager.Biome;
-
-			int resRatio = (int)( TerrainManager.HeightMapRes / TerrainManager.SplatMapRes);
-			
-			//float[,] cliffMap = new float[TerrainManager.HeightMapRes,TerrainManager.HeightMapRes];
-			float[,] heightOut = new float[TerrainManager.HeightMapRes,TerrainManager.HeightMapRes];
-			bool[,] spawnMap = new bool[TerrainManager.HeightMapRes,TerrainManager.HeightMapRes];
-			
-			
-				Parallel.For( 0, TerrainManager.HeightMapRes-1, i=>
-				{
-					for (int j = 0; j < TerrainManager.HeightMapRes-1; j++)
-					{
-						heightOut[i,j] = (TerrainManager.Height[i,j] - 2f) / 1000f;
-						if(RandomTS.Next(geo.frequency) == 1)
-							{
-							
-							if (
-									(geo.heightRange && (TerrainManager.Height[i,j] >= geo.heights.heightMin * 1000f && TerrainManager.Height[i,j]-1 <= geo.heights.heightMax * 1000f))						
-									&&((geo.slopeRange && (TerrainManager.Slope[i,j]*(geo.density / 100f) >= geo.heights.slopeLow && TerrainManager.Slope[i,j]*(geo.density / 100f) <= geo.heights.slopeHigh))
-									||(geo.curveRange && (TerrainManager.Curvature[i,j] * geo.heights.curveWeight >= geo.heights.curveMin && TerrainManager.Curvature[i,j] * geo.heights.curveWeight <= geo.heights.curveMax)))		
-									&&(field[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Field)) 
-									&&(cliff[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Cliff))
-									&&(summit[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Summit)) 
-									&&(beachside[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Beachside))
-									&&(beach[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Beach)) 
-									&&(forest[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Forest))
-									&&(forestside[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Forestside)) 
-									&&(ocean[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Ocean))
-									&&(oceanside[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Oceanside))
-									&&(decor[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Decor))
-									&&(monument[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Monument)) 
-									&&(road[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Road))
-									&&(roadside[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Roadside)) 
-									&&(swamp[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Swamp))
-									&&(river[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.River))
-									&&(riverside[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Riverside))
-									&&(lake[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Lake))
-									&&(lakeside[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Lakeside))
-									&&(offshore[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Offshore))
-									&&(powerline[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Powerline))
-									&&(runway[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Runway))
-									&&(building[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Building))
-									&&(cliffside[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Cliffside))
-									&&(mountain[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Mountain))
-									&&(clutter[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Clutter))
-									&&(alt[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Alt))
-									&&(tier0[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Tier0))
-									&&(tier1[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Tier1))
-									&&(tier2[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Tier2))
-									&&(mainland[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Mainland))
-									&&(hilltop[i/resRatio,j/resRatio,0] < .1f || geo.topologies.HasFlag(Topologies.Hilltop))
-
-									&&(biomeMap[i/resRatio,j/resRatio,0] < .1f || geo.arid) &&(biomeMap[i/resRatio,j/resRatio,1] < .1f || geo.temperate)									
-									&&(biomeMap[i/resRatio,j/resRatio,2] < .1f || geo.tundra) &&(biomeMap[i/resRatio,j/resRatio,3] < .1f || geo.arctic)
-								)
-							{
-								
-								//cliffMap[i,j] =  TerrainManager.Slope[i,j] * geo.heights.slopeWeight + Math.Abs(TerrainManager.Curvature[i,j]) * geo.heights.curveWeight;
-								heightOut[i,j] = (TerrainManager.Height[i,j] + 4f) / 1000f;
-								spawnMap[i,j] = true;
-								spawnCount++;
-								//if(TerrainManager.CliffMap != null) // can't make spawnMap first time
-								//{
-									//odds = (int)(GaussCurve(TerrainManager.CliffMap[i,j],geo.balance,1f)*geo.density);
-									//if (odds<=(.4f*geo.density-2f) && (RandomTS.Next(odds))==1)
-									//{
-									
-
-
-										
-										
-									//}
-									//else
-									//{
-									//	spawnMap[i,j] = false;
-									//}
-								//}
-							}
-							}
-							else
-							{
-								
-								//cliffMap[i,j] = 0f;
-								spawnMap[i,j] = false;
-							}
-					}
-				});
 				
-				GeologySpawns = spawnCount;
-				
-				if(spawnMap != null && heightOut != null)
+				if (placeFeature)
 				{
-					TerrainManager.SetCliffMap(spawnMap);
-					TerrainManager.SetLandMask(heightOut);
-					makeCliffMapRunning = false;
+					SpawnFeature(oddsList[selection], position, rRotate, rScale, parentObject);
+					count++;
+					if (prefabCollisions) yield return null;
 				}
 				else
-				{ makeCliffMapRunning = false; yield return null; }
-			
-			onComplete?.Invoke();
+				{
+					cullcount++;
+				}
+			}
 		}
-		
 
-		public static IEnumerator insertPrefabCliffs(GeologyPreset geo)
+		Debug.LogError($"Geology Complete: {count} Features Placed.");
+		if (cullcount > 0) Debug.LogError($"{cullcount} prefabs culled");
+
+		makeCliffsRunning = false;
+		ItemsWindow.Instance.PopulateList();
+	}
+
+	public static List<PrefabData> GetRayDataFromTemplate()
+	{
+		GameObject raytestTemplate = GameObject.FindGameObjectWithTag("raytestTemplate");
+		List<PrefabData> rayDataList = new List<PrefabData>();
+		Vector3 offset = Vector3.zero;
+		bool offsetCaptured = false;
+
+
+		if (raytestTemplate != null)
 		{
-			//var sw = new System.Diagnostics.Stopwatch();
-            //sw.Start();
-			
-
-			//uint featPrefabID = 0;
-			//int roll = 0;
-
-			
-			List<GeologyItem> oddsList = OddsList(geo.geologyItems);
-			int selection;
-			
-			Vector3 rotationRange1 = geo.rotationsLow;
-			Vector3 rotationRange2 = geo.rotationsHigh;
-			Vector3 scaleRange1 = geo.scalesLow;
-			Vector3 scaleRange2 = geo.scalesHigh;
-			
-			float zOffset = geo.zOffset;
-			float floor = geo.floor/1000f;
-			float ceiling = geo.ceiling/1000f;
-			float cliffFade = 0f;
-
-			float s1 = geo.heights.slopeLow;
-			float s2 = geo.heights.slopeHigh;
-
-			int density = geo.density;
-			int thinnitude = geo.frequency;
-			int colliderLayer = (int)geo.colliderLayer;
-			int closeColliderLayer = (int)geo.closeColliderLayer;
-			float colliderDistance = geo.colliderDistance;
-			float closeColliderDistance = geo.closeColliderDistance;
-			
-			
-			bool avoid = geo.avoidTopo;
-			bool tilting = geo.tilting;
-			bool flipping = geo.flipping;
-			bool testing = geo.cliffTest;
-			bool overlap = geo.overlap;
-			bool closeOverlap = geo.closeOverlap;
-			
-			
-			Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
-			float[,] baseMap = land.terrainData.GetHeights(0, 0, land.terrainData.heightmapResolution, land.terrainData.heightmapResolution);
-			float[,,] avoidMap = TerrainManager.Topology[TerrainTopology.TypeToIndex(1024)];
-			float[,,] avoidMap1 = TerrainManager.Topology[TerrainTopology.TypeToIndex(2048)];
-			float[,,] biomeMap = TerrainManager.Biome;
-			
-			Transform prefabsParent = GameObject.FindGameObjectWithTag("Prefabs").transform;
-			GameObject defaultObj = Resources.Load<GameObject>("Prefabs/DefaultPrefab");
-			
-			int count = 0;
-			int cullcount=0;
-			
-			int res = baseMap.GetLength(0);
-			int splatRes = avoidMap.GetLength(0);
-			float resRatio = 1f * res/splatRes;
-			int heightMapsX, heightMapsY;
-			
-			int size = (int)land.terrainData.size.x;
-			int sizeZ = (int)land.terrainData.size.y;
-			
-			Vector3 position;
-			Vector3 rRotate, preRotate;
-			Vector3 rScale;
-			Vector3 normal = new Vector3(0,0,0);
-			Quaternion qRotate;
-			
-			float[] heights = new float[9];
-			
-			float geology = new float();
-			int flipX=0;
-			int flipZ=0;
-			float slope=0;
-			float avoider = 1f;
-			float[,] cliffMap = new float[splatRes,splatRes];
-			
-			float slopeDiff = 0f;
-			float oldPixel = 0f;
-			float newPixel = 0f;
-			float randomizer = 0f;
-			
-			//float xNormalizer = 0f;
-			//float yNormalizer = 0f;
-			//float zNormalizer = 0f;
-
-			
-			float quotient = 0f;		
-			
-			float height=0f;
-			float tempHeight=0f;
-			int xOff=0;
-			int yOff=0;
-			
-			float ratio = 1f* land.terrainData.size.x / splatRes;
-			
-			
-			if (avoid)
+			foreach (Transform child in raytestTemplate.transform)
 			{
-				avoider=.01f;
-			}		
-			
-			for (int i = 0; i < splatRes; i++)
-			{
-				//EditorUtility.DisplayProgressBar("Generating", "Slope Map",(i*1f/splatRes));
-				for (int j = 0; j < splatRes; j++)
+				PrefabDataHolder prefabDataHolder = child.GetComponent<PrefabDataHolder>();
+
+				if (prefabDataHolder != null)
 				{
-					
-						cliffMap[i,j] = (land.terrainData.GetSteepness(1f*j/splatRes, 1f*i/splatRes))/90 * (density / 100f);
-				
-				}
-			}
-			//EditorUtility.ClearProgressBar();
+					prefabDataHolder.UpdatePrefabDataWrong();
+					PrefabData prefabDataComponent = prefabDataHolder.prefabData;
 
-			for (int i = 2; i < splatRes-2; i++)
-			{
-				//EditorUtility.DisplayProgressBar("Dithering", "Cliff Map",(i*1f/splatRes));
-				for (int j = 2; j < splatRes-2; j++)
-				{
-					
-					oldPixel = cliffMap[i,j];
-					
-					if (cliffMap[i,j] >= .5f)
+					if (prefabDataComponent != null)
+					{
+						if (prefabDataComponent.id != 3244004659)
 						{
-							newPixel = 1f;
+							if (!offsetCaptured)
+							{
+								offset = prefabDataComponent.position - new Vector3(26f,16f,0f); //absolute fudge factor
+								offsetCaptured = true;
+							}
+							continue;
 						}
-					else
-						{
-							newPixel = 0f;
-						}
-						
-					cliffMap[i,j] = newPixel;
-					
-					slopeDiff = (oldPixel-newPixel);
-					
-					
-					randomizer = UnityEngine.Random.Range(0f,1f);
-					quotient = 42f;
-					
-					cliffMap[i+1,j] = cliffMap[i+1,j] + (slopeDiff * 8f * randomizer / quotient);
-					cliffMap[i-1,j+1] = cliffMap[i-1,j+1] + (slopeDiff * 4f * randomizer /quotient);
-					cliffMap[i,j+1] = cliffMap[i,j+1] + (slopeDiff * 8f * randomizer / quotient);
-					cliffMap[i+1,j+1] = cliffMap[i+1,j+1] + (slopeDiff * 4f * randomizer / quotient);
 
-					randomizer = UnityEngine.Random.Range(1f,1.5f);
-					
-					cliffMap[i+2,j] = cliffMap[i+2,j] + (slopeDiff * 4f * randomizer / quotient);
-					cliffMap[i-2,j+1] = cliffMap[i-2,j+1] + (slopeDiff * 2f * randomizer / quotient);
-					cliffMap[i,j+2] = cliffMap[i,j+2] + (slopeDiff * 4f * randomizer / quotient);
-					cliffMap[i+2,j+1] = cliffMap[i+2,j+1] + (slopeDiff * 2f * randomizer / quotient);
-					
-					randomizer = UnityEngine.Random.Range(1f,2f);
-					
-					cliffMap[i+1,j+2] = cliffMap[i+1,j+2] + (slopeDiff * 2f * randomizer / quotient);
-					cliffMap[i-2,j+2] = cliffMap[i-2,j+2] + (slopeDiff * 1f * randomizer /quotient);
-					cliffMap[i-1,j+2] = cliffMap[i-1,j+2] + (slopeDiff * 2f * randomizer / quotient);
-					cliffMap[i+2,j+2] = cliffMap[i+2,j+2] + (slopeDiff * 1f * randomizer / quotient);
-					
+						prefabDataComponent.position = prefabDataComponent.position - offset;
+
+						rayDataList.Add(prefabDataComponent);
+					}
 				}
-			}
-			//EditorUtility.ClearProgressBar();
-			
-			bool prefabCollisions = false;
-
-			
-			foreach (GeologyCollisions collision in geo.geologyCollisions)
-			{ prefabCollisions |= (collision.layer ==  ColliderLayer.Prefabs);}
-			
-			if (prefabCollisions)
-			{Debug.LogError("Testing Prefab Collision, Generating may take longer than normal");}
-
-			
-			for (int i = 1; i < splatRes-1; i++)
-			{
-				//EditorUtility.DisplayProgressBar("Spawning", "Geology features",(i*1f/splatRes));
-				for (int j = 1; j < splatRes-1; j++)
-				{
-					slope = land.terrainData.GetSteepness(1f*j/splatRes, 1f*i/splatRes);
-					
-					if (geo.biomeExclusive)
-					{
-						cliffFade = cliffMap[i,j] * biomeMap[i,j,geo.biomeIndex];		
-					}
-					else
-					{
-						cliffFade = cliffMap[i,j];
-					}
-					
-					heightMapsX = (int)(1f* i * resRatio);
-					heightMapsY = (int)(1f* j * resRatio);
-					heightMapsX = (int)Mathf.Clamp(heightMapsX, 0f, res *1f);
-					heightMapsY = (int)Mathf.Clamp(heightMapsY, 0f, res *1f);
-					
-					if(baseMap[heightMapsX,heightMapsY] > floor && baseMap[heightMapsX,heightMapsY] < ceiling && avoidMap[i,j,0] < avoider && avoidMap1[i,j,0] < avoider && cliffFade > .5f && slope > s1 && slope < s2)
-					{
-
-										
-										
-										
-										
-
-											if(UnityEngine.Random.Range(0,thinnitude) == 0)
-											{
-													if(prefabCollisions){yield return null;}
-													
-													height = 0f;
-													tempHeight= 0f;
-													for (int n = -1; n < 2; n++)
-													{
-														for (int o = -1; o < 2; o++)
-														{
-															tempHeight = baseMap[heightMapsX+n, heightMapsY+o];
-															
-															if (height < tempHeight)
-															{
-																height = tempHeight;
-																xOff = n;
-																yOff = o;
-															}
-															
-															
-															
-														}
-													}
-												
-													if(flipping)
-													{
-													flipX = UnityEngine.Random.Range(0,2) * 180;
-													flipZ = UnityEngine.Random.Range(0,2) * 180;
-													}
-													
-													if(tilting)
-													{
-													geology = (Mathf.PerlinNoise(i*1f/80,j*1f/80))*20;
-													}
-													
-													position = new Vector3(j *ratio-(size/2f)+yOff*ratio, height * sizeZ - (sizeZ*.5f) + zOffset,i *ratio-(size/2f)+xOff*ratio);
-													
-
-													
-													
-													rRotate = new Vector3(UnityEngine.Random.Range(rotationRange1.x, rotationRange2.x) + geology + flipX, UnityEngine.Random.Range(rotationRange1.y, rotationRange2.y), UnityEngine.Random.Range(rotationRange1.z,rotationRange2.z) + flipZ);
-													rScale = new Vector3(UnityEngine.Random.Range(scaleRange1.x, scaleRange2.x), UnityEngine.Random.Range(scaleRange1.y, scaleRange2.y), UnityEngine.Random.Range(scaleRange1.z,scaleRange2.z));
-													
-													if(geo.normalizeY)
-													{
-													normal = land.terrainData.GetInterpolatedNormal(1f*j/splatRes, 1f*i/splatRes);
-													qRotate = Quaternion.LookRotation(normal);
-													preRotate = qRotate.eulerAngles;
-													rRotate.y += preRotate.y;
-													}
-													
-													if(geo.normalizeX)
-													{
-													normal = land.terrainData.GetInterpolatedNormal(1f*j/splatRes, 1f*i/splatRes);
-													qRotate = Quaternion.LookRotation(normal);
-													preRotate = qRotate.eulerAngles;
-													rRotate.x += preRotate.x;
-													}
-													
-													if(geo.normalizeZ)
-													{
-													normal = land.terrainData.GetInterpolatedNormal(1f*j/splatRes, 1f*i/splatRes);
-													qRotate = Quaternion.LookRotation(normal);
-													preRotate = qRotate.eulerAngles;
-													rRotate.z += preRotate.z;
-													}
-													GameObject raycaster = GameObject.Find("Raycaster");
-													raycaster.transform.position = position;
-													raycaster.transform.localScale = rScale;
-													raycaster.transform.eulerAngles = rRotate;
-													
-													selection = UnityEngine.Random.Range(0, oddsList.Count);
-													
-													bool collisions = true;
-													bool skirts = true;
-													
-													if(testing)
-													{
-														skirts = PrefabManager.inTerrain(new PrefabData("f", 261440689, position, Quaternion.Euler(rRotate), rScale));
-													}
-												
-													foreach (GeologyCollisions collision in geo.geologyCollisions)
-													{
-
-														
-														bool sphere = PrefabManager.sphereCollision(position, collision.radius,(int)collision.layer);
-														collisions &= collision.minMax ? !sphere : sphere;
-														
-
-													}
-												
-												
-													if (collisions && skirts)
-														{
-															
-															if(!oddsList[selection].custom)
-
-																{ spawnGeoItem(oddsList[selection], position, rRotate, rScale); count++; }
-															else
-																{ spawnCustom(oddsList[selection], position, rRotate, rScale, GameObject.FindGameObjectWithTag("Prefabs").transform); count++; }
-
-															
-															if(prefabCollisions){yield return null;}
-														}
-													else
-														{
-															cullcount++;
-														}
-											}
-										
-										
-										
-										
-					}
-					
-					
-				}
-				
-			}
-			
-			
-
-			//EditorUtility.ClearProgressBar();
-			Debug.LogError("Geology Complete: " + count + " Features Placed.");
-			if (cullcount >0)
-			{
-				Debug.LogError(cullcount + " prefabs culled");
 			}
 		}
+
+		return rayDataList;
+	}
+
+public static GeologyPreset LoadGeologyPreset(string filename)
+{
+    string path = SettingsManager.AppDataPath() + $"Presets/Geology/{filename}.preset";
+    if (File.Exists(path))
+    {
+        string json = File.ReadAllText(path);
+        return JsonUtility.FromJson<GeologyPreset>(json);
+    }
+    return new GeologyPreset();
+}
+
+private static void AdjustRotationForNormalization(ref Vector3 rRotate, GeologyPreset geo, Vector3 normal, Terrain land, int i, int j, int splatRes)
+{
+    Quaternion qRotate;
+    Vector3 preRotate;
+
+    if (geo.normalizeY)
+    {
+        normal = land.terrainData.GetInterpolatedNormal((float)j / splatRes, (float)i / splatRes);
+        qRotate = Quaternion.LookRotation(normal);
+        preRotate = qRotate.eulerAngles;
+        rRotate.y += preRotate.y;
+    }
+
+    if (geo.normalizeX)
+    {
+        normal = land.terrainData.GetInterpolatedNormal((float)j / splatRes, (float)i / splatRes);
+        qRotate = Quaternion.LookRotation(normal);
+        preRotate = qRotate.eulerAngles;
+        rRotate.x += preRotate.x;
+    }
+
+    if (geo.normalizeZ)
+    {
+        normal = land.terrainData.GetInterpolatedNormal((float)j / splatRes, (float)i / splatRes);
+        qRotate = Quaternion.LookRotation(normal);
+        preRotate = qRotate.eulerAngles;
+        rRotate.z += preRotate.z;
+    }
+}
+
+private static void SpawnFeature(GeologyItem item, Vector3 position, Vector3 rotation, Vector3 scale, Transform parent = null)
+{
+    if (!item.custom)
+    {
+        spawnGeoItem(item, position, rotation, scale, parent);
+        return;
+    }
+	
+    spawnCustom(item, position, rotation, scale, parent);
+}
+
+		
+	public static IEnumerator MakeCliffMap(GeologyPreset geo, Action onComplete = null)
+	{
+		makeCliffMapRunning = true;
+		TerrainManager.UpdateHeightCache();
+
+		int spawnCount = 0;
+		float[,,] biomeMap = TerrainManager.Biome;
+		int resRatio = TerrainManager.HeightMapRes / TerrainManager.SplatMapRes;
+		float heightMin = geo.heights.heightMin * 1000f;
+		float heightMax = geo.heights.heightMax * 1000f;
+
+		float slopeLow = geo.heights.slopeLow;
+		float slopeHigh = geo.heights.slopeHigh;
+		float curveMin = geo.heights.curveMin;
+		float curveMax = geo.heights.curveMax;
+		float curveWeight = geo.heights.curveWeight;
+		float frequencyInv = 1.0f / geo.frequency;
+		float[][,,] topologies = TerrainManager.Topology;
+
+		float[,] heightOut = new float[TerrainManager.HeightMapRes, TerrainManager.HeightMapRes];
+		bool[,] spawnMap = new bool[TerrainManager.HeightMapRes, TerrainManager.HeightMapRes];
+
+		Parallel.For(0, TerrainManager.HeightMapRes - 1, i =>
+		{
+			int iResRatio = i / resRatio;
+			for (int j = 0; j < TerrainManager.HeightMapRes - 1; j++)
+			{
+				int jResRatio = j / resRatio;
+				heightOut[i, j] = (TerrainManager.Height[i, j] - 2f) * 0.001f;
+
+				if (RandomTS.NextDouble() < frequencyInv)
+				{
+					float height = TerrainManager.Height[i, j];
+					
+					if (geo.heightRange && height < heightMin)		{	continue;	}
+
+					if (geo.heightRange && height > heightMax)		{	continue;	}
+
+					float slope = TerrainManager.Slope[i, j] * (geo.density * 0.01f);
+					
+					if (geo.slopeRange && slope < slopeLow)	{	continue;	}
+
+					if (geo.slopeRange && slope > slopeHigh)	{	continue;	}
+
+					float curve = TerrainManager.Curvature[i, j] * curveWeight;
+					
+					if (geo.curveRange && curve < curveMin)		{	continue;	}
+
+					if (geo.curveRange && curve > curveMax)
+					{
+						continue;
+					}
+					
+                bool topologyValid = true;
+                for (int k = 0; k < topologies.Length; k++)
+                {
+                    if (topologies[k][iResRatio, jResRatio, 0] >= 0.1f && 
+                        (geo.topologies & (Topologies)(1 << k)) == 0)
+                    {
+                        topologyValid = false;
+                        break;
+                    }
+                }
+                if (!topologyValid) continue;
+				
+
+					if (biomeMap[iResRatio, jResRatio, 0] >= 0.1f && !geo.arid)		{	continue;	}
+
+					if (biomeMap[iResRatio, jResRatio, 1] >= 0.1f && !geo.temperate)		{	continue;	}
+					
+					if (biomeMap[iResRatio, jResRatio, 2] >= 0.1f && !geo.tundra)		{	continue;	}
+
+					if (biomeMap[iResRatio, jResRatio, 3] >= 0.1f && !geo.arctic)		{	continue;	}
+
+					heightOut[i, j] = (height + 4f) * 0.001f;
+					spawnMap[i, j] = true;
+					Interlocked.Increment(ref spawnCount);
+				}
+				else
+				{
+					spawnMap[i, j] = false;
+				}
+			}
+		});
+
+		GeologySpawns = spawnCount;
+
+		if (spawnMap != null && heightOut != null)
+		{
+			TerrainManager.SetCliffMap(spawnMap);
+			TerrainManager.SetLandMask(heightOut);
+		}
+		makeCliffMapRunning = false;
+		onComplete?.Invoke();
+		yield break;
+	}
+
 	}
 	
 }

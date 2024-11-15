@@ -55,15 +55,17 @@ public class GeologyWindow : MonoBehaviour
 	private void PopulatePresetTree(){
 		treeTransform = tree.GetComponent<RectTransform>();
         string path = SettingsManager.AppDataPath() + "Presets/Geology";
-		List<string> pathsList = SettingsManager.GetDataPaths(path, "Geology");		
+		List<string> pathsList = SettingsManager.GetDataPaths(path, "Geology");	
 		SettingsManager.ConvertPathsToNodes(tree, pathsList, ".json");	
 	}
 	
     void Start()    {
 		
-		PopulatePresetTree();
-		
+		PopulatePresetTree();		
 		PopulateSettings();
+		
+		
+		PresetField.onValueChanged.AddListener(_ => SendSettings());
 		
 		tree.onNodeSelected.AddListener(OnSelect);
 		addCollisionItem.onClick.AddListener(AddCollisionItem); 
@@ -89,14 +91,14 @@ public class GeologyWindow : MonoBehaviour
 		yJitterH.onValueChanged.AddListener(_ => SendSettings());
 		zJitterH.onValueChanged.AddListener(_ => SendSettings());
 		
-		frequency.onValueChanged.AddListener(_ => SendSettings());
+		frequency.onValueChanged.AddListener(_ => SendSettingsPreview());
 
-		height.onValueChanged.AddListener(_ => SendSettings());
-		heightH.onValueChanged.AddListener(_ => SendSettings());
-		slope.onValueChanged.AddListener(_ => SendSettings());
-		slopeH.onValueChanged.AddListener(_ => SendSettings());
-		curve.onValueChanged.AddListener(_ => SendSettings());
-		curveH.onValueChanged.AddListener(_ => SendSettings());
+		height.onValueChanged.AddListener(_ => SendSettingsPreview());
+		heightH.onValueChanged.AddListener(_ => SendSettingsPreview());
+		slope.onValueChanged.AddListener(_ => SendSettingsPreview());
+		slopeH.onValueChanged.AddListener(_ => SendSettingsPreview());
+		curve.onValueChanged.AddListener(_ => SendSettingsPreview());
+		curveH.onValueChanged.AddListener(_ => SendSettingsPreview());
 
 		flip.onValueChanged.AddListener(_ => SendSettings());
 		geofield.onValueChanged.AddListener(_ => SendSettings());
@@ -104,23 +106,23 @@ public class GeologyWindow : MonoBehaviour
 		snapY.onValueChanged.AddListener(_ => SendSettings());
 		snapZ.onValueChanged.AddListener(_ => SendSettings());
 		
-		curveToggle.onValueChanged.AddListener(_ => SendSettings());
-		heightToggle.onValueChanged.AddListener(_ => SendSettings());
-		slopeToggle.onValueChanged.AddListener(_ => SendSettings());
+		curveToggle.onValueChanged.AddListener(_ => SendSettingsPreview());
+		heightToggle.onValueChanged.AddListener(_ => SendSettingsPreview());
+		slopeToggle.onValueChanged.AddListener(_ => SendSettingsPreview());
 		rayTest.onValueChanged.AddListener(_ => SendSettings());
 
-		arid.onValueChanged.AddListener(_ => SendSettings());
-		temperate.onValueChanged.AddListener(_ => SendSettings());
-		arctic.onValueChanged.AddListener(_ => SendSettings());
-		tundra.onValueChanged.AddListener(_ => SendSettings());
+		arid.onValueChanged.AddListener(_ => SendSettingsPreview());
+		temperate.onValueChanged.AddListener(_ => SendSettingsPreview());
+		arctic.onValueChanged.AddListener(_ => SendSettingsPreview());
+		tundra.onValueChanged.AddListener(_ => SendSettingsPreview());
 		
 		everything.onValueChanged.AddListener(_ => FlipEverything());
 		
 		for (int i = 0; i < TopologyToggles.Count; i++){
-			TopologyToggles[i].onValueChanged.AddListener(_ => SendSettings());
+			TopologyToggles[i].onValueChanged.AddListener(_ => SendSettingsPreview());
 		}
 		
-		preview.onValueChanged.AddListener(_ => SetPreview());
+		preview.onValueChanged.AddListener(_ => SendSettingsPreview());
 		
 		AddPreset.onClick.AddListener(OnAddToPresetList);
         ApplyPresetList.onClick.AddListener(OnApplyPresetList);
@@ -131,7 +133,7 @@ public class GeologyWindow : MonoBehaviour
 		MacroDropDown.onValueChanged.AddListener(OnPresetListChanged);
 		DeletePreset.onClick.AddListener(OnDeletePreset);
 		
-		
+		SetPreview();
 		
     }
 	
@@ -142,7 +144,6 @@ public class GeologyWindow : MonoBehaviour
 
 		if (preview.isOn && gameObject.activeInHierarchy)
 		{
-			// Start the coroutine correctly with a callback.
 			GenerativeManager.MakeCliffMap(SettingsManager.geology, OnCliffMapComplete);
 		}
 		else
@@ -152,13 +153,11 @@ public class GeologyWindow : MonoBehaviour
 		}
 	}
 
-	// This is the callback method you pass to `MakeCliffMap`
 	private void OnCliffMapComplete()
 	{
 		footer.text = GenerativeManager.GeologySpawns.ToString() + " spawns";
 	}
-	
-	
+
 	private void OnEnable(){		
 		PopulatePresetLists();
 		SetPreview();
@@ -168,19 +167,14 @@ public class GeologyWindow : MonoBehaviour
 		SetPreview();
 	}
 	
-	private void SendSettings()
-	{
+	private void SendSettingsPreview() {
 		var geologySettings = SettingsManager.geology;
-
-		// Set rotation, scale, and jitter settings
-		geologySettings.rotationsLow = new Vector3(xRot.value, yRot.value, zRot.value);
-		geologySettings.rotationsHigh = new Vector3(xRotH.value, yRotH.value, zRotH.value);
-
-		geologySettings.scalesLow = new Vector3(xScale.value, yScale.value, zScale.value);
-		geologySettings.scalesHigh = new Vector3(xScaleH.value, yScaleH.value, zScaleH.value);
-
-		geologySettings.jitterLow = new Vector3(xJitter.value, yJitter.value, zJitter.value);
-		geologySettings.jitterHigh = new Vector3(xJitterH.value, yJitterH.value, zJitterH.value);
+		
+		geologySettings.preview = preview.isOn;
+		
+		geologySettings.curveRange = curveRange.isOn;
+		geologySettings.heightRange = heightRange.isOn;
+		geologySettings.slopeRange = slopeRange.isOn;
 
 		// Frequency and height settings
 		geologySettings.frequency = (int)frequency.value;
@@ -195,21 +189,6 @@ public class GeologyWindow : MonoBehaviour
 			slopeWeight = 1f,
 			curveWeight = 1f
 		};
-
-		// Range and cliff test toggles
-		geologySettings.curveRange = curveRange.isOn;
-		geologySettings.heightRange = heightRange.isOn;
-		geologySettings.slopeRange = slopeRange.isOn;
-		geologySettings.cliffTest = rayTest.isOn;
-
-		// Other settings (flip, geofield, snap options)
-		geologySettings.flipping = flip.isOn;
-		geologySettings.tilting = geofield.isOn;
-		geologySettings.normalizeX = snapX.isOn;
-		geologySettings.normalizeY = snapY.isOn;
-		geologySettings.normalizeZ = snapZ.isOn;
-		geologySettings.preview = preview.isOn;
-		geologySettings.title = PresetField.text;
 
 		// Set biome toggles
 		geologySettings.arid = arid.isOn;
@@ -231,8 +210,37 @@ public class GeologyWindow : MonoBehaviour
 		SettingsManager.geology = geologySettings;
 		SetPreview();
 	}
-
 	
+	private void SendSettings()	{
+		var geologySettings = SettingsManager.geology;
+
+		// Set rotation, scale, and jitter settings
+		geologySettings.rotationsLow = new Vector3(xRot.value, yRot.value, zRot.value);
+		geologySettings.rotationsHigh = new Vector3(xRotH.value, yRotH.value, zRotH.value);
+
+		geologySettings.scalesLow = new Vector3(xScale.value, yScale.value, zScale.value);
+		geologySettings.scalesHigh = new Vector3(xScaleH.value, yScaleH.value, zScaleH.value);
+
+		geologySettings.jitterLow = new Vector3(xJitter.value, yJitter.value, zJitter.value);
+		geologySettings.jitterHigh = new Vector3(xJitterH.value, yJitterH.value, zJitterH.value);
+
+		// Range and cliff test toggles
+
+		geologySettings.cliffTest = rayTest.isOn;
+
+		// Other settings (flip, geofield, snap options)
+		geologySettings.flipping = flip.isOn;
+		geologySettings.tilting = geofield.isOn;
+		geologySettings.normalizeX = snapX.isOn;
+		geologySettings.normalizeY = snapY.isOn;
+		geologySettings.normalizeZ = snapZ.isOn;
+
+		geologySettings.title = PresetField.text;
+		
+		SettingsManager.geology = geologySettings;
+
+	}
+
 	private void PopulateSettings()
 	{
 		var geologySettings = SettingsManager.geology;
@@ -300,9 +308,9 @@ public class GeologyWindow : MonoBehaviour
 		PopulateCollisionList();
 		PopulateCollisionDropdown();
 		hierarchyWindow.PopulateItemList();
+	
+		OnPresetListChanged(0);
 	}
-
-
 
 	private void AddCollisionItem()
 	{
@@ -321,44 +329,59 @@ public class GeologyWindow : MonoBehaviour
 
 	private void PopulatePresetList()
 	{
-		List<GeologyPreset> macroList = SettingsManager.macro.ToList();
-		
-		foreach (GeologyPreset pre in macroList)
-			{		
-			
-				var itemCopy = Instantiate(presetListTemplate);
-				var button = itemCopy.transform.Find("RemoveItem").GetComponent<Button>();
-				var presetText = itemCopy.transform.Find("PresetLabel").GetComponent<Text>();
-				
-				presetText.text = pre.title;
-				
-				var currentItem = pre;		
-				
-					button.onClick.AddListener(() =>
-					{
-						macroList.Remove(currentItem);
-						SettingsManager.macro = macroList.ToArray();
-						PopulatePresetList();
-					});
-					
-				itemCopy.transform.SetParent(presetContent.transform, false);
-				itemCopy.gameObject.SetActive(true);
-			}
-				
+		foreach (Transform child in presetContent.transform)
+		{
+			Destroy(child.gameObject);
+		}
+
+		List<string> macroList = SettingsManager.macro;
+
+		for (int i = 0; i < macroList.Count; i++)
+		{        
+			var itemCopy = Instantiate(presetListTemplate);
+			var button = itemCopy.transform.Find("RemoveItem").GetComponent<Button>();
+			var presetText = itemCopy.transform.Find("PresetLabel").GetComponent<Text>();
+
+			presetText.text = macroList[i];
+
+			int currentIndex = i;
+
+			button.onClick.AddListener(() =>
+			{
+				SettingsManager.RemovePreset(currentIndex);                
+				PopulatePresetList();
+			});
+
+			itemCopy.transform.SetParent(presetContent.transform, false);
+			itemCopy.gameObject.SetActive(true);
+		}
 	}
 
-	public void OnPresetListChanged(int selectedIndex){
+	public void OnPresetListChanged(int selectedIndex)
+	{
+		// Check if MacroDropDown has any options
+		if (MacroDropDown == null || MacroDropDown.options.Count == 0)
+		{
+			Debug.LogWarning("MacroDropDown has no options available.");
+			return;
+		}
+
+		// Check if selectedIndex is within the range of options
+		if (selectedIndex < 0 || selectedIndex >= MacroDropDown.options.Count)
+		{
+			Debug.LogWarning($"Invalid selectedIndex: {selectedIndex}. It should be between 0 and {MacroDropDown.options.Count - 1}.");
+			return;
+		}
+
+		// Get the selected option text and update macroField
 		string selectedOption = MacroDropDown.options[selectedIndex].text;
 		macroField.text = selectedOption;
-		
-		SettingsManager.LoadGeologyMacro(selectedOption);
-		Debug.LogError(SettingsManager.macro.Length);
+
+		SettingsManager.LoadGeologyMacro(selectedOption);		
 		PopulatePresetList();
-		
 	}
 	
-	private void FlipEverything()
-	{
+	private void FlipEverything()	{
 		bool thing = everything.isOn;
 
 		// Use SetIsOnWithoutNotify to avoid triggering events
@@ -372,6 +395,7 @@ public class GeologyWindow : MonoBehaviour
 		arid.SetIsOnWithoutNotify(thing);
 		tundra.SetIsOnWithoutNotify(thing);
 		SendSettings();
+		SetPreview();
 	}
 	
 	private void PopulateToggleList()
@@ -385,7 +409,6 @@ public class GeologyWindow : MonoBehaviour
 			TopologyToggles[i].SetIsOnWithoutNotify(topoEnum.HasFlag(currentTopology));
 		}
 	}
-
 
 	private void PopulateCollisionList()
 	{
@@ -467,6 +490,7 @@ public class GeologyWindow : MonoBehaviour
 		}
 		else
 		{
+			MacroDropDown.ClearOptions();
 			Debug.LogError("No Preset Lists found");
 		}
 		
@@ -478,8 +502,15 @@ public class GeologyWindow : MonoBehaviour
 	}
 		
 	public void OnAddToPresetList(){
+		var geologySettings = SettingsManager.geology;
+		geologySettings.filename = $"Presets/Geology/{geologySettings.title}.json"; 
+		SettingsManager.geology = geologySettings;
+        
 		SettingsManager.SaveGeologyPreset();
 		SettingsManager.AddToMacro(PresetField.text);
+		
+		SettingsManager.LoadGeologyMacro(PresetField.text);
+		PopulatePresetList();
 	}
 	
 	public void OnApplyGeologyPreset(){
@@ -492,17 +523,19 @@ public class GeologyWindow : MonoBehaviour
 	
 	public void OnSavePresetList(){
 		SettingsManager.SaveGeologyMacro(macroField.text);
+		PopulatePresetLists();
 	}
 	
-	public void OnSavePreset(){
+	public void OnSavePreset(){		
 		SettingsManager.SaveGeologyPreset();
-		
+		PopulatePresetTree();
 	}
 	
 	public void OnLoadPreset(){
 		PresetLabel.text = PresetField.text;
 		SettingsManager.LoadGeologyPreset(PresetField.text);
 		PopulateSettings();
+		SetPreview();
 	}
 	
 	public void OnDeletePreset(){

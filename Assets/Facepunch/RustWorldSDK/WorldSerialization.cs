@@ -279,6 +279,7 @@ public class WorldSerialization
         [ProtoMember(13)] public int splat;
         [ProtoMember(14)] public int topology;
         [ProtoMember(15)] public VectorData[] nodes;
+        [ProtoMember(16)] public int hierarchy;
     }
 
 	
@@ -320,7 +321,7 @@ public class WorldSerialization
         public static implicit operator Quaternion(VectorData v)
         {
             return Quaternion.Euler(v);
-        }
+        }		
     }
 
     public MapData GetMap(string name)

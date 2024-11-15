@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-public class TerrainTopology
+public static class TerrainTopology
 {
     public enum Enum
     {
@@ -23,8 +23,8 @@ public class TerrainTopology
         Lake = 1 << 16,
         Lakeside = 1 << 17,
         Offshore = 1 << 18,
-        Powerline = 1 << 19,
-        Runway = 1 << 20,
+        Rail = 1 << 19,
+        Railside = 1 << 20,
         Building = 1 << 21,
         Cliffside = 1 << 22,
         Mountain = 1 << 23,
@@ -60,8 +60,8 @@ public class TerrainTopology
     public const int LAKE = (int)Enum.Lake;
     public const int LAKESIDE = (int)Enum.Lakeside;
     public const int OFFSHORE = (int)Enum.Offshore;
-    public const int POWERLINE = (int)Enum.Powerline;
-    public const int RUNWAY = (int)Enum.Runway;
+    public const int RAIL = (int)Enum.Rail;
+    public const int RAILSIDE = (int)Enum.Railside;
     public const int BUILDING = (int)Enum.Building;
     public const int CLIFFSIDE = (int)Enum.Cliffside;
     public const int MOUNTAIN = (int)Enum.Mountain;
@@ -92,8 +92,8 @@ public class TerrainTopology
     public const int LAKE_IDX = 16;
     public const int LAKESIDE_IDX = 17;
     public const int OFFSHORE_IDX = 18;
-    public const int POWERLINE_IDX = 19;
-    public const int RUNWAY_IDX = 20;
+    public const int RAIL_IDX = 19;
+    public const int RAILSIDE_IDX = 20;
     public const int BUILDING_IDX = 21;
     public const int CLIFFSIDE_IDX = 22;
     public const int MOUNTAIN_IDX = 23;
@@ -104,7 +104,7 @@ public class TerrainTopology
     public const int TIER2_IDX = 28;
     public const int MAINLAND_IDX = 29;
     public const int HILLTOP_IDX = 30;
-     
+
     public const int WATER = OCEAN | RIVER | LAKE;
     public const int WATERSIDE = OCEANSIDE | RIVERSIDE | LAKESIDE;
     public const int SAND = OCEAN | OCEANSIDE | LAKE | LAKESIDE | BEACH | BEACHSIDE;
@@ -129,8 +129,8 @@ public class TerrainTopology
         { LAKE        , LAKE_IDX       },
         { LAKESIDE    , LAKESIDE_IDX   },
         { OFFSHORE    , OFFSHORE_IDX   },
-        { POWERLINE   , POWERLINE_IDX  },
-        { RUNWAY      , RUNWAY_IDX     },
+        { RAIL        , RAIL_IDX       },
+        { RAILSIDE    , RAILSIDE_IDX   },
         { BUILDING    , BUILDING_IDX   },
         { CLIFFSIDE   , CLIFFSIDE_IDX  },
         { MOUNTAIN    , MOUNTAIN_IDX   },

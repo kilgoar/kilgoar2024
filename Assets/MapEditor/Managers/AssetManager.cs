@@ -9,6 +9,7 @@ using Unity.EditorCoroutines.Editor;
 using UnityEditor;
 #endif
 using UnityEngine;
+using RustMapEditor.Variables;
 
 public static class AssetManager
 {
@@ -29,10 +30,40 @@ public static class AssetManager
 	#endregion
 	#endif
 	
-	public static void RuntimeInit()
+	public static void RuntimeInit()	{
+		Callbacks.BundlesLoaded += HideLoadScreen;
+
+		string bundlePath = SettingsManager.application.rustDirectory + SettingsManager.BundlePathExt;
+		
+		string bundleTry = Path.GetFullPath(bundlePath).Substring(Path.GetPathRoot(bundlePath).Length);
+
+		if (!Directory.Exists(bundlePath))		{
+			List<string> drives = Directory.GetLogicalDrives().ToList();
+			
+			foreach (string drive in drives)			{
+				string alternativePath = Path.Combine(drive, bundleTry);
+
+				if (Directory.Exists(alternativePath))				{
+					FilePreset app = SettingsManager.application;
+					app.rustDirectory = alternativePath;
+					SettingsManager.application = app;
+					SettingsManager.SaveSettings();
+					bundlePath = alternativePath;
+					break;
+				}
+			}
+			
+		}
+		
+		if (!IsInitialised && SettingsManager.application.loadbundleonlaunch)		{
+			Initialise(bundlePath);
+		}
+	}
+	
+	private static void HideLoadScreen()
 	{
-		if (!IsInitialised && SettingsManager.application.loadbundleonlaunch)
-			Initialise(SettingsManager.application.rustDirectory + SettingsManager.BundlePathExt);
+		GameObject loadingObject = GameObject.FindGameObjectWithTag("loading");
+        loadingObject.SetActive(false);
 	}
 	
 	public static class Callbacks
