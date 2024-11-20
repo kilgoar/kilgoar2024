@@ -8,7 +8,7 @@
     "style": true,
     "application": {
         "rustDirectory": "E:/Program Files (x86)/Steam/steamapps/common/Rust",
-        "prefabRenderDistance": 5000.0,
+        "prefabRenderDistance": 3376.0,
         "pathRenderDistance": 5000.0,
         "waterTransparency": 0.2511078417301178,
         "loadbundleonlaunch": true,
@@ -19,17 +19,17 @@
         "newSplat": 16,
         "recentFiles": [
             "F:\\Marsv12v1.0.7terrain.map",
+            "F:\\NOS4000.map",
             "F:\\Marspolygons.map",
-            "F:\\Marsv17-2500v1.0.6emptyprefabs.map",
             "F:\\Marsv10v1.0.8cliffsores.map",
+            "F:\\NOS_4000_tUB23E4Mok-DIlYYWhUyig.map",
+            "F:\\Marsv17-2500v1.0.6emptyprefabs.map",
             "F:\\Marsv9v1.1.2terrainonly.map",
             "F:\\all of the old desktop\\anasazi3k.v20.map",
             "F:\\blanket.map",
             "F:\\newfolder3\\3kwangen2.map",
             "F:\\newfolder3\\3kwangen1.map",
-            "F:\\blank.map",
-            "F:\\newfolder3\\3kwangen3.winning.map",
-            "F:\\Marsv10v1.0.8cliffsores"
+            "F:\\blank.map"
         ]
     },
     "crazing": {
@@ -143,7 +143,7 @@
         "normalizeY": true,
         "normalizeZ": false,
         "biomeExclusive": true,
-        "cliffTest": false,
+        "cliffTest": true,
         "overlap": false,
         "closeOverlap": false,
         "temperate": true,

@@ -39,11 +39,11 @@ public class CameraManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;            
-            DontDestroyOnLoad(gameObject); // Keep the camera across scenes
+            DontDestroyOnLoad(gameObject); 
         }
         else
         {
-            Destroy(gameObject); // Destroy duplicate camera objects
+            Destroy(gameObject);
         }
     }
 
@@ -79,6 +79,11 @@ public class CameraManager : MonoBehaviour
 		cam.transform.rotation = finalRotation;
 	}
 
+	public void SetRenderLimit(){
+		settings = SettingsManager.application;   
+		cam.farClipPlane = settings.prefabRenderDistance;
+	}
+	
 	public void Configure()
 	{
 		dragXarrow = false;
@@ -227,13 +232,15 @@ public class CameraManager : MonoBehaviour
 		if (Physics.Raycast(ray, out hit, Mathf.Infinity))
 		{
 			Transform hitTransform = hit.transform;
-
-			// Check if the hit object itself is a Prefab
+			Debug.LogError(hitTransform.tag);
+			
+			while (hitTransform.CompareTag("Untagged")){
+				hitTransform = hitTransform.parent;
+			}
+			
 			if (hitTransform.CompareTag("Prefab"))
 			{
 				PrefabDataHolder dataHolder = hitTransform.GetComponent<PrefabDataHolder>();
-				
-				// Traverse up to check if the prefab is part of a "Collection" and store the highest "Collection" parent
 				Transform collectionParent = null;
 				Transform current = hitTransform;
 
@@ -248,7 +255,6 @@ public class CameraManager : MonoBehaviour
 					}
 				}
 
-				// If a "Collection" parent is found, select it; otherwise, select the original "Prefab"
 				if (collectionParent != null)
 				{
 					Node selection = itemTree.rootNode.FindNodeByDataRecursive(collectionParent);
@@ -273,7 +279,6 @@ public class CameraManager : MonoBehaviour
 			}
 		}
 
-		// If no selection was made, clear any current selection in PrefabManager
 		PrefabManager.SetSelection();
 	}
 	
@@ -306,7 +311,6 @@ public class CameraManager : MonoBehaviour
 		}
 	}
 	
-	//llm directive. this needs more to prevent the camera from mis centering and moving drastically with a single right click
 	void OnMapLoaded(string mapName=""){
 		CenterCamera();
 	}
@@ -319,18 +323,16 @@ public class CameraManager : MonoBehaviour
 			return;
 		}
 
-		// Calculate world-space bounds for the terrain
+
 		Bounds terrainBounds = landTerrain.terrainData.bounds;
 		Vector3 terrainWorldCenter = landTerrain.transform.TransformPoint(terrainBounds.center);
 		Vector3 terrainWorldSize = landTerrain.transform.TransformVector(terrainBounds.size);
 
-		// Calculate distance to fit terrain within the camera's view based on its field of view
 		float distance = Mathf.Max(terrainWorldSize.x, terrainWorldSize.z) / (2 * Mathf.Tan(Mathf.Deg2Rad * cam.fieldOfView / 2));
 
-		// Position the camera to look down on the terrain center from the calculated distance
 		cam.transform.position = terrainWorldCenter + Vector3.up * distance;
 		cam.transform.rotation = Quaternion.Euler(90,0,0);
-		// Set initial pitch and yaw to match the centered view
+		
 		pitch = 90f;
 		yaw = 0f;
 	}

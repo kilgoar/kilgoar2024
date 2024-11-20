@@ -64,6 +64,7 @@ public class FileWindow : MonoBehaviour
 	}
 	
 	public void OnEnable(){
+		tree.FocusOn(tree.selectedNode);
 	}
 	
 	public void OpenFile()	{

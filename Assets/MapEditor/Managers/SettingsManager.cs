@@ -11,6 +11,7 @@ using RustMapEditor.Variables;
 using static BreakerSerialization;
 using UIRecycleTreeNamespace;
 
+
 public static class SettingsManager
 {
 	public static string SettingsPath;
@@ -303,6 +304,7 @@ public static class SettingsManager
 	public static FragmentLookup fragmentIDs {get; set;}
 	public static BreakerSerialization breakerSerializer = new BreakerSerialization();
 
+	
     /// <summary>Saves the current EditorSettings to a JSON file.</summary>
     public static void SaveSettings()    {
 		using (StreamWriter write = new StreamWriter(SettingsPath, false))  {
@@ -317,7 +319,7 @@ public static class SettingsManager
         }
     }
 
-		public static Dictionary<string,uint> ListToDict(List<FragmentPair> fragmentPairs)
+	public static Dictionary<string,uint> ListToDict(List<FragmentPair> fragmentPairs)
 		{
 			Dictionary<string,uint> namelist = new Dictionary<string,uint>();
 			foreach(FragmentPair pair in fragmentPairs)

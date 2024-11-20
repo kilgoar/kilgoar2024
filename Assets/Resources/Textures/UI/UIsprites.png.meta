@@ -1199,6 +1199,69 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: giantGear
+      rect:
+        serializedVersion: 2
+        x: 470
+        y: 593
+        width: 123
+        height: 123
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1e19ee575eb39274cae1570c174f7afd
+      internalID: 2056188805
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: rustmapperLogo
+      rect:
+        serializedVersion: 2
+        x: 476
+        y: 422
+        width: 706
+        height: 126
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1d33a6f1f9225024fa9b331386ce1be3
+      internalID: 448811353
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: rotateTool
+      rect:
+        serializedVersion: 2
+        x: 17
+        y: 24
+        width: 379
+        height: 376
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 94945c5dce197074a975a89248f25a6c
+      internalID: -981425257
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     physicsShape: []
     bones: []
@@ -1247,6 +1310,7 @@ TextureImporter:
       gear: 1788931696
       gearIcon: -440914037
       gearIconGreen: 2044013127
+      giantGear: 2056188805
       greater than: 1184929559
       less than: 2010630619
       map icon new: -260897487
@@ -1254,6 +1318,8 @@ TextureImporter:
       plus sign blue: -981460359
       prefabList: -1071875092
       prefabListGreen: 1569333959
+      rotateTool: -981425257
+      rustmapperLogo: 448811353
       selectedTab: -152325550
       sliderInactive: 1029772902
       textField: -34682274

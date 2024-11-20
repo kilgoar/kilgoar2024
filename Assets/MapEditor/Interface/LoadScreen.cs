@@ -5,10 +5,10 @@ using UnityEngine.UI;
 
 public class LoadScreen : MonoBehaviour
 {
-    public Image limited;
+    public RectTransform transform;
 
     void Update()
     {
-        limited.rectTransform.Rotate(100 * Time.deltaTime, 0, 0);
+        transform.Rotate(0, 0, 100 * Time.deltaTime);
     }
 }

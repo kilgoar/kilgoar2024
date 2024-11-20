@@ -19,6 +19,9 @@ public static class AssetManager
 	private static void Init()
 	{
 		EditorApplication.update += OnProjectLoad;
+		Callbacks.BundlesLoaded += HideLoadScreen;
+		Callbacks.BundlesDisposed += FileWindowUpdate;
+
 	}
 
 	private static void OnProjectLoad()
@@ -31,7 +34,9 @@ public static class AssetManager
 	#endif
 	
 	public static void RuntimeInit()	{
+
 		Callbacks.BundlesLoaded += HideLoadScreen;
+		Callbacks.BundlesDisposed += FileWindowUpdate;
 
 		string bundlePath = SettingsManager.application.rustDirectory + SettingsManager.BundlePathExt;
 		
@@ -55,15 +60,55 @@ public static class AssetManager
 			
 		}
 		
-		if (!IsInitialised && SettingsManager.application.loadbundleonlaunch)		{
+		if (!IsInitialised && SettingsManager.application.loadbundleonlaunch )		{
 			Initialise(bundlePath);
 		}
+		else
+		{
+			AppManager.Instance.ActivateWindow(1);
+		}
+	}
+	
+	public static bool ValidBundlePath(string bundleRoot)
+	{
+		bundleRoot= bundleRoot+ SettingsManager.BundlePathExt;
+		if (!Directory.Exists(SettingsManager.application.rustDirectory))		{
+			Debug.LogError("Directory does not exist: " + bundleRoot);
+			return false;
+		}
+
+		if (!SettingsManager.application.rustDirectory.EndsWith("Rust") && 
+			!SettingsManager.application.rustDirectory.EndsWith("RustStaging"))		{
+			Debug.LogError("Not a valid Rust install directory: " + SettingsManager.application.rustDirectory);
+			return false;
+		}
+
+		var rootBundle = AssetBundle.LoadFromFile(bundleRoot);
+		if (rootBundle == null)		{
+			Debug.LogError("Couldn't load root AssetBundle - " + bundleRoot);
+			return false;
+		}
+		rootBundle.Unload(false);
+		return true;
+	}
+	
+	private static void FileWindowUpdate()
+	{
+		Debug.LogError("unloaded");
+		SettingsWindow.Instance.UpdateButtonStates();
 	}
 	
 	private static void HideLoadScreen()
 	{
+		AppManager.Instance.ActivateWindow(0);
+		
+		if(SettingsWindow.Instance!=null){
+			SettingsWindow.Instance.UpdateButtonStates();
+		}
 		GameObject loadingObject = GameObject.FindGameObjectWithTag("loading");
-        loadingObject.SetActive(false);
+		if(loadingObject != null){
+			loadingObject.SetActive(false);
+		}
 	}
 	
 	public static class Callbacks
@@ -149,6 +194,8 @@ public static class AssetManager
 	{
 		if (!Coroutines.IsInitialising && IsInitialised)
 			CoroutineManager.Instance.StartCoroutine(Coroutines.Dispose());
+		
+
 	}
 	#endif
 
@@ -614,7 +661,7 @@ public static class AssetManager
 		
 		return "";
 	}	
-
+	
 	private static class Coroutines
     {
 		public static bool IsInitialising { get; private set; }
@@ -646,19 +693,19 @@ public static class AssetManager
 			yield return EditorCoroutineUtility.StartCoroutineOwnerless(SetBundleReferences((progressID, bundleID)));
 			yield return EditorCoroutineUtility.StartCoroutineOwnerless(SetMaterials(materialID));
 			
-			#else
+			#else	
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(LoadBundles(bundlesRoot, (0, 0, 0)));
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetBundleReferences((0, 0)));
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(PopulateMaterialLookup());
-			yield return CoroutineManager.Instance.StartRuntimeCoroutine(LoadShaderCache());
+			//yield return CoroutineManager.Instance.StartRuntimeCoroutine(LoadShaderCache());  
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetMaterials(0));			
 			#endif
 			
 
 			IsInitialised = true; IsInitialising = false;
 			SetVolumeGizmos();
-			//SetVolumesCache();
 			Callbacks.OnBundlesLoaded();
+
 			#if UNITY_EDITOR
 			PrefabManager.ReplaceWithLoaded(PrefabManager.CurrentMapPrefabs, prefabID);
 			#else
@@ -764,6 +811,7 @@ public static class AssetManager
 			#endif
 			
 			IsInitialised = false; IsInitialising = false;
+			Callbacks.OnBundlesDisposed();
 		}
 
 		public static IEnumerator LoadBundles(string bundleRoot, (int progress, int bundle, int material) ID)

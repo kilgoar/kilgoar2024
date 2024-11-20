@@ -15,6 +15,21 @@ public class AppManager : MonoBehaviour
 
     private Dictionary<Toggle, GameObject> windowDictionary = new Dictionary<Toggle, GameObject>();
 
+	public static AppManager Instance { get; private set; }
+	
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;            
+            DontDestroyOnLoad(gameObject); 
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+	
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void RuntimeInit()
     {
@@ -73,16 +88,14 @@ public class AppManager : MonoBehaviour
             CloseButtons[i].onClick.AddListener(() => CloseWindow(index));
         }
 
-		if (windowToggles.Count > 0)
-		{
-			windowToggles[0].isOn = true;
-			windowPanels[0].SetActive(true);
 
-			if (RecycleTrees.Count > 0 && RecycleTrees[0] != null)
-			{
-				RecycleTrees[0].gameObject.SetActive(true);
-			}
-		}
+		
+	}
+	
+	public void ActivateWindow(int index){
+		windowToggles[index].isOn = true;
+		windowPanels[index].SetActive(true);
+		RecycleTrees[index].gameObject.SetActive(true);
 	}
 	
 	private void CloseWindow(int index)
