@@ -1907,6 +1907,19 @@ public static class GenerativeManager
 		}
 	#endif
 		
+	public static void SpawnFeature(GeologyItem item, Vector3 position, Vector3 rotation, Vector3 scale, Transform parent = null)
+	{
+		if (!item.custom)
+		{
+			spawnGeoItem(item, position, rotation, scale, parent);
+			return;
+		}
+		
+		spawnCustom(item, position, rotation, scale, parent);
+	}
+
+		
+		
 	private static class Coroutines
     {
 
@@ -2160,16 +2173,6 @@ private static void AdjustRotationForNormalization(ref Vector3 rRotate, GeologyP
     }
 }
 
-private static void SpawnFeature(GeologyItem item, Vector3 position, Vector3 rotation, Vector3 scale, Transform parent = null)
-{
-    if (!item.custom)
-    {
-        spawnGeoItem(item, position, rotation, scale, parent);
-        return;
-    }
-	
-    spawnCustom(item, position, rotation, scale, parent);
-}
 
 		
 	public static IEnumerator MakeCliffMap(GeologyPreset geo, Action onComplete = null)

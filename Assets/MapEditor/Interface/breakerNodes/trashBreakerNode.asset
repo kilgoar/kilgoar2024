@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 442293ec4d19927488b3df57e3f3127b, type: 3}
-  m_Name: HierarchyNodes
+  m_Name: trashBreakerNode
   m_EditorClassIdentifier: 
   _toggleIcons:
     noChildren:
-      sprite: {fileID: -981460359, guid: 97da269d70fc38544ac09238cec00687, type: 3}
+      sprite: {fileID: 226577705, guid: 97da269d70fc38544ac09238cec00687, type: 3}
       color: {r: 1, g: 1, b: 1, a: 1}
     collapsed:
       sprite: {fileID: 2062437151, guid: 97da269d70fc38544ac09238cec00687, type: 3}
@@ -24,20 +24,20 @@ MonoBehaviour:
       color: {r: 1, g: 1, b: 1, a: 1}
   _imageIcons:
     noChildren:
-      sprite: {fileID: 0}
+      sprite: {fileID: -400310791, guid: 97da269d70fc38544ac09238cec00687, type: 3}
       color: {r: 1, g: 1, b: 1, a: 1}
     collapsed:
-      sprite: {fileID: 0}
+      sprite: {fileID: -400310791, guid: 97da269d70fc38544ac09238cec00687, type: 3}
       color: {r: 1, g: 1, b: 1, a: 1}
     expanded:
-      sprite: {fileID: 0}
+      sprite: {fileID: -400310791, guid: 97da269d70fc38544ac09238cec00687, type: 3}
       color: {r: 1, g: 1, b: 1, a: 1}
   _checkboxIcons:
     checkedState:
-      sprite: {fileID: 0}
+      sprite: {fileID: 1676189322, guid: 97da269d70fc38544ac09238cec00687, type: 3}
       color: {r: 1, g: 1, b: 1, a: 1}
     uncheckedState:
-      sprite: {fileID: 0}
+      sprite: {fileID: -360705485, guid: 97da269d70fc38544ac09238cec00687, type: 3}
       color: {r: 1, g: 1, b: 1, a: 1}
   _background:
     backgroundImage:

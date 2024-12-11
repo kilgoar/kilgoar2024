@@ -252,6 +252,8 @@ namespace RustMapEditor.Variables
 		[ProtoMember(5)]public Colliders colliderScales;
 		[ProtoMember(6)]public WorldSerialization.PrefabData prefabData;
 		[ProtoMember(7)]public string parent;
+		[ProtoMember(8)]public string treePath;
+		[ProtoMember(9)]public string monument;
 		
 	}
 	
@@ -446,12 +448,6 @@ namespace RustMapEditor.Variables
 		
 		protected override TreeViewItem BuildRoot ()
 		{
-			// BuildRoot is called every time Reload is called to ensure that TreeViewItems 
-			// are created from data. Here we create a fixed set of items. In a real world example,
-			// a data model should be passed into the TreeView and the items created from the model.
-
-			// This section illustrates that IDs should be unique. The root item is required to 
-			// have a depth of -1, and the rest of the items increment from that.
 			var root = new TreeViewItem {id = 0, depth = -1, displayName = "Root"};
 			int idCount = 0;
 			fragment = new List<BreakingData>();

@@ -14,7 +14,7 @@ public class HierarchyWindow : MonoBehaviour
     public UIRecycleTree tree;
 	public InputField query;
 	public Text footer;
-	public Button geology;
+	public Button geology, origin;
 	public GeologyItem item;
 	
 	public GameObject itemTemplate;
@@ -28,7 +28,7 @@ public class HierarchyWindow : MonoBehaviour
 		
 		geology.interactable = false;
         geology.onClick.AddListener(OnGeologyPressed);
-		
+		origin.onClick.AddListener(OnPlaceOrigin);
 	
     }
 
@@ -40,40 +40,57 @@ public class HierarchyWindow : MonoBehaviour
 		}
 	}
 
-	private void OnGeologyPressed()
-	{
+
+	
+	private GeologyItem selectedNodeItem(){
+		GeologyItem foundItem = new GeologyItem();
+		
 		if (tree.selectedNode.hasChildren){
-			return;
+			return null;
 		}
 		
 		if (tree.selectedNode == null){
-			return;
+			return null;
 		}
 		
 		string path;
 		path = tree.selectedNode.fullPath;
 		
 		if(path == null){
-			return;
+			return null;
 		}
 		
 		if (path[0] == '~')		{		
 			path = path.Replace("~", "", StringComparison.Ordinal);
 			path = path.Replace("\\", "/", StringComparison.Ordinal);
-			item.custom=true;
-			item.customPrefab = path;
-			item.prefabID = 0;
-			item.emphasis = 1;
+			foundItem.custom=true;
+			foundItem.customPrefab = path;
+			foundItem.prefabID = 0;
+			foundItem.emphasis = 1;
 		}
 		else {
-			item.custom=false;
-			item.prefabID =  AssetManager.ToID(path + ".prefab");
-			item.customPrefab = "";
-			item.emphasis = 1;
+			foundItem.custom=false;
+			foundItem.prefabID =  AssetManager.ToID(path + ".prefab");
+			foundItem.customPrefab = "";
+			foundItem.emphasis = 1;
 		}
-		
-		SettingsManager.geology.geologyItems.Add(item.Clone());
+		return foundItem;
+	}
+	
+	private void OnGeologyPressed()
+	{
+		SettingsManager.geology.geologyItems.Add(selectedNodeItem());
 		PopulateItemList();
+	}
+	
+	private void OnPlaceOrigin(){
+		GenerativeManager.SpawnFeature(selectedNodeItem(), Vector3.zero, Vector3.zero, Vector3.one, PrefabManager.PrefabParent);
+		
+		Transform origin = PrefabManager.PrefabParent.GetChild(PrefabManager.PrefabParent.childCount - 1);
+		
+		//enable the window for access
+		AppManager.Instance.ActivateWindow(5);
+		BreakerWindow.Instance.PopulateTree(origin);
 	}
 	
 	public void PopulateItemList()

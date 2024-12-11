@@ -18,6 +18,7 @@ using System.Collections;
 
 public static class MapManager
 {
+	public static bool isLoading;
 	#if UNITY_EDITOR
 	
     #region Init
@@ -52,6 +53,7 @@ public static class MapManager
         public static event MapManagerCallback MapSaved;
 
         public static void OnMapLoaded(string mapName = "") => MapLoaded?.Invoke(mapName);
+				
         public static void OnMapSaved(string mapName = "") => MapSaved?.Invoke(mapName);
     }
     
@@ -704,6 +706,7 @@ public static class MapManager
 
 			public static IEnumerator Load(MapInfo mapInfo, string path = "")
 			{
+				isLoading = true;
 		#if UNITY_EDITOR
 				ProgressManager.RemoveProgressBars("Load:");
 
@@ -737,8 +740,8 @@ public static class MapManager
 				Progress.Report(progressID, 0.99f, "Loaded");
 				Progress.Finish(terrainID, Progress.Status.Succeeded);
 				Progress.Finish(progressID, Progress.Status.Succeeded);
-
 				Callbacks.OnMapLoaded(path);
+				
 		#else
 				
 												
@@ -750,7 +753,10 @@ public static class MapManager
 				PathManager.SpawnPaths(mapInfo.pathData);
 				Callbacks.OnMapLoaded(path);
 				yield return null;
+				
 		#endif
+		
+			isLoading = false;
 			}
 
 			public static IEnumerator Save(string path)

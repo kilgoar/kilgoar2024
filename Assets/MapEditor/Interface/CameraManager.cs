@@ -15,6 +15,9 @@ public class CameraManager : MonoBehaviour
 	public GameObject xPos, yPos, zPos;
 	public LayerMask worldToolLayer;
 	public Terrain landTerrain;
+	
+	public Vector3 position;
+	
 
     private Vector3 movement = new Vector3(0, 0, 0);
     private float movementSpeed = 100f;
@@ -28,6 +31,10 @@ public class CameraManager : MonoBehaviour
     Quaternion dutchlessTilt;
 	private Keyboard key;
 	private Mouse mouse;
+
+	private float currentTime;
+	private float lastUpdateTime = 0f;
+	private float updateFrequency = .1f;
 
     FilePreset settings;
 	
@@ -77,6 +84,7 @@ public class CameraManager : MonoBehaviour
 
 		Quaternion finalRotation = Quaternion.Euler(pitch, yaw, 0f);
 		cam.transform.rotation = finalRotation;
+		position = cam.transform.position;
 	}
 
 	public void SetRenderLimit(){
@@ -93,23 +101,28 @@ public class CameraManager : MonoBehaviour
 		
 		if (cam == null) {
 			Debug.LogError("No camera found with tag 'MainCamera'. Please assign a camera to the scene.");
-			return; // Prevent further execution if there's no camera
+			return; 
 		}
 
 		settings = SettingsManager.application;        
 		if (object.ReferenceEquals(settings, null)) {
 			Debug.LogError("SettingsManager.application is null. Ensure it is properly initialized.");
-			return; // Prevent further execution if settings are null
+			return; 
 		}
 
 		cam.farClipPlane = settings.prefabRenderDistance;	
 		key = Keyboard.current;
 		mouse = Mouse.current;
+		
+		SetRenderLimit();
 	}
 
     void Update()
     {
         if (cam == null) return;
+		if (LoadScreen.Instance.isEnabled){
+			return;
+		}
 		
 		//right click down (rotate cam)
 		if (mouse.rightButton.isPressed) {
@@ -170,10 +183,9 @@ public class CameraManager : MonoBehaviour
 				}
 			}
 
-		//when not clicking on UI
 		if (!EventSystem.current.IsPointerOverGameObject()) {
 			
-			//mouse down
+
 			if (mouse.leftButton.wasPressedThisFrame) {
 				DragTransform();
 			}
@@ -220,8 +232,21 @@ public class CameraManager : MonoBehaviour
         if (key.spaceKey.isPressed) {
             globalMove += cam.transform.up * currentSpeed;
         }
-
-        cam.transform.position += globalMove;
+		if (globalMove!=Vector3.zero){			
+			cam.transform.position += globalMove;
+			position = cam.transform.position;
+			
+			if (LoadScreen.Instance.isEnabled){
+				return;
+			}
+			currentTime = Time.time;
+			if (currentTime - lastUpdateTime < updateFrequency)
+			{
+				return;
+			}
+			lastUpdateTime = currentTime;
+			AreaManager.UpdateSectors(position, settings.prefabRenderDistance);	//send changed position to area manager for LODs
+		}
     }
 	
 	void SelectPrefab()
@@ -291,7 +316,6 @@ public class CameraManager : MonoBehaviour
 		{
 			Debug.Log($"Hit object: {hit.collider.gameObject.name}");
 
-			// Check which object was hit and handle accordingly
 			if (hit.collider.gameObject == xPos)
 			{
 				dragXarrow = true;
@@ -331,6 +355,8 @@ public class CameraManager : MonoBehaviour
 		float distance = Mathf.Max(terrainWorldSize.x, terrainWorldSize.z) / (2 * Mathf.Tan(Mathf.Deg2Rad * cam.fieldOfView / 2));
 
 		cam.transform.position = terrainWorldCenter + Vector3.up * distance;
+		position = cam.transform.position;
+		
 		cam.transform.rotation = Quaternion.Euler(90,0,0);
 		
 		pitch = 90f;

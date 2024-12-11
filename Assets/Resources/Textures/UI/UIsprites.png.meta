@@ -864,10 +864,10 @@ TextureImporter:
       name: gear
       rect:
         serializedVersion: 2
-        x: 1086
-        y: 876
-        width: 40
-        height: 40
+        x: 1091
+        y: 881
+        width: 30
+        height: 30
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -969,7 +969,7 @@ TextureImporter:
       name: plus sign blue
       rect:
         serializedVersion: 2
-        x: 782
+        x: 784
         y: 700
         width: 40
         height: 40
@@ -1208,7 +1208,7 @@ TextureImporter:
         width: 123
         height: 123
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1229,7 +1229,7 @@ TextureImporter:
         width: 706
         height: 126
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1250,7 +1250,7 @@ TextureImporter:
         width: 379
         height: 376
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1258,6 +1258,111 @@ TextureImporter:
       bones: []
       spriteID: 94945c5dce197074a975a89248f25a6c
       internalID: -981425257
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: scrap
+      rect:
+        serializedVersion: 2
+        x: 1138
+        y: 928
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3b38d32c08b04ee40983ef41097f173c
+      internalID: -838840593
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stop
+      rect:
+        serializedVersion: 2
+        x: 1137
+        y: 878
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9852cfbc6a6e82241b087fc00554ca8c
+      internalID: 754184350
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tarp
+      rect:
+        serializedVersion: 2
+        x: 1138
+        y: 830
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4cc1dd37a6a8cfc4a9f2f646be92fdf7
+      internalID: 375055111
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: techtrash
+      rect:
+        serializedVersion: 2
+        x: 1138
+        y: 781
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b88e206e28abee742ac1ba646711a0d9
+      internalID: -400310791
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: progressFrame
+      rect:
+        serializedVersion: 2
+        x: 627
+        y: 618
+        width: 547
+        height: 60
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 12, y: 12, z: 11, w: 12}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e81bf4c2650310b498e0596cf3666265
+      internalID: 1805204458
       vertices: []
       indices: 
       edges: []
@@ -1318,10 +1423,15 @@ TextureImporter:
       plus sign blue: -981460359
       prefabList: -1071875092
       prefabListGreen: 1569333959
+      progressFrame: 1805204458
       rotateTool: -981425257
       rustmapperLogo: 448811353
+      scrap: -838840593
       selectedTab: -152325550
       sliderInactive: 1029772902
+      stop: 754184350
+      tarp: 375055111
+      techtrash: -400310791
       textField: -34682274
       trash: -1978091892
       trash green: -1524247354

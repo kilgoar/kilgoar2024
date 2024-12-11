@@ -6,6 +6,7 @@ using UnityEditor;
 using Unity.EditorCoroutines.Editor;
 #endif
 
+using System.Threading.Tasks;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -255,90 +256,117 @@ public static class PrefabManager
     /// <summary>Sets up the prefabs loaded from the bundle file for use in the editor.</summary>
     /// <param name="go">GameObject to process, should be from one of the asset bundles.</param>
     /// <param name="filePath">Asset filepath of the gameobject, used to get and set the PrefabID.</param>
-    public static GameObject Setup(GameObject go, string filePath)
+	public static GameObject Setup(GameObject go, string filePath)
 	{
+		// Apply global changes to the GameObject
 		go.SetLayerRecursively(8);
 		go.SetTagRecursively("Untagged");
 		go.tag = "Prefab";
-		go.SetStaticRecursively(true);
+		go.SetStaticRecursively(false);
 		go.RemoveNameUnderscore();
-		
-		// Handle MeshColliders
-		foreach (var item in go.GetComponentsInChildren<MeshCollider>())
+
+		// Cache components 
+		Span<Component> allComponents = go.GetComponentsInChildren<Component>(true).AsSpan();
+
+		// Attach prefab data holder with minimal initialization
+		var prefabDataHolder = go.AddComponent<PrefabDataHolder>();
+		prefabDataHolder.prefabData = new PrefabData { id = AssetManager.ToID(filePath) };
+
+		// Create LOD component list using direct references
+		List<LODComponent> lodComponents = new List<LODComponent>(allComponents.Length);
+
+		foreach (var component in allComponents)
 		{
-			if (item.sharedMesh != null)         {
-				item.sharedMesh.MarkDynamic();
-			}
-			
-				item.cookingOptions = MeshColliderCookingOptions.None;
-				item.enabled = true;
-				
-				item.isTrigger = false;
-				item.convex = true;
-			
-		}
-
-		// Handle Animators
-		foreach (var item in go.GetComponentsInChildren<Animator>())
-		{
-			if (item != null)        {
-				item.enabled = false;
-				item.runtimeAnimatorController = null;
-			}
-		}
-
-		// Handle Lights
-		foreach (var item in go.GetComponentsInChildren<Light>())    {
-			if (item != null)        {
-				item.enabled = true;
-			}
-		}
-
-		// Canvases
-		foreach (var item in go.GetComponentsInChildren<Canvas>())    {
-			if (item != null)        {
-				item.enabled = true;
-			}
-		}
-
-		// CanvasGroups
-		foreach (var item in go.GetComponentsInChildren<CanvasGroup>())    {
-			if (item != null)        {
-				item.enabled = true;
-			}
-		}
-
-		// ParticleSystems
-		foreach (var item in go.GetComponentsInChildren<ParticleSystem>())    {
-			if (item != null)
+			switch (component)
 			{
-				var emission = item.emission;
-				emission.enabled = false;
+				case MeshCollider meshCollider:
+					if (meshCollider.sharedMesh is { isReadable: true })
+					{
+						meshCollider.sharedMesh.MarkDynamic();
+						meshCollider.cookingOptions = MeshColliderCookingOptions.None;
+
+						try
+						{
+							meshCollider.convex = true;
+							meshCollider.enabled = true;
+						}
+						catch
+						{
+							meshCollider.enabled = false;
+						}
+					}
+					else
+					{
+						meshCollider.enabled = false;
+					}
+					meshCollider.isTrigger = false;
+					break;
+
+				case Animator animator:
+					animator.enabled = false;
+					animator.runtimeAnimatorController = null;
+					break;
+
+				case Light light:
+					light.enabled = false;
+					break;
+
+				case Canvas canvas:
+					canvas.enabled = true;
+					break;
+
+				case CanvasGroup canvasGroup:
+					canvasGroup.enabled = true;
+					break;
+
+				case ParticleSystem particleSystem:
+					var emission = particleSystem.emission;
+					emission.enabled = false;
+					break;
+
+				case LODComponent lodComponent:
+					lodComponents.Add(lodComponent);
+					break;
 			}
 		}
 
-		// Add PrefabDataHolder
-			PrefabDataHolder prefabDataHolder = go.AddComponent<PrefabDataHolder>();
-			prefabDataHolder.prefabData = new PrefabData() { id = AssetManager.ToID(filePath) };
-		
-
+		// Add LODs in bulk
+		prefabDataHolder.AddLODs(lodComponents);
 		go.SetActive(false);
 		return go;
 	}
 
-	
+		
 
-    /// <summary>Spawns a prefab, updates the PrefabData and parents to the selected transform.</summary>
-    public static void Spawn(GameObject go, PrefabData prefabData, Transform parent)
-    {
-        GameObject newObj = GameObject.Instantiate(go, parent);
-        newObj.transform.localPosition = new Vector3(prefabData.position.x, prefabData.position.y, prefabData.position.z);
-        newObj.transform.rotation = Quaternion.Euler(new Vector3(prefabData.rotation.x, prefabData.rotation.y, prefabData.rotation.z));
-        newObj.transform.localScale = new Vector3(prefabData.scale.x, prefabData.scale.y, prefabData.scale.z);
-        newObj.name = go.name;
-        newObj.GetComponent<PrefabDataHolder>().prefabData = prefabData;
-        newObj.SetActive(true);
-    }
+	
+	public static void Spawn(GameObject go, PrefabData prefabData, Transform parent)
+	{
+		GameObject newObj = GameObject.Instantiate(go, parent);
+		
+		// Set local position from prefab data
+		newObj.transform.localPosition = new Vector3(prefabData.position.x, prefabData.position.y, prefabData.position.z);
+		
+		// Set local rotation from prefab data, using Euler angles
+		newObj.transform.localRotation = Quaternion.Euler(prefabData.rotation.x, prefabData.rotation.y, prefabData.rotation.z);
+		
+		// Set local scale from prefab data
+		newObj.transform.localScale = new Vector3(prefabData.scale.x, prefabData.scale.y, prefabData.scale.z);
+		
+		// Update the object name
+		newObj.name = go.name;
+		
+		// Use TryGetComponent to attempt to get the PrefabDataHolder component
+		if (newObj.TryGetComponent(out PrefabDataHolder holder))
+		{
+			holder.prefabData = prefabData;
+		}
+		else
+		{
+		}
+
+		// Activate the GameObject
+		newObj.SetActive(true);      
+	}
 	
 	public static void SpawnCustoms(GameObject go, PrefabData prefabData, Transform parent)
 	{
@@ -679,6 +707,27 @@ public static class PrefabManager
 		return colliderScales;
 	}
 	
+	public static int GetFragmentStyle(BreakingData breakingData)
+	{
+		//stop scrap tarp gears trash
+		if (breakingData.ignore)
+		{
+			return 4;
+		}
+		else if (breakingData.prefabData.id == 0)
+		{
+			return 2;
+		}
+		else if((breakingData.colliderScales.box != Vector3.zero) || (breakingData.colliderScales.sphere != Vector3.zero) || (breakingData.colliderScales.capsule != Vector3.zero))
+		{
+			return 3;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	
 	public static Texture2D GetIcon(BreakingData breakingData, IconTextures icons)
 	{
 		//stop scrap tarp gears trash
@@ -707,7 +756,7 @@ public static class PrefabManager
 		Vector3 scale = new Vector3();
 		scale = item.lossyScale;
 		
-		prefab.category = "";
+		prefab.category = monumentName;
 		
 		prefab.position = item.position;
 		prefab.rotation = item.eulerAngles;
@@ -912,55 +961,59 @@ public static class PrefabManager
     {
 		Transform prefabsParent;
 		if (parent == null){
-			prefabsParent = GameObject.FindGameObjectWithTag("Prefabs").transform;
+			prefabsParent = PrefabParent;
 		}
 		else { prefabsParent = parent; }
 		
 		GameObject defaultObj = Load(id);
 		PrefabData newPrefab = new PrefabData();
 		defaultObj.SetActive(true);
-		var prefab = new PrefabData();
-
-		prefab.category = category;
-		prefab.id = id;
-		prefab.position = position;
-		prefab.rotation = rotation;
-		prefab.scale = scale;
+		
+		PrefabData prefab = new PrefabData
+		{
+			category = category,            
+			id = id,                        
+			position = new VectorData(position.x, position.y, position.z), 
+			rotation = new VectorData(rotation.x, rotation.y, rotation.z), 
+			scale = new VectorData(scale.x, scale.y, scale.z)             
+		};
+		
 		SpawnPrefab(defaultObj, prefab, prefabsParent);
     }
 	
 	public static void createPrefab(string category, uint id, Transform transItem)
     {
-		Transform prefabsParent = GameObject.FindGameObjectWithTag("Prefabs").transform;
 		GameObject defaultObj = Load(id);
 		PrefabData newPrefab = new PrefabData();
 		defaultObj.SetActive(true);
-		var prefab = new PrefabData();
-
-		prefab.category = category;
-		prefab.id = id;
-		prefab.position = prefabPosition(transItem.position);
 		
-		prefab.rotation = transItem.eulerAngles;
-		prefab.scale = transItem.lossyScale;
-		SpawnPrefab(defaultObj, prefab, prefabsParent);
+		PrefabData prefab = new PrefabData(
+			category, 
+			id, 
+			transItem.position, 
+			Quaternion.Euler(transItem.eulerAngles), 
+			transItem.lossyScale
+		);
+		
+		SpawnPrefab(defaultObj, prefab, PrefabParent);
     }
 	
 	public static void createPrefab(string category, uint id, Transform transItem, Vector3 position, Vector3 rotation)
     {
-		Transform prefabsParent = GameObject.FindGameObjectWithTag("Prefabs").transform;
 		GameObject defaultObj = Load(id);
 		PrefabData newPrefab = new PrefabData();
 		defaultObj.SetActive(true);
-		var prefab = new PrefabData();
 
-		prefab.category = category;
-		prefab.id = id;
-		prefab.position = position;
+		PrefabData prefab = new PrefabData
+		{
+			category = category,            
+			id = id,                        
+			position = new VectorData(position.x, position.y, position.z), 
+			rotation = new VectorData(rotation.x, rotation.y, rotation.z), 
+			scale = transItem.lossyScale          
+		};
 		
-		prefab.rotation = rotation;
-		prefab.scale = transItem.lossyScale;
-		SpawnPrefab(defaultObj, prefab, prefabsParent);
+		SpawnPrefab(defaultObj, prefab, PrefabParent);
     }
 	
 
@@ -2132,26 +2185,23 @@ public static class PrefabManager
 	{
 		public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID)
 		{
-			var sw = new System.Diagnostics.Stopwatch();
-			sw.Start();
+			LoadScreen.Instance.Show();
 
-			for (int i = 0; i < prefabs.Length; i++)
+			int length = prefabs.Length;
+			string prefabName;
+			
+			for (int i = 0; i < length; i++)
 			{
-				if (sw.Elapsed.TotalSeconds > 4f)
-				{
-					yield return null;
-					#if UNITY_EDITOR
-					Progress.Report(progressID, (float)i / prefabs.Length, "Spawning Prefabs: " + i + " / " + prefabs.Length);
-					#endif
-					sw.Restart();
-				}
 				Spawn(Load(prefabs[i].id), prefabs[i], PrefabParent);
+				prefabName = AssetManager.ToName(prefabs[i].id);
+				LoadScreen.Instance.SetMessage($"Prefab {i + 1} of {length}");
+				LoadScreen.Instance.Progress((1f*i)/(1f*length));
+				yield return null;
 			}
+			
+			LoadScreen.Instance.Hide();
 
-			#if UNITY_EDITOR
-			Progress.Report(progressID, 0.99f, "Spawned " + prefabs.Length + " prefabs.");
-			Progress.Finish(progressID, Progress.Status.Succeeded);
-			#endif
+
 		}
 
 		public static IEnumerator DeletePrefabs(PrefabDataHolder[] prefabs, int progressID = 0)
@@ -2252,29 +2302,37 @@ public static class PrefabManager
 			IsChangingPrefabs = false;
 		}
 
-		public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID, Transform parent)
+		public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID, Transform prefabParent)
 		{
-			var sw = new System.Diagnostics.Stopwatch();
-			sw.Start();
-
-			for (int i = 0; i < prefabs.Length; i++)
+			// Check if LoadScreen is initialized
+			if (LoadScreen.Instance == null)
 			{
-				if (sw.Elapsed.TotalSeconds > 4f)
-				{
-					yield return null;
-					#if UNITY_EDITOR
-					Progress.Report(progressID, (float)i / prefabs.Length, "Spawning Prefabs: " + i + " / " + prefabs.Length);
-					#endif
-					sw.Restart();
-				}
+				Debug.LogError("LoadScreen instance is not available.");
+				yield break;
+			}
+			
+			int length = prefabs.Length;
+			string prefabName;
+			int index;
 
-				SpawnCustoms(Load(prefabs[i].id), prefabs[i], parent);
+			LoadScreen.Instance.Show();
+			List<Task> tasks = new List<Task>(length);
+			
+
+			for (int i = 0; i < length; i++)
+			{
+				index = i;
+				tasks.Add(Task.Run(() => 
+				{
+					GameObject prefab = Load(prefabs[index].id);
+					Spawn(prefab, prefabs[index], prefabParent);
+				}));
+				
+				LoadScreen.Instance.SetMessage($"Prefab {index + 1} of {length}");
+				LoadScreen.Instance.Progress((float)(index + 1) / length);
 			}
 
-			#if UNITY_EDITOR
-			Progress.Report(progressID, 0.99f, "Spawned " + prefabs.Length + " prefabs.");
-			Progress.Finish(progressID, Progress.Status.Succeeded);
-			#endif
+			LoadScreen.Instance.Hide();
 		}
 
 		public static IEnumerator SpawnCircuits(CircuitData[] circuitData, int progressID = 0)

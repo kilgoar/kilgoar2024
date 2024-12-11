@@ -18,6 +18,7 @@ TagManager:
   - Collection
   - raytestTemplate
   - loading
+  - EmptyLOD
   layers:
   - Default
   - TransparentFX

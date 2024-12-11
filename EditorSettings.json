@@ -8,28 +8,28 @@
     "style": true,
     "application": {
         "rustDirectory": "E:/Program Files (x86)/Steam/steamapps/common/Rust",
-        "prefabRenderDistance": 3376.0,
+        "prefabRenderDistance": 2296.0,
         "pathRenderDistance": 5000.0,
         "waterTransparency": 0.2511078417301178,
         "loadbundleonlaunch": true,
         "terrainTextureSet": true,
         "newSize": 1000,
-        "newHeight": 0.5096011757850647,
+        "newHeight": 0.4172820746898651,
         "newBiome": 2,
         "newSplat": 16,
         "recentFiles": [
-            "F:\\Marsv12v1.0.7terrain.map",
-            "F:\\NOS4000.map",
+            "F:\\newfolder3\\anasazi3k.v1.map",
+            "F:\\newfolder3\\greece.3000.monuments.v2.map",
             "F:\\Marspolygons.map",
+            "F:\\NOS4000.map",
+            "F:\\Marspolygons.map.map",
+            "F:\\newfolder3\\highrisemonuments4.map",
             "F:\\Marsv10v1.0.8cliffsores.map",
-            "F:\\NOS_4000_tUB23E4Mok-DIlYYWhUyig.map",
-            "F:\\Marsv17-2500v1.0.6emptyprefabs.map",
-            "F:\\Marsv9v1.1.2terrainonly.map",
-            "F:\\all of the old desktop\\anasazi3k.v20.map",
-            "F:\\blanket.map",
+            "F:\\newfolder3\\uqbar3000.v9.map",
+            "F:\\newfolder3\\Nymark.3000.v1.map",
+            "F:\\newfolder3\\cobaltcity.v4.map",
             "F:\\newfolder3\\3kwangen2.map",
-            "F:\\newfolder3\\3kwangen1.map",
-            "F:\\blank.map"
+            "F:\\Marsv12v1.0.7terrain.map"
         ]
     },
     "crazing": {
@@ -105,6 +105,18 @@
                 "custom": false,
                 "prefabID": 1309014915,
                 "emphasis": 1
+            },
+            {
+                "customPrefab": "",
+                "custom": false,
+                "prefabID": 2038914978,
+                "emphasis": 1
+            },
+            {
+                "customPrefab": "",
+                "custom": false,
+                "prefabID": 2038914978,
+                "emphasis": 1
             }
         ],
         "geologyCollisions": [
@@ -125,9 +137,9 @@
             "layer": 256
         },
         "filename": "Presets/Geology/mars overhang rocks.json",
-        "title": "pythagoras fields",
+        "title": "china cliffs",
         "density": 132,
-        "frequency": 42,
+        "frequency": 11,
         "floor": 505,
         "ceiling": 1000,
         "biomeIndex": 0,
@@ -186,12 +198,12 @@
             "z": 0.0
         },
         "jitterLow": {
-            "x": -10.0,
+            "x": -1.226227879524231,
             "y": 0.018377304077148439,
             "z": 0.18308639526367188
         },
         "jitterHigh": {
-            "x": 10.0,
+            "x": 2.730393409729004,
             "y": 0.13235688209533692,
             "z": 0.19362688064575196
         },

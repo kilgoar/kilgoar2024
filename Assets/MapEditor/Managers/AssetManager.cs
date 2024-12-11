@@ -138,7 +138,7 @@ public static class AssetManager
 	public static Dictionary<string, uint> PrefabLookup { get; private set; } = new Dictionary<string, uint>();
 	
 	public static Dictionary<string, AssetBundle> BundleCache { get; private set; } = new Dictionary<string, AssetBundle>(System.StringComparer.OrdinalIgnoreCase);
-	
+	private static Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
 	public static Dictionary<string, UnityEngine.Object> AssetCache { get; private set; } = new Dictionary<string, UnityEngine.Object>();
 	public static Dictionary<string, GameObject> VolumesCache { get; private set; } = new Dictionary<string, GameObject>();
 	public static Dictionary<string, Texture2D> PreviewCache { get; private set; } = new Dictionary<string, Texture2D>();
@@ -696,7 +696,7 @@ public static class AssetManager
 			#else	
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(LoadBundles(bundlesRoot, (0, 0, 0)));
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetBundleReferences((0, 0)));
-			yield return CoroutineManager.Instance.StartRuntimeCoroutine(PopulateMaterialLookup());
+			//yield return CoroutineManager.Instance.StartRuntimeCoroutine(PopulateMaterialLookup());
 			//yield return CoroutineManager.Instance.StartRuntimeCoroutine(LoadShaderCache());  
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetMaterials(0));			
 			#endif
@@ -732,10 +732,10 @@ public static class AssetManager
 							
 						}
 					}
-					
+					yield return null;
 				}
 				
-				yield return null;
+				
 		}
 		
     public static IEnumerator LoadShaderCache()
@@ -764,9 +764,10 @@ public static class AssetManager
                     Debug.LogWarning($"Error loading shader from path: {path}. Exception: {e.Message}");
                 }
             }
+			yield return null;
         }
         
-        yield return null;
+        
     }
 
 
@@ -869,6 +870,7 @@ public static class AssetManager
                     }
                     BundleCache.Add(bundles[i], asset.assetBundle);
                 }
+				yield return null;
 			}
 			rootBundle.Unload(true);
 		}
@@ -898,6 +900,8 @@ public static class AssetManager
 						sw.Restart();
 					}
 				}
+				yield return null;
+
 			}
 			
 			#if UNITY_EDITOR
@@ -953,7 +957,6 @@ public static class AssetManager
 							
 						}
 					}
-					
 					if (ToID(Manifest.pooledStrings[i].str) != 0)
 						AssetPaths.Add(Manifest.pooledStrings[i].str);
 				}
@@ -970,95 +973,115 @@ public static class AssetManager
 			}
 		}
 
-		public static IEnumerator SetMaterials(int materialID)
+	public static IEnumerator SetMaterials(int materialID)
+	{
+		bool performance = false; // Set to true for file-based material loading
+		int count = 0;
+
+		Shader standardShader = Shader.Find("Standard");
+		Shader specularShader = Shader.Find("Standard (Specular setup)");
+
+		Dictionary<Shader, List<Material>> shaderGroups = new Dictionary<Shader, List<Material>>();
+
+		// File-based Material Processing
+		if (File.Exists(MaterialsListPath) && performance)
 		{
-
-			bool performance = false;
-			int count=0;
-			
-			if (File.Exists(MaterialsListPath) && performance)
+			string[] materials = File.ReadAllLines(MaterialsListPath);
+			for (int i = 0; i < materials.Length; i++)
 			{
-				Shader std = Shader.Find("Standard");
-				Shader spc = Shader.Find("Standard (Specular setup)");
-				string[] materials = File.ReadAllLines(MaterialsListPath);
-				for (int i = 0; i < materials.Length; i++)
+				var lineSplit = materials[i].Split(':');
+				lineSplit[0] = lineSplit[0].Trim(); // Shader Name
+				lineSplit[1] = lineSplit[1].Trim(); // Material Path
+
+	#if UNITY_EDITOR
+				Progress.Report(materialID, (float)i / materials.Length, "Processing: " + lineSplit[1]);
+	#endif
+
+				Material mat = LoadAsset<Material>(lineSplit[1]); // Uses AssetCache automatically
+				if (mat == null)
 				{
-					var lineSplit = materials[i].Split(':');
-					lineSplit[0] = lineSplit[0].Trim(' '); // Shader Name
-					lineSplit[1] = lineSplit[1].Trim(' '); // Material Path
-					#if UNITY_EDITOR
-					Progress.Report(materialID, (float)i / materials.Length, "Setting: " + lineSplit[1]);
-					#endif
-					switch (lineSplit[0])
-					{
-						case "Standard":
-							Material matStd = LoadAsset<Material>(lineSplit[1]);
-							if (matStd == null)
-                            {
-								Debug.LogWarning(lineSplit[1] + " is not a valid asset.");
-								break;
-                            }
-							#if UNITY_EDITOR
-							EditorCoroutineUtility.StartCoroutineOwnerless(UpdateShader(matStd, std));
-							#else
-							CoroutineManager.Instance.StartRuntimeCoroutine(UpdateShader(matStd, std));	
-							#endif
-							break;
-
-						case "Specular":
-							Material matSpc= LoadAsset<Material>(lineSplit[1]);
-							if (matSpc == null)
-							{
-								Debug.LogWarning(lineSplit[1] + " is not a valid asset.");
-								break;
-							}
-							#if UNITY_EDITOR
-							EditorCoroutineUtility.StartCoroutineOwnerless(UpdateShader(matSpc, spc));
-							#else
-							CoroutineManager.Instance.StartRuntimeCoroutine(UpdateShader(matSpc, spc));
-							#endif
-							break;
-
-						case "Foliage":
-							Material mat = LoadAsset<Material>(lineSplit[1]);
-							if(mat == null)
-                            {
-								Debug.LogWarning(lineSplit[1] + " is not a valid asset.");
-								break;
-							}
-							mat.DisableKeyword("_TINTENABLED_ON");
-							break;
-
-						default:
-							Debug.LogWarning(lineSplit[0] + " is not a valid shader.");
-							break;
-					}
-					yield return null;
+					Debug.LogWarning($"{lineSplit[1]} is not a valid asset.");
+					continue;
 				}
-				#if UNITY_EDITOR
-				Progress.Report(materialID, 0.99f, "Set " + materials.Length + " materials.");
-				Progress.Finish(materialID, Progress.Status.Succeeded);
-				#endif
+
+				// Group materials by shader type
+				Shader targetShader = null;
+				switch (lineSplit[0])
+				{
+					case "Standard":
+						targetShader = standardShader;
+						break;
+					case "Specular":
+						targetShader = specularShader;
+						break;
+					case "Foliage":
+						mat.DisableKeyword("_TINTENABLED_ON");
+						break;
+					default:
+						Debug.LogWarning($"{lineSplit[0]} is not a valid shader.");
+						continue;
+				}
+
+				if (targetShader != null)
+				{
+					if (!shaderGroups.ContainsKey(targetShader))
+						shaderGroups[targetShader] = new List<Material>();
+
+					shaderGroups[targetShader].Add(mat);
+				}
+
+				yield return null;
 			}
-			
-			if (!performance)				{
-					
-					foreach (string path in MaterialLookup.Values)					{
-						Material material = LoadAsset<Material>(path);
+		}
+		else if (!performance) // Load from in-memory MaterialLookup
+		{
+			foreach (string path in MaterialLookup.Values)
+			{
+				Material mat = LoadAsset<Material>(path); // Uses AssetCache automatically
+				if (mat == null) continue;
 
-						if (material == null)	{
-							continue; 
-						}
+				Shader shader = mat.shader;
+				if (!shaderGroups.ContainsKey(shader))
+					shaderGroups[shader] = new List<Material>();
 
-						//yield return UpdateShader(material, material.shader);
-						
-					}
+				shaderGroups[shader].Add(mat);
+				yield return null;
+			}
+		}
+
+		// Update grouped materials
+		int batchSize = 10;
+		foreach (var group in shaderGroups)
+		{
+			Shader shader = group.Key;
+			List<Material> materials = group.Value;
+
+			for (int i = 0; i < materials.Count; i++)
+			{
+				Material mat = materials[i];
+
+				// Skip if the shader is already correct
+				if (mat.shader == shader)
+				{
+					continue;
 				}
 
-	
+				// Update the material with the correct shader
+				yield return UpdateShader(mat, shader);
 
-
+				// Yield after processing a batch of materials
+				if ((i + 1) % batchSize == 0)
+					yield return null;
+			}
 		}
+
+	#if UNITY_EDITOR
+		Progress.Report(materialID, 0.99f, "Materials processed.");
+		Progress.Finish(materialID, Progress.Status.Succeeded);
+	#endif
+	}
+
+
 
 		public static IEnumerator UpdateShader(Material mat, Shader shader)
 		{

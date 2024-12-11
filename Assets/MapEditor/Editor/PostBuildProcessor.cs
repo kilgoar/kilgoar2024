@@ -8,7 +8,13 @@ public class PostBuildProcessor
     public static void BuildGame()
     {
         string buildPath = "Builds/RustMapper.exe";
-        BuildPipeline.BuildPlayer(EditorBuildSettings.scenes, buildPath, BuildTarget.StandaloneWindows64, BuildOptions.Development);
+		
+		BuildPipeline.BuildPlayer(
+			EditorBuildSettings.scenes, 
+			buildPath, 
+			BuildTarget.StandaloneWindows64, 
+			BuildOptions.Development | BuildOptions.ConnectWithProfiler
+		);
 
         string appDataPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "RustMapper");
 		

@@ -42,6 +42,7 @@ public class AppManager : MonoBehaviour
         TerrainManager.RuntimeInit();
         PrefabManager.RuntimeInit();
         PathManager.RuntimeInit();
+		AreaManager.Initialize();
 
         if (SettingsManager.application.loadbundleonlaunch)
             AssetManager.RuntimeInit();

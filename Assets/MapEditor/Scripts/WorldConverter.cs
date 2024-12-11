@@ -57,7 +57,7 @@ public static class WorldConverter
         terrains.size = new Vector3(size, 1000, size);
 
         terrains.land.heights = SetValues(new float[terrains.terrainRes, terrains.terrainRes], landHeight / 1000f, new Area(0, terrains.terrainRes, 0, terrains.terrainRes));
-        terrains.water.heights = SetValues(new float[terrains.terrainRes, terrains.terrainRes], 500f / 1000f, new Area(0, terrains.terrainRes, 0, terrains.terrainRes));
+        terrains.water.heights = SetValues(new float[terrains.terrainRes, terrains.terrainRes], 0f / 1000f, new Area(0, terrains.terrainRes, 0, terrains.terrainRes));
 
         terrains.splatRes = splatRes;
         terrains.splatMap = new float[splatRes, splatRes, 8];
