@@ -33,12 +33,13 @@ public class DistanceFlareLOD : MonoBehaviour
 
     private void Initialize()
     {
-		/*
-        flareRenderer = GetComponent<Renderer>();
+		
+        flareRenderer = gameObject.GetComponent<Renderer>();
         if (flareRenderer == null)
         {
             return;
         }
+		/*
         lodData = new LODData(); // Example initialization
         currentIntensity = 1.0f;
         targetIntensity = currentIntensity;
@@ -46,9 +47,9 @@ public class DistanceFlareLOD : MonoBehaviour
         //environmentMode = LODEnvironmentMode.Full; // Default LOD environment mode
         isVisible = true; // Default to visible
 		
-		
-		flareRenderer.enabled = false;
 		*/
+			flareRenderer.enabled = false;
+		
     }
 
     protected void OnEnable()
@@ -95,30 +96,6 @@ public class DistanceFlareLOD : MonoBehaviour
             flareRenderer.enabled = false;
             StartFading();
         }
-    }
-
-    private void Update()
-    {/*
-        if (isFading)
-        {
-            float t = (Time.time - lastChangeTime) / fadeTime;
-            currentIntensity = Mathf.Lerp(currentIntensity, targetIntensity, t);
-            if (t >= 1.0f)
-            {
-                isFading = false;
-                currentIntensity = targetIntensity;
-            }
-
-            // Update material properties for fading effect
-            if (flareRenderer != null)
-            {
-                MaterialPropertyBlock block = new MaterialPropertyBlock();
-                flareRenderer.GetPropertyBlock(block);
-                block.SetFloat(Shader.PropertyToID("_Intensity"), currentIntensity);
-                block.SetColor(Shader.PropertyToID("_EmissionColor"), flareColor * currentIntensity);
-                flareRenderer.SetPropertyBlock(block);
-            }
-        }*/
     }
 
     public void RefreshLOD()

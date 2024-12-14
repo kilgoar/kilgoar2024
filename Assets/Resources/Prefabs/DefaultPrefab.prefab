@@ -62,6 +62,7 @@ MonoBehaviour:
       x: 0
       y: 0
       z: 0
+  lodComponents: []
 --- !u!33 &33650474865935736
 MeshFilter:
   m_ObjectHideFlags: 0

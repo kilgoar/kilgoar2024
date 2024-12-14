@@ -14,13 +14,10 @@ public class RendererLOD : LODComponent
     private bool isCollapsed = false;
     private bool hasInitialized = false;
 
-    private Renderer collapsedRenderer;
-    private MeshFilter collapsedFilter;
     private Material sharedMaterial; // Shared material for batching
 	
     private void Awake()
     {
-        InitializeSharedComponents();
     }
 
     private void Start() 
@@ -35,8 +32,8 @@ public class RendererLOD : LODComponent
         // Assign shared components to all States that lack their own
         for (int i = 0; i < States.Length; i++)
         {
-            if (States[i].renderer == null) States[i].renderer = collapsedRenderer;
-            if (States[i].meshFilter == null) States[i].meshFilter = collapsedFilter;
+            if (States[i].renderer == null) States[i].renderer = BatchManager.collapsedRenderer;
+            if (States[i].meshFilter == null) States[i].meshFilter = BatchManager.collapsedFilter;
         }
 
         hasInitialized = true;
@@ -51,15 +48,6 @@ public class RendererLOD : LODComponent
 				UpdateLOD(newLevel);
 			}
 		}
-	
-	private void InitializeSharedComponents()
-    {
-        if (collapsedRenderer == null)      // remove these get components
-        {
-            collapsedRenderer = BatchManager.collapsedRenderer;
-            collapsedFilter = BatchManager.collapsedFilter;
-        }
-    }
 	
 	private void ClearLODs()
     {

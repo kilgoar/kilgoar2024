@@ -28,13 +28,21 @@ public abstract class LODComponent : RenderableComponent
 
 		protected virtual int CalculateLODLevel(float distance)
 		{
-			if (States.Length == 0) return -1;  
+			if (States.Length == 0) return -1;  // No LOD states defined
 
+			// If distance is less than the first LOD's distance, return the first LOD
+			if (distance < States[0].distance)
+			{
+				return 0;  // Use the closest LOD
+			}
+
+			// If distance is greater than or equal to the last LOD's distance, return the last LOD
 			if (distance >= States[States.Length - 1].distance)
 			{
 				return States.Length - 1;  
 			}
 
+			// For all distances in between, find the appropriate LOD level
 			for (int i = 0; i < States.Length - 1; i++)
 			{
 				if (distance >= States[i].distance && distance < States[i + 1].distance)
@@ -43,7 +51,8 @@ public abstract class LODComponent : RenderableComponent
 				}
 			}
 
-			return -1; // This should not occur due to the previous checks
+			// This should not occur due to the previous checks, but we keep it for safety
+			return -1; 
 		}
 
 		protected virtual void UpdateLOD(int newLevel)

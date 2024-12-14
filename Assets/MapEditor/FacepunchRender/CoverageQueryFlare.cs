@@ -50,18 +50,19 @@ public class CoverageQueryFlare : MonoBehaviour
 
     private void Initialize()
     {
+		
+        flareRenderer = gameObject.GetComponent<Renderer>();
 		/*
-        flareRenderer = GetComponent<Renderer>();
         coverageRenderer = flareRenderer; // Assuming these are the same or closely related
         //occlusionQuery = new CoverageQueries.OcclusionQuery(); // Assuming CoverageQueries is defined elsewhere
         //environmentMode = LODEnvironmentMode.Full; // or whatever your default mode is
         hasInitialized = true;
         baseIntensity = 1.0f; // Default intensity value
 		
-		
-		flareRenderer.enabled = false;
-		coverageRenderer.enabled = false;
 		*/
+		flareRenderer.enabled = false;
+		//coverageRenderer.enabled = false;
+		
     }
 
     // Register for any updates required for dynamic behavior or LOD changes

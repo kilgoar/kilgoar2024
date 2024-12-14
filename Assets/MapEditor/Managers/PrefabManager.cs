@@ -105,10 +105,9 @@ public static class PrefabManager
 	public static NPCDataHolder[] CurrentMapNPCs { get => NPCsParent.gameObject.GetComponentsInChildren<NPCDataHolder>(); }
 	public static ModifierDataHolder CurrentModifiers { get => ModifiersParent.gameObject.GetComponentInChildren<ModifierDataHolder>(); }
 	
-
     /// <summary>List of prefab names from the asset bundle.</summary>
     private static List<string> Prefabs;
-
+	private static List<Collider> unprocessedColliders = new List<Collider>();
     /// <summary>Prefabs currently spawned on the map.</summary>
     public static PrefabDataHolder[] CurrentMapPrefabs { get => PrefabParent.gameObject.GetComponentsInChildren<PrefabDataHolder>(); }
 	public static PrefabDataHolder CurrentSelection { get; private set; }
@@ -264,108 +263,177 @@ public static class PrefabManager
 		go.tag = "Prefab";
 		go.SetStaticRecursively(false);
 		go.RemoveNameUnderscore();
+		
+		// Convert Span to Array
+		Component[] allComponents = go.GetComponentsInChildren<Component>(true);
 
-		// Cache components 
-		Span<Component> allComponents = go.GetComponentsInChildren<Component>(true).AsSpan();
-
-		// Attach prefab data holder with minimal initialization
+		// Attach prefab data holder
 		var prefabDataHolder = go.AddComponent<PrefabDataHolder>();
 		prefabDataHolder.prefabData = new PrefabData { id = AssetManager.ToID(filePath) };
 
-		// Create LOD component list using direct references
+		// Create LOD component list
 		List<LODComponent> lodComponents = new List<LODComponent>(allComponents.Length);
 
-		foreach (var component in allComponents)
+		for (int i = 0; i < allComponents.Length; i++)
 		{
-			switch (component)
+			var component = allComponents[i];
+			
+			if (component is Collider collider)
 			{
-				case MeshCollider meshCollider:
-					if (meshCollider.sharedMesh is { isReadable: true })
-					{
-						meshCollider.sharedMesh.MarkDynamic();
-						meshCollider.cookingOptions = MeshColliderCookingOptions.None;
-
-						try
-						{
-							meshCollider.convex = true;
-							meshCollider.enabled = true;
-						}
-						catch
-						{
-							meshCollider.enabled = false;
-						}
-					}
-					else
-					{
-						meshCollider.enabled = false;
-					}
-					meshCollider.isTrigger = false;
-					break;
-
-				case Animator animator:
-					animator.enabled = false;
-					animator.runtimeAnimatorController = null;
-					break;
-
-				case Light light:
-					light.enabled = false;
-					break;
-
-				case Canvas canvas:
-					canvas.enabled = true;
-					break;
-
-				case CanvasGroup canvasGroup:
-					canvasGroup.enabled = true;
-					break;
-
-				case ParticleSystem particleSystem:
-					var emission = particleSystem.emission;
-					emission.enabled = false;
-					break;
-
-				case LODComponent lodComponent:
-					lodComponents.Add(lodComponent);
-					break;
+				lock (unprocessedColliders)
+				{
+					unprocessedColliders.Add(collider);
+				}
+				//collider.enabled = false;
+				continue;
 			}
-		}
+			
+			if (component is Renderer renderer)
+			{
+				try
+				{
 
-		// Add LODs in bulk
-		prefabDataHolder.AddLODs(lodComponents);
+					if (renderer.sharedMaterials != null)
+					{
+						int fixedCount = 0;
+						Material[] materials = renderer.sharedMaterials;
+						for (int j = 0; j < materials.Length; j++)
+						{
+							Material mat = materials[j];
+							if (mat != null)
+							{
+								AssetManager.FixRenderMode(mat);
+								fixedCount++;
+							}
+						}
+						Debug.Log($"Fixed render mode for {fixedCount} materials on renderer {renderer.name}");
+						continue;
+					}
+							
+				}
+				catch (System.Exception e)
+				{
+					Debug.LogError($"Error{renderer.name}: {e.Message}");
+				}
+			}
+			
+			if (component is LODComponent lodComponent)
+			{
+				lock (lodComponents)
+				{
+					lodComponents.Add(lodComponent);
+				}
+				continue;
+			}
+			
+			if (component is Canvas canvas)
+			{
+				canvas.enabled = true;
+				continue;
+			}
+
+			if (component is CanvasGroup canvasGroup)
+			{
+				canvasGroup.enabled = true;
+				continue;
+			}
+
+			if (component is Animator animator)
+			{
+				animator.enabled = false;
+				animator.runtimeAnimatorController = null;
+				continue;
+			}
+
+			if (component is Light light)
+			{
+				light.enabled = false;
+				continue;
+			}
+
+			if (component is ParticleSystem particleSystem)
+			{
+				var emission = particleSystem.emission;
+				emission.enabled = false;
+				continue;
+			}
+
+
+		}
+		ActivateColliders();
+		prefabDataHolder.AddLODs(lodComponents);			
 		go.SetActive(false);
 		return go;
 	}
 
-		
+    public static void ActivateColliders()
+    {
+        foreach (var collider in unprocessedColliders)
+        {
+            if (collider is MeshCollider meshCollider)
+            {
+                if (meshCollider.sharedMesh is { isReadable: true })
+                {
+                    try
+                    {
+                        meshCollider.convex = true;
+                        meshCollider.enabled = true;
+                    }
+                    catch
+                    {
+                        meshCollider.enabled = false;
+                    }
+                }
+                else
+                {
+                    meshCollider.enabled = false;
+                }
+                meshCollider.isTrigger = false;
+            }
+            else
+            {
+                collider.enabled = true; // Enable non-MeshCollider colliders
+            }
+        }
+
+        // Clear the cache after activation
+        unprocessedColliders.Clear();
+    }
 
 	
 	public static void Spawn(GameObject go, PrefabData prefabData, Transform parent)
 	{
 		GameObject newObj = GameObject.Instantiate(go, parent);
-		
-		// Set local position from prefab data
-		newObj.transform.localPosition = new Vector3(prefabData.position.x, prefabData.position.y, prefabData.position.z);
-		
-		// Set local rotation from prefab data, using Euler angles
-		newObj.transform.localRotation = Quaternion.Euler(prefabData.rotation.x, prefabData.rotation.y, prefabData.rotation.z);
-		
-		// Set local scale from prefab data
-		newObj.transform.localScale = new Vector3(prefabData.scale.x, prefabData.scale.y, prefabData.scale.z);
-		
+
+		Transform transform = newObj.transform;
+
+		// Set all transform properties in one go to reduce calls
+		transform.SetLocalPositionAndRotation(
+			new Vector3(prefabData.position.x, prefabData.position.y, prefabData.position.z),
+			Quaternion.Euler(prefabData.rotation.x, prefabData.rotation.y, prefabData.rotation.z)
+		);
+
+		// Set local scale directly
+		transform.localScale = new Vector3(prefabData.scale.x, prefabData.scale.y, prefabData.scale.z);
+
 		// Update the object name
 		newObj.name = go.name;
-		
+
 		// Use TryGetComponent to attempt to get the PrefabDataHolder component
 		if (newObj.TryGetComponent(out PrefabDataHolder holder))
 		{
 			holder.prefabData = prefabData;
 		}
-		else
-		{
-		}
 
-		// Activate the GameObject
-		newObj.SetActive(true);      
+		// Activate the GameObject with error catching
+		try
+		{
+			newObj.SetActive(true);
+		}
+		catch (Exception e)
+		{
+			Debug.LogError($"Failed to activate {newObj.name}: {e.Message}");
+		}
 	}
 	
 	public static void SpawnCustoms(GameObject go, PrefabData prefabData, Transform parent)
@@ -2164,7 +2232,7 @@ public static class PrefabManager
 				}
             }
         }
-	
+	/*
 	public static void EnableColliders(PrefabDataHolder[] prefabs)
         {
             for (int i = 0; i < prefabs.Length; i++)
@@ -2180,6 +2248,9 @@ public static class PrefabManager
                 prefabs[i].DisableColliders();
             }
         }
+	*/
+	
+	
 	
 	private static class Coroutines
 	{
@@ -2331,10 +2402,10 @@ public static class PrefabManager
 				LoadScreen.Instance.SetMessage($"Prefab {index + 1} of {length}");
 				LoadScreen.Instance.Progress((float)(index + 1) / length);
 			}
-
+			
 			LoadScreen.Instance.Hide();
 		}
-
+		
 		public static IEnumerator SpawnCircuits(CircuitData[] circuitData, int progressID = 0)
 		{
 			var sw = new System.Diagnostics.Stopwatch();

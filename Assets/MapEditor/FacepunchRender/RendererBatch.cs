@@ -19,8 +19,8 @@ public class RendererBatch : MonoBehaviour
 
     void Awake()
     {
-        CollectRenderersAndFilters();
-		SetupForBatching();
+        //CollectRenderersAndFilters();
+		//SetupForBatching();
     }
 	
     private void CollectRenderersAndFilters()

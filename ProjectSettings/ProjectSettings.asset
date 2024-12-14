@@ -135,8 +135,7 @@ PlayerSettings:
     16:9: 1
     Others: 1
   bundleVersion: 0.5
-  preloadedAssets:
-  - {fileID: 11400000, guid: 244d81a98d7058048a97f302ecbffba0, type: 2}
+  preloadedAssets: []
   metroInputSource: 0
   wsaTransparentSwapchain: 0
   m_HolographicPauseOnTrackingLoss: 1
@@ -712,11 +711,11 @@ PlayerSettings:
   apiCompatibilityLevel: 6
   activeInputHandler: 1
   windowsGamepadBackendHint: 0
-  cloudProjectId: 
+  cloudProjectId: 614cfaed-195f-482c-a90b-eddb6b02e852
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: 
-  organizationId: 
+  projectName: rustmapper2023
+  organizationId: kilgoar
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   playerDataPath: 

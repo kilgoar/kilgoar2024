@@ -1,5 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
+using System.Threading.Tasks;
+
 using static TerrainManager;
 
 public static class AreaManager
@@ -73,6 +76,62 @@ public static class AreaManager
         return newSector;
     }
     
+	public static IEnumerator UpdateSectorsCoroutine(Vector3 position, float distance)
+	{
+		// Find sectors within the specified distance
+		List<Area> activeSectors = FindSectors(position, distance);
+
+		int sectorCount = activeSectors.Count;
+		int batchSize = Mathf.Max(1, sectorCount / System.Environment.ProcessorCount); // Divide work into manageable batches
+
+		// Process sectors in parallel using batches
+		for (int i = 0; i < sectorCount; i += batchSize)
+		{
+			int start = i;
+			int end = Mathf.Min(i + batchSize, sectorCount); // Calculate batch range
+
+			for (int j = start; j < end; j++)
+			{
+				Area sector = activeSectors[j];
+				if (prefabDataBySector.TryGetValue(sector, out List<PrefabDataHolder> prefabHolders))
+				{
+					// Use a list to collect items to remove
+					List<PrefabDataHolder> toRemove = new List<PrefabDataHolder>();
+
+					foreach (var holder in prefabHolders)
+					{
+						if (holder != null)
+						{
+							holder.Refresh();
+						}
+						else
+						{
+							toRemove.Add(holder); // Mark for removal
+						}
+					}
+
+					// Remove null entries from the list after processing
+					foreach (var holder in toRemove)
+					{
+						prefabHolders.Remove(holder);
+					}
+
+					// If the list becomes empty after removing nulls, consider removing the sector from the dictionary
+					if (prefabHolders.Count == 0)
+					{
+						prefabDataBySector.Remove(sector);
+					}
+				}
+			}
+			yield return null;
+		}
+	}
+
+    public static void UpdateSectors(Vector3 position, float distance)
+    {
+        CoroutineManager.Instance.StartRuntimeCoroutine(UpdateSectorsCoroutine(position, distance));
+    }
+	/*
 	public static void UpdateSectors(Vector3 position, float distance)
 	{
 		// Find sectors within the specified distance
@@ -91,7 +150,7 @@ public static class AreaManager
 			}
 		}
 	}
-	
+	*/
     public static List<Area> FindSectors(Vector3 position, float distance)
     {
         List<Area> result = new List<Area>();

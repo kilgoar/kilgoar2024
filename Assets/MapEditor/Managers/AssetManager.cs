@@ -220,19 +220,18 @@ public static class AssetManager
         if (AssetCache.ContainsKey(filePath))
             return AssetCache[filePath] as GameObject;
 
-		else
-		{
-            GameObject val = GetAsset<GameObject>(filePath);
-            if (val != null)
+
+        GameObject val = GetAsset<GameObject>(filePath);
+           if (val != null)
             {
 				PrefabManager.Setup(val, filePath);
 				AssetCache.Add(filePath, val);
-				PrefabManager.Callbacks.OnPrefabLoaded(val);
+				//PrefabManager.Callbacks.OnPrefabLoaded(val);
 				return val;
             }
             Debug.LogWarning("Prefab not loaded from bundle: " + filePath);
             return PrefabManager.DefaultPrefab;
-        }
+
     }
 	
 
@@ -662,6 +661,60 @@ public static class AssetManager
 		return "";
 	}	
 	
+	public static void LoadShaderCache()
+	{
+		/*
+		ShaderCache.Clear();
+		Debug.Log($"Shader cache cleared and ready for loading");
+		foreach (string path in BundleLookup.Keys)
+		{
+			if (path.EndsWith(".shader", StringComparison.Ordinal))
+			{
+				try
+				{    /////we need to attach a ton of materials and shaders to CoroutineManager.Instance game object so that they will be available now. disregard old code
+					Shader shader = LoadAsset<Shader>(path);
+					if (shader != null)
+					{
+						ShaderCache[shader.name] = shader;
+
+						// Attempt to compile the shader by creating a temporary material
+						Material tempMaterial = new Material(shader);
+						if (tempMaterial != null)
+						{
+							Renderer renderer = go.AddComponent<MeshRenderer>();
+							renderer.material = tempMaterial;
+
+							// Force a frame render to compile the shader
+							go.SetActive(false);
+							go.SetActive(true);
+
+							// Clean up
+							UnityEngine.Object.Destroy(go);
+							Debug.Log($"Shader compiled successfully: {shader.name}");
+						}
+						else
+						{
+							Debug.LogWarning($"Failed to create material for shader compilation: {shader.name}");
+						}
+					}
+					else
+					{
+						Debug.LogWarning($"Shader not found at path: {path}");
+					}
+				}
+				catch (System.Exception e)
+				{
+					Debug.LogWarning($"Error loading shader from path: {path}. Exception: {e.Message}");
+				}
+			}
+		}
+		*/
+	}
+	
+	public static void FixRenderMode(Material mat, Shader shader = null){
+		CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.UpdateShader(mat, shader));
+	}
+	
 	private static class Coroutines
     {
 		public static bool IsInitialising { get; private set; }
@@ -691,14 +744,17 @@ public static class AssetManager
 				yield break;
 			}
 			yield return EditorCoroutineUtility.StartCoroutineOwnerless(SetBundleReferences((progressID, bundleID)));
-			yield return EditorCoroutineUtility.StartCoroutineOwnerless(SetMaterials(materialID));
+			//LoadShaderCache();
+			//yield return EditorCoroutineUtility.StartCoroutineOwnerless(PopulateMaterialLookup());
+			//yield return EditorCoroutineUtility.StartCoroutineOwnerless(SetMaterials(materialID));
 			
 			#else	
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(LoadBundles(bundlesRoot, (0, 0, 0)));
 			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetBundleReferences((0, 0)));
+			
+			//a graveyard of do-nothing routines
 			//yield return CoroutineManager.Instance.StartRuntimeCoroutine(PopulateMaterialLookup());
-			//yield return CoroutineManager.Instance.StartRuntimeCoroutine(LoadShaderCache());  
-			yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetMaterials(0));			
+			//yield return CoroutineManager.Instance.StartRuntimeCoroutine(SetMaterials(0));			
 			#endif
 			
 
@@ -713,62 +769,45 @@ public static class AssetManager
 			#endif
 		}
 		
-		public static IEnumerator PopulateMaterialLookup()
+	public static IEnumerator PopulateMaterialLookup()
+	{
+		MaterialLookup.Clear();
+
+		foreach (string path in BundleLookup.Keys)
 		{
-			MaterialLookup.Clear();
-			string[] parse;
-			string name;
-				foreach (string path in BundleLookup.Keys)	{
-					if(path.EndsWith(".mat",StringComparison.Ordinal))
+			if (path != null && path.EndsWith(".mat", StringComparison.Ordinal))
+			{
+				string[] parse = path.Split('/');
+				
+				// Check if the array has elements before accessing the last one
+				if (parse.Length > 0)
+				{
+					string name = parse[parse.Length - 1];
+
+					try
 					{
-						parse = path.Split('/');
-						name = parse[parse.Length -1];
-						try
+						// Add to dictionary only if the name is not null or empty
+						if (!string.IsNullOrEmpty(name))
 						{
 							MaterialLookup.Add(name, path);
 						}
-						catch
-						{
-							
-						}
 					}
-					yield return null;
+					catch (ArgumentException) // Handle if the key already exists in the dictionary
+					{
+						Debug.LogWarning($"Material with name '{name}' already exists in MaterialLookup. Path: {path}");
+					}
+					catch (Exception e) // Log other exceptions for debugging
+					{
+						Debug.LogError($"Unexpected error adding material '{name}' to lookup: {e.Message}");
+					}
 				}
-				
-				
-		}
-		
-    public static IEnumerator LoadShaderCache()
-    {
-        ShaderCache.Clear();
-        
-        foreach (string path in BundleLookup.Keys)
-        {
-            if (path.EndsWith(".shader", StringComparison.Ordinal))
-            {
-                try
-                {
-                    Shader shader = LoadAsset<Shader>(path);
-                    if (shader != null)
-                    {
-                        ShaderCache[shader.name] = shader;
-						Debug.LogWarning(shader.name + " loaded from " + path);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"Shader not found at path: {path}");
-                    }
-                }
-                catch (System.Exception e)
-                {
-                    Debug.LogWarning($"Error loading shader from path: {path}. Exception: {e.Message}");
-                }
-            }
+			}
+
 			yield return null;
-        }
-        
-        
-    }
+		}
+	}
+		
+
 
 
 		public static IEnumerator Dispose() 
@@ -1047,6 +1086,7 @@ public static class AssetManager
 				shaderGroups[shader].Add(mat);
 				yield return null;
 			}
+			Debug.Log($"processed {MaterialLookup.Count} materials");
 		}
 
 		// Update grouped materials
@@ -1060,12 +1100,13 @@ public static class AssetManager
 			{
 				Material mat = materials[i];
 
+				/*
 				// Skip if the shader is already correct
 				if (mat.shader == shader)
 				{
 					continue;
 				}
-
+				*/
 				// Update the material with the correct shader
 				yield return UpdateShader(mat, shader);
 
@@ -1073,6 +1114,7 @@ public static class AssetManager
 				if ((i + 1) % batchSize == 0)
 					yield return null;
 			}
+			Debug.Log($"updated {materials.Count} shaders");
 		}
 
 	#if UNITY_EDITOR
@@ -1082,64 +1124,74 @@ public static class AssetManager
 	}
 
 
-
-		public static IEnumerator UpdateShader(Material mat, Shader shader)
+	//this makes sure the right (??) render modes are respected
+	public static IEnumerator UpdateShader(Material mat, Shader shader=null)
+	{
+		Shader standardShader = Shader.Find("Standard");
+		if (mat == null)
 		{
-			mat.shader = shader;
-			yield return null;
-			switch (mat.GetFloat("_Mode"))
-			{
-				case 0f:
-					mat.SetOverrideTag("RenderType", "");
-					mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
-					mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
-					mat.SetInt("_ZWrite", 1);
-					mat.DisableKeyword("_ALPHATEST_ON");
-					mat.DisableKeyword("_ALPHABLEND_ON");
-					mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-					SetKeyword(mat, "_NORMALMAP", mat.GetTexture("_BumpMap") || mat.GetTexture("_DetailNormalMap"));
-					if (mat.HasProperty("_SPECGLOSSMAP"))
-						SetKeyword(mat, "_SPECGLOSSMAP", mat.GetTexture("_SpecGlossMap"));
-					mat.renderQueue = -1;
-					break;
-
-				case 1f:
-					mat.SetOverrideTag("RenderType", "TransparentCutout");
-					mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
-					mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
-					mat.SetInt("_ZWrite", 1);
-					mat.EnableKeyword("_ALPHATEST_ON");
-					mat.DisableKeyword("_ALPHABLEND_ON");
-					mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-					mat.EnableKeyword("_NORMALMAP");
-					mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
-					break;
-
-				case 2f:
-					mat.SetOverrideTag("RenderType", "Transparent");
-					mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-					mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-					mat.SetInt("_ZWrite", 0);
-					mat.DisableKeyword("_ALPHATEST_ON");
-					mat.EnableKeyword("_ALPHABLEND_ON");
-					mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-					mat.EnableKeyword("_NORMALMAP");
-					mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-					break;
-
-				case 3f:
-					mat.SetOverrideTag("RenderType", "Transparent");
-					mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
-					mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-					mat.SetInt("_ZWrite", 0);
-					mat.DisableKeyword("_ALPHATEST_ON");
-					mat.DisableKeyword("_ALPHABLEND_ON");
-					mat.EnableKeyword("_ALPHAPREMULTIPLY_ON");
-					mat.EnableKeyword("_NORMALMAP");
-					mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-					break;
-			}
+			Debug.LogWarning("Material is null. Skipping update.");
+			yield break;
 		}
+		
+		if (shader == null){
+			shader = mat.shader;
+		}
+		else{
+			mat.shader = shader;
+		}
+		
+		float mode;
+
+		if (mat.HasProperty("_Mode"))
+		{
+			mode = mat.GetFloat("_Mode");
+		}
+		else
+		{
+			Debug.LogWarning($"Material {mat.name} does not have a '_Mode' property. Inferring from render queue.");
+			mode = mat.renderQueue <= 2500 ? 0f : (mat.renderQueue < 3000 ? 1f : 2f);
+		}
+		
+		switch (mode)
+		{
+			case 0f: // Opaque
+				mat.shader = standardShader;
+				mat.SetOverrideTag("RenderType", "");
+				mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+				mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+				mat.SetInt("_ZWrite", 1);
+				mat.DisableKeyword("_ALPHATEST_ON");
+				mat.DisableKeyword("_ALPHABLEND_ON");
+				mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+				break;
+
+			case 1f: // Cutout
+				mat.shader = standardShader;
+				mat.SetOverrideTag("RenderType", "TransparentCutout");
+				mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+				mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+				mat.SetInt("_ZWrite", 1);
+				mat.EnableKeyword("_ALPHATEST_ON");
+				break;
+
+			case 2f: // Transparent
+				mat.shader = standardShader;
+				mat.SetOverrideTag("RenderType", "Transparent");
+				mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+				mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+				mat.SetInt("_ZWrite", 0);
+				mat.DisableKeyword("_ALPHATEST_ON");
+				mat.EnableKeyword("_ALPHABLEND_ON");
+				break;
+
+			default:
+				Debug.LogWarning($"Unknown render mode {mode} for material {mat.name}.");
+				break;
+		}
+	
+		yield return null;
+	}
 
 		private static void SetKeyword(Material mat, string keyword, bool state)
 		{

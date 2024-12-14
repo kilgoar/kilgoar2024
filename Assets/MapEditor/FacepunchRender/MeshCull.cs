@@ -4,69 +4,44 @@ using System.Collections.Generic;
 
 public class MeshCull : LODComponent
 {
-    public class CullState : LODState
-    {
-        public float cullDistance;
-        public bool isCulled;
-    }
-
     // Public Fields
-    public float CullDistance = 100f; // Distance at which to cull the mesh
+	private float cullDistance=25f; // Distance at which to cull the mesh
+    private Renderer renderer;
 
-    // Private Fields
-    private List<CullState> cullStates = new List<CullState>();
-
-    protected override void Awake()
-    {
-        base.Awake();
-        InitializeCullStates();
+ 
+	protected override void Awake()
+	{
+		if (!gameObject.TryGetComponent(out renderer))
+		{
+			Debug.LogWarning($"No Renderer component found on {gameObject.name}. Disabling MeshCull component.");
+			this.enabled = false; // Disable this script if no renderer is found
+		}
+	}
 		
-    }
-
-    protected void InitializeCullStates()
-    {
-        // Assuming there's only one LOD state for the entire object
-        var state = new CullState
-        {
-            meshFilter = GetComponent<MeshFilter>(),
-            renderer = GetComponent<Renderer>(),
-            cullDistance = CullDistance,
-            isCulled = false
-        };
-        cullStates.Add(state);
-    }
+	protected override void Start() {
+		HideObject();
+	}
 
 
     protected override void CheckLOD(float distanceToCamera)
     {
-		if (cullStates!=null){
-			
-        if (cullStates.Count == 0) return; // No states defined
-        bool shouldBeCulled = distanceToCamera > cullStates[0].cullDistance;
-
-			if (shouldBeCulled != cullStates[0].isCulled)        {
-				if (shouldBeCulled)
-				{
-					CullObject();
-				}
-				else
-				{
-					UnCullObject();
-				}
+		if (renderer!=null){
+			if (distanceToCamera > cullDistance)	{
+				HideObject();
+				return;
 			}
+				ShowObject();				
 		}
     }
 
-    private void CullObject()
+    private void HideObject()
     {
-        cullStates[0].Hide();
-        cullStates[0].isCulled = true;
+        renderer.enabled = false;
     }
 
-    private void UnCullObject()
+    private void ShowObject()
     {
-        cullStates[0].Show(); 
-        cullStates[0].isCulled = false;
+		renderer.enabled = true;
     }
 
     // Override this if you need to implement custom LOD behavior alongside culling

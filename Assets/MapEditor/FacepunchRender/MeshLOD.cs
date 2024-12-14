@@ -37,7 +37,7 @@ public class MeshLOD : LODComponent
             sharedMaterial = meshRenderer.sharedMaterial;
         }
 
-        RefreshLOD(); // Ensure initial LOD is set
+        //RefreshLOD(); // Ensure initial LOD is set
     }
 
     protected override void UpdateLOD(int newLevel)

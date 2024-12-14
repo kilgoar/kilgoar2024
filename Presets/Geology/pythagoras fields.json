@@ -1,27 +1,69 @@
 {
     "geologyItems": [
         {
-            "customPrefab": "",
-            "custom": false,
-            "prefabID": 3464059523,
+            "customPrefab": "Custom/polygons/cube",
+            "custom": true,
+            "prefabID": 0,
             "emphasis": 1
         },
         {
-            "customPrefab": "",
-            "custom": false,
-            "prefabID": 835824009,
+            "customPrefab": "Custom/polygons/parkourCube",
+            "custom": true,
+            "prefabID": 0,
             "emphasis": 1
         },
         {
-            "customPrefab": "",
-            "custom": false,
-            "prefabID": 3043824457,
+            "customPrefab": "Custom/polygons/parkourdodecahedron",
+            "custom": true,
+            "prefabID": 0,
             "emphasis": 1
         },
         {
-            "customPrefab": "",
-            "custom": false,
-            "prefabID": 1309014915,
+            "customPrefab": "Custom/polygons/parkourOctahedron",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons/parkourOctahedronMetal",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons/parkourTetrahedron",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons/parkourTruncIcosa",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons/parkourTwig",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons/tetrahedron",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons/twigdoubletetrahedron",
+            "custom": true,
+            "prefabID": 0,
+            "emphasis": 1
+        },
+        {
+            "customPrefab": "Custom/polygons/woodDodecahedron",
+            "custom": true,
+            "prefabID": 0,
             "emphasis": 1
         }
     ],
@@ -45,7 +87,7 @@
     "filename": "Presets/Geology/mars overhang rocks.json",
     "title": "pythagoras fields",
     "density": 132,
-    "frequency": 42,
+    "frequency": 339,
     "floor": 505,
     "ceiling": 1000,
     "biomeIndex": 0,
@@ -73,7 +115,7 @@
     "dither": false,
     "useSeed": false,
     "slopeRange": true,
-    "curveRange": false,
+    "curveRange": true,
     "heightRange": true,
     "featureMenu": true,
     "rotationMenu": true,
@@ -120,12 +162,12 @@
     "slopeLow": 26.410537719726564,
     "slopeHigh": 147.50717163085938,
     "heights": {
-        "slopeLow": 49.599220275878909,
-        "slopeHigh": 180.0,
-        "heightMin": 0.0,
+        "slopeLow": 1.1734871864318848,
+        "slopeHigh": 26.338247299194337,
+        "heightMin": 0.49077197909355166,
         "heightMax": 1.0,
         "curveMin": -1.0839223861694337,
-        "curveMax": -0.42713236808776858,
+        "curveMax": 0.12875008583068849,
         "slopeWeight": 1.0,
         "curveWeight": 1.0
     },

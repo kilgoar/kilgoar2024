@@ -86,6 +86,7 @@ public class PrefabDataHolder : MonoBehaviour
         prefabData.scale = transform.localScale;
     }
 
+/*
     public void EnableColliders()
     {
         Collider[] colliders = GetComponentsInChildren<Collider>(true);
@@ -99,7 +100,7 @@ public class PrefabDataHolder : MonoBehaviour
         foreach (var collider in colliders)
             collider.enabled = false;
     }
-
+*/
     public void AlwaysBreakPrefabs()
     {
         prefabData.position = gameObject.transform.position - PrefabManager.PrefabParent.position;
