@@ -185,13 +185,13 @@ public static class SettingsManager
 					nodeMap[fullPath] = currentNode;
 
 					if (i == 0)					{						
-						tree.rootNode.nodes.Add(currentNode);
+						tree.rootNode.nodes.AddWithoutNotify(currentNode);
 					}
 					else					{
 						string parentPath = string.Join("/", parts, 0, i);
 						if (nodeMap.TryGetValue(parentPath, out Node parentNode))
 						{
-							parentNode.nodes.Add(currentNode);
+							parentNode.nodes.AddWithoutNotify(currentNode);
 							currentNode.parentNode = parentNode;
 						}
 					}
@@ -200,6 +200,7 @@ public static class SettingsManager
 				}
 			}
 		}
+		tree.Reload();
 	}
 
 	private static void PopulateNodeMap(Node node, Dictionary<string, Node> nodeMap, string parentPath)
@@ -250,14 +251,14 @@ public static class SettingsManager
 							if (i == 0)
 							{
 								// Add children of "~Geology" directly to the tree root
-								tree.rootNode.nodes.Add(currentNode);
+								tree.rootNode.nodes.AddWithoutNotify(currentNode);
 							}
 							else
 							{
 								string parentPath = string.Join("/", parts, 0, i);
 								if (nodeMap.TryGetValue(parentPath, out Node parentNode))
 								{
-									parentNode.nodes.Add(currentNode);
+									parentNode.nodes.AddWithoutNotify(currentNode);
 									currentNode.parentNode = parentNode;
 								}
 							}
@@ -268,6 +269,7 @@ public static class SettingsManager
 				}
 			}
 		}
+		tree.Reload();
 	}
 	
 

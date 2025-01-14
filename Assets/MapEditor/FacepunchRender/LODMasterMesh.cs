@@ -49,7 +49,7 @@ public class LODMasterMesh : LODComponent
     protected override int CalculateLODLevel(float distance)
     {
 
-        if (distance *.7f < Distance)
+        if (distance < Distance)
         {
             return 0;
         }

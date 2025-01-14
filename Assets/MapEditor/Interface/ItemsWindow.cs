@@ -18,26 +18,74 @@ public class ItemsWindow : MonoBehaviour
 	private List<Node> matchingNodes = new List<Node>();
 	private static ItemsWindow _instance;
 	
-    void Start()   {		
-		tree.onNodeCheckedChanged.AddListener(OnChecked);		
-        query.onEndEdit.AddListener(OnQueryEntered);
-		query.onValueChanged.AddListener(OnQuery);
-		tree.onSelectionChanged.AddListener(OnSelect);
-		deleteChecked.onClick.AddListener(DeleteCheckedNodes);
-		checkAll.onClick.AddListener(CheckNodes);
-		uncheckAll.onClick.AddListener(UncheckNodes);
-		tree.onNodeDblClick.AddListener(FocusItem);
-    }
+
 	
-    private void Awake()    {        
-		if (_instance != null && _instance != this)        {
-            Destroy(gameObject);
-        }
-        else    {
-            _instance = this;
-            DontDestroyOnLoad(gameObject); 
+	private void Awake()
+	{
+		// Ensure the instance is initialized early
+		if (_instance != null)
+		{
+			Debug.LogError("Destroying items window for some bullshit ass reason");
+			Destroy(gameObject);
+			return;
+		}
+		
+		_instance = this; // Initialize the static instance
+		DontDestroyOnLoad(gameObject);
+
+		// Populate the list and initialize components
+		//PopulateList();
+		InitializeComponents();
+	}
+
+    public static ItemsWindow Instance
+    {
+        get
+        {
+            // If the instance doesn't exist, find it in the scene
+            if (_instance == null)
+            {
+                _instance = FindObjectOfType<ItemsWindow>();
+                
+                // If no instance exists in the scene, create a new GameObject and attach the ItemsWindow
+                if (_instance == null)
+                {
+                    GameObject singletonObject = new GameObject("ItemsWindow");
+                    _instance = singletonObject.AddComponent<ItemsWindow>();
+					Debug.LogError("Replacing items window for some bullshit");
+                }
+            }
+            return _instance;
         }
     }
+
+	private void InitializeComponents()
+	{
+		// Ensure components are initialized
+		if (tree == null) tree = GetComponentInChildren<UIRecycleTree>();
+		if (query == null) query = GetComponentInChildren<InputField>();
+		if (deleteChecked == null) deleteChecked = GetComponentInChildren<Button>();
+		if (checkAll == null) checkAll = GetComponentInChildren<Button>();
+		if (uncheckAll == null) uncheckAll = GetComponentInChildren<Button>();
+
+		// Add listeners if components are valid
+		if (tree != null)
+		{
+			tree.onNodeCheckedChanged.AddListener(OnChecked);
+			tree.onSelectionChanged.AddListener(OnSelect);
+			tree.onNodeDblClick.AddListener(FocusItem);
+		}
+
+		if (query != null)
+		{
+			query.onEndEdit.AddListener(OnQueryEntered);
+			query.onValueChanged.AddListener(OnQuery);
+		}
+
+		if (deleteChecked != null) deleteChecked.onClick.AddListener(DeleteCheckedNodes);
+		if (checkAll != null) checkAll.onClick.AddListener(CheckNodes);
+		if (uncheckAll != null) uncheckAll.onClick.AddListener(UncheckNodes);
+	}
 	
 	void OnEnable()	{
 		PopulateList();
@@ -71,27 +119,10 @@ public class ItemsWindow : MonoBehaviour
 		}
 	}
 
-
-
-    public static ItemsWindow Instance
-    {
-        get
-        {
-            // If the instance doesn't exist, find it in the scene
-            if (_instance == null)
-            {
-                _instance = FindObjectOfType<ItemsWindow>();
-                
-                // If no instance exists in the scene, create a new GameObject and attach the ItemsWindow
-                if (_instance == null)
-                {
-                    GameObject singletonObject = new GameObject("ItemsWindow");
-                    _instance = singletonObject.AddComponent<ItemsWindow>();
-                }
-            }
-            return _instance;
-        }
-    }
+	public void FocusList(Node node)
+	{
+		tree.FocusOn(node);
+	}
 	
 	public void PopulateList()
 	{
@@ -151,13 +182,13 @@ public class ItemsWindow : MonoBehaviour
 	
 	private void OnSelect(Node selection)
 	{
-				if (selection.TryCastData<PrefabDataHolder>(out PrefabDataHolder prefab))				{
-					PrefabManager.SetSelection(prefab);
+				if (selection.TryCastData<PrefabDataHolder>(out PrefabDataHolder holder))				{
+					CameraManager.Instance.SelectPrefab(holder);
 					return;
 				}
 				
 				if (selection.TryCastData<Transform>(out Transform collection))				{
-					PrefabManager.SetSelection(collection);
+					//PrefabManager.SetSelection(collection);
 				}
 	}
 	
@@ -165,19 +196,27 @@ public class ItemsWindow : MonoBehaviour
 	{
 		if (!string.IsNullOrEmpty(query))
 		{
+			Debug.LogError("okay...");
 			matchingNodes = FindNodesByPartRecursive(tree.rootNode, query);
-			
+			Debug.LogError("death");
 			if (matchingNodes.Count > 0)        {
 				Node firstMatch = matchingNodes[0];
 				firstMatch.isSelected = true;
 				tree.FocusOn(firstMatch);
 			}
+			Debug.LogError("gettin here");
 			return;
 		}
+		Debug.LogError("what's wrong here?1 ");
 		matchingNodes = FindNodesByPartRecursive(tree.rootNode, "");
+		Debug.LogError("guessin gthis is it");
 	}
 	
-	private void UncheckNodes(){
+	public void UncheckAll(){
+		ToggleNodes(false);
+	}
+
+	public void UncheckNodes(){
 		OnQuery(query.text);
 		ToggleNodes(false);
 	}
@@ -188,11 +227,13 @@ public class ItemsWindow : MonoBehaviour
 	}
 	
 	private void ToggleNodes(bool isChecked)	{
-		
-		foreach (Node node in matchingNodes)		{
-			node.SetCheckedWithoutNotify(isChecked);
+		if (tree != null){
+			
+			foreach (Node node in matchingNodes)		{
+				node.SetCheckedWithoutNotify(isChecked);
+			}
+			tree.Rebuild();
 		}
-		tree.Rebuild();
 	}
 
 	private void DeleteCheckedNodes()

@@ -91,8 +91,8 @@ namespace RustMapEditor.UI
         {
             List<PathHierarchyElement> pathHierachyElements = new List<PathHierarchyElement>();
             pathHierachyElements.Add(new PathHierarchyElement("", -1, -1));
-            if (PathManager.DefaultPath == null)
-                return pathHierachyElements;
+            //if (PathManager.DefaultPath == null)
+            //    return pathHierachyElements;
 
             var paths = PathManager.CurrentMapPaths;
             for (int i = 0; i < paths.Length; i++)

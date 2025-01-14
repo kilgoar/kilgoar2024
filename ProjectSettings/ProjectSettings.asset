@@ -600,7 +600,7 @@ PlayerSettings:
     Lumin: CT_FB
     Nintendo Switch: CT_FB
     PS4: CT_FB
-    Standalone: CT_FB
+    Standalone: CT_FB;EASYROADS3D_PRO
     WebGL: CT_FB
     Windows Store Apps: CT_FB
     XboxOne: CT_FB

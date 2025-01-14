@@ -28,6 +28,21 @@ public static class TopologyData
         });
         return splatMap;
     }
+	
+	public static bool[,] GetTopologyBitmap(int layer)
+	{
+		TerrainMap<int> topology = GetTerrainMap();
+		bool[,] bitMap = new bool[topology.res, topology.res];
+		Parallel.For(0, topology.res, i =>
+		{
+			for (int j = 0; j < topology.res; j++)
+			{
+				if ((topology[i, j] & layer) != 0)
+					bitMap[i, j] = true;
+			}
+		});
+		return bitMap;
+	}
 
     /// <summary>Converts all the Topology Layer arrays back into a single byte array.</summary>
     public static void SaveTopologyLayers()

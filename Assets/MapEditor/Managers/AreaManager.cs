@@ -82,8 +82,9 @@ public static class AreaManager
 		List<Area> activeSectors = FindSectors(position, distance);
 
 		int sectorCount = activeSectors.Count;
-		int batchSize = Mathf.Max(1, sectorCount / System.Environment.ProcessorCount); // Divide work into manageable batches
-
+		int batchSize = 2; // Divide work into manageable batches
+		List<PrefabDataHolder> toRemove = new List<PrefabDataHolder>();
+		
 		// Process sectors in parallel using batches
 		for (int i = 0; i < sectorCount; i += batchSize)
 		{
@@ -93,10 +94,13 @@ public static class AreaManager
 			for (int j = start; j < end; j++)
 			{
 				Area sector = activeSectors[j];
+				
+				toRemove.Clear();
+				
 				if (prefabDataBySector.TryGetValue(sector, out List<PrefabDataHolder> prefabHolders))
 				{
 					// Use a list to collect items to remove
-					List<PrefabDataHolder> toRemove = new List<PrefabDataHolder>();
+
 
 					foreach (var holder in prefabHolders)
 					{
@@ -123,8 +127,8 @@ public static class AreaManager
 					}
 				}
 			}
-			yield return null;
 		}
+		yield return null;
 	}
 
     public static void UpdateSectors(Vector3 position, float distance)
@@ -151,24 +155,28 @@ public static class AreaManager
 		}
 	}
 	*/
-    public static List<Area> FindSectors(Vector3 position, float distance)
-    {
-        List<Area> result = new List<Area>();
 
-        foreach (Area sector in sectors)
-        {
-            // Calculate 2D distance between the given position and sector's centerpoint
-            float dist = Vector2.Distance(new Vector2(position.x, position.z), 
-                                           new Vector2(sector.centerpoint.x, sector.centerpoint.z));
-            
-            if (dist <= distance)
-            {
-                result.Add(sector);
-            }
-        }
+	public static List<Area> FindSectors(Vector3 position, float distance)
+	{
+		List<Area> result = new List<Area>();
 
-        return result;
-    }
+
+
+		foreach (Area sector in sectors)
+		{
+			// Skip sectors beyond the distance threshold
+			float dist = Vector2.Distance(new Vector2(position.x, position.z),
+										   new Vector2(sector.centerpoint.x, sector.centerpoint.z));
+			if (dist > distance) continue;
+
+
+
+				result.Add(sector);
+
+		}
+		return result;
+	}
+
 
     public static void AddPrefabToSector(Area sector, PrefabDataHolder prefabDataHolder)
     {

@@ -38,7 +38,7 @@ public class TogglePanels : MonoBehaviour
 		}
 
 		if (tabToggles.Count > 0)    {
-			tabToggles[5].isOn = true; 
+			tabToggles[5].SetIsOnWithoutNotify(true);
 			tabPanels[5].SetActive(true);
 		}
 	}

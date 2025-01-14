@@ -1,0 +1,231 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: New Material
+  m_Shader: {fileID: 4800000, guid: 663c5869691e3624391cd8cd28896134, type: 3}
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _ALPHAPREMULTIPLY_ON
+  - _MATERIALTYPE_STANDARD
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _AnisotropyMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BiomeLayer_TintMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailOcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailSpecGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _LightMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParticleLayer_AlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParticleLayer_MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParticleLayer_NormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParticleLayer_SpecGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SpecGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SubsurfaceMaskMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TangentMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TerrainHolesTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TransmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TransmissionMaskMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _WetnessLayer_Mask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _ATDistance: 1
+    - _AlphaDither: 0
+    - _AlphaUVSec: 0
+    - _Anisotropy: 0
+    - _ApplyVertexAlpha: 0
+    - _ApplyVertexAlphaStrength: 1
+    - _ApplyVertexColor: 0
+    - _ApplyVertexColorStrength: 1
+    - _BiomeLayer: 0
+    - _BiomeLayer_TintSplatIndex: 0
+    - _BumpScale: 1
+    - _ColorMask: 15
+    - _Cull: 2
+    - _Cutoff: 0.5
+    - _DecalLayerMask: 1
+    - _DetailBlendFlags: -1
+    - _DetailBlendType: 0
+    - _DetailLayer: 0
+    - _DetailNormalMapScale: 1
+    - _DetailOcclusionStrength: 1
+    - _DetailOverlayMetallic: 0
+    - _DetailOverlaySmoothness: 0
+    - _DetailOverlaySpecular: 0
+    - _DoubleSided: 0
+    - _DstBlend: 10
+    - _EmissionFresnel: 0
+    - _EmissionFresnelInvert: 0
+    - _EmissionFresnelPower: 1
+    - _EmissionUVSec: 0
+    - _EnergyConservingSpecularColor: 1
+    - _EnvReflHorizonFade: 0
+    - _EnvReflOcclusionStrength: 0
+    - _GlossMapScale: 1
+    - _Glossiness: 0.588
+    - _GlossyReflections: 1
+    - _Ior: 1.5
+    - _MaterialType: 0
+    - _Metallic: 0
+    - _Mode: 3
+    - _OcclusionStrength: 1
+    - _OcclusionUVSet: 0
+    - _OffsetEmissionOnly: 0
+    - _Parallax: 0.02
+    - _ParticleLayer: 0
+    - _ParticleLayer_BlendFactor: 0.2
+    - _ParticleLayer_BlendFalloff: 4.5
+    - _ParticleLayer_Glossiness: 0.5
+    - _ParticleLayer_MapTiling: 0.02
+    - _ParticleLayer_Metallic: 0
+    - _ParticleLayer_NormalScale: 1
+    - _ParticleLayer_Thickness: 0.2
+    - _Refraction: 0
+    - _ShadowBiasScale: 1
+    - _Shininess: 0.301
+    - _ShoreWetnessLayer: 0
+    - _ShoreWetnessLayer_BlendFactor: 2
+    - _ShoreWetnessLayer_BlendFalloff: 2
+    - _ShoreWetnessLayer_Range: 5
+    - _ShoreWetnessLayer_WetAlbedoScale: 0.8
+    - _ShoreWetnessLayer_WetSmoothness: 0.85
+    - _SmoothnessTextureChannel: 0
+    - _SpecularHighlights: 1
+    - _SrcBlend: 1
+    - _Stencil: 0
+    - _StencilComp: 8
+    - _StencilOp: 0
+    - _StencilReadMask: 255
+    - _StencilWriteMask: 255
+    - _SubsurfaceProfile: 0
+    - _SubsurfaceScale: 1
+    - _Thickness: 1
+    - _TransmissionMode: 1
+    - _TransmissionScale: 1
+    - _UVSec: 0
+    - _UseUIAlphaClip: 0
+    - _WetnessLayer: 0
+    - _WetnessLayer_WetAlbedoScale: 0.7
+    - _WetnessLayer_WetSmoothness: 0.7
+    - _WetnessLayer_Wetness: 1
+    - _Wind: 0
+    - _WindAmplitude1: 2
+    - _WindAmplitude2: 5
+    - _WindFrequency: 0.33
+    - _WindNoiseScale: 1
+    - _WindNormalOffset: 0
+    - _WindPhase: 1
+    - _ZWrite: 0
+    m_Colors:
+    - _Color: {r: 0.4039215, g: 0.6666667, b: 0.79215693, a: 0.5254902}
+    - _DetailAlbedoMapScroll: {r: 0, g: 0, b: 0, a: 0}
+    - _DetailColor: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _MainTexScroll: {r: 0, g: 0, b: 0, a: 0}
+    - _ParticleLayer_AlbedoColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ParticleLayer_SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _ParticleLayer_WorldDirection: {r: 0, g: 1, b: 0, a: 0}
+    - _SpecColor: {r: 1, g: 1, b: 1, a: 0.6117647}
+    - _Specular: {r: 0, g: 0, b: 0, a: 0}
+    - _TransmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _TransmittanceColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []

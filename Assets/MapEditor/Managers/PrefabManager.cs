@@ -68,7 +68,7 @@ public static class PrefabManager
                 AssetManager.Initialise(SettingsManager.RustDirectory + SettingsManager.BundlePathExt);
         }
 		
-		TransformToolManager.ToggleTransformTool(false);
+		//TransformToolManager.ToggleTransformTool(false);
 	}
 	
     public static class Callbacks
@@ -110,12 +110,13 @@ public static class PrefabManager
 	private static List<Collider> unprocessedColliders = new List<Collider>();
     /// <summary>Prefabs currently spawned on the map.</summary>
     public static PrefabDataHolder[] CurrentMapPrefabs { get => PrefabParent.gameObject.GetComponentsInChildren<PrefabDataHolder>(); }
-	public static PrefabDataHolder CurrentSelection { get; private set; }
-	public static Transform CollectionSelection { get; private set; }
+	
+	//public static PrefabDataHolder CurrentSelection { get; private set; }
+	//public static Transform CollectionSelection { get; private set; }
 
     public static Dictionary<string, Transform> PrefabCategories = new Dictionary<string, Transform>();
 
-
+	/*
 	public static void SetSelection(){
 		CollectionSelection = null;
 		CurrentSelection = null;
@@ -205,7 +206,7 @@ public static class PrefabManager
 		if (target == null || source == null) return;
 		target.localPosition = source.localPosition;
 	}
-
+	*/
 	
     public static bool IsChangingPrefabs { get; private set; }
 
@@ -306,7 +307,7 @@ public static class PrefabManager
 								fixedCount++;
 							}
 						}
-						Debug.Log($"Fixed render mode for {fixedCount} materials on renderer {renderer.name}");
+						//Debug.Log($"Fixed render mode for {fixedCount} materials on renderer {renderer.name}");
 						continue;
 					}
 							
@@ -317,8 +318,7 @@ public static class PrefabManager
 				}
 			}
 			
-			if (component is LODComponent lodComponent)
-			{
+			if (component is LODComponent lodComponent)			{
 				lock (lodComponents)
 				{
 					lodComponents.Add(lodComponent);
@@ -2256,6 +2256,9 @@ public static class PrefabManager
 	{
 		public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID)
 		{
+			if(prefabs.Length == 0)	{
+				yield break;
+			}
 			LoadScreen.Instance.Show();
 
 			int length = prefabs.Length;

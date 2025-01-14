@@ -19,6 +19,7 @@ TagManager:
   - raytestTemplate
   - loading
   - EmptyLOD
+  - EasyRoads
   layers:
   - Default
   - TransparentFX

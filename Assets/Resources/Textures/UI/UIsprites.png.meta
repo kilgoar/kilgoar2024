@@ -1224,8 +1224,8 @@ TextureImporter:
       name: rustmapperLogo
       rect:
         serializedVersion: 2
-        x: 476
-        y: 422
+        x: 441
+        y: 60
         width: 706
         height: 126
       alignment: 0
@@ -1355,7 +1355,7 @@ TextureImporter:
         width: 547
         height: 60
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 12, y: 12, z: 11, w: 12}
       outline: []
       physicsShape: []
@@ -1363,6 +1363,90 @@ TextureImporter:
       bones: []
       spriteID: e81bf4c2650310b498e0596cf3666265
       internalID: 1805204458
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: painter white
+      rect:
+        serializedVersion: 2
+        x: 721
+        y: 699
+        width: 41
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1a4868ce762a92a42b6f82390b05077b
+      internalID: -97966464
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sculptor white
+      rect:
+        serializedVersion: 2
+        x: 664
+        y: 698
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 63d5e5e7cc978534d88ba8b800769948
+      internalID: 317084699
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sculptor green
+      rect:
+        serializedVersion: 2
+        x: 839
+        y: 704
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8fa68dd1d2303124bbc651bc182c440f
+      internalID: -1125439997
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: painter green
+      rect:
+        serializedVersion: 2
+        x: 896
+        y: 705
+        width: 41
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 222b0c700ba42f244aef8b0ada347350
+      internalID: -1578229693
       vertices: []
       indices: 
       edges: []
@@ -1420,6 +1504,8 @@ TextureImporter:
       less than: 2010630619
       map icon new: -260897487
       mapicon: -451219018
+      painter green: -1578229693
+      painter white: -97966464
       plus sign blue: -981460359
       prefabList: -1071875092
       prefabListGreen: 1569333959
@@ -1427,6 +1513,8 @@ TextureImporter:
       rotateTool: -981425257
       rustmapperLogo: 448811353
       scrap: -838840593
+      sculptor green: -1125439997
+      sculptor white: 317084699
       selectedTab: -152325550
       sliderInactive: 1029772902
       stop: 754184350

@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using RustMapEditor.Variables;
 using UnityEngine.EventSystems;
 using UIRecycleTreeNamespace;
+using RTG;
 
 public class CameraManager : MonoBehaviour
 {
@@ -35,9 +36,18 @@ public class CameraManager : MonoBehaviour
 	private float currentTime;
 	private float lastUpdateTime = 0f;
 	private float updateFrequency = .1f;
+	
+	private ObjectTransformGizmo _objectMoveGizmo;
+    private ObjectTransformGizmo _objectRotationGizmo;
+    private ObjectTransformGizmo _objectScaleGizmo;
+    private ObjectTransformGizmo _objectUniversalGizmo;
+	
+	private List<GameObject> _selectedObjects = new List<GameObject>();
+	
+	private GizmoId _workGizmoId;
+	private ObjectTransformGizmo _workGizmo;
 
     FilePreset settings;
-	
 	
 	public static CameraManager Instance { get; private set; }
 
@@ -58,6 +68,39 @@ public class CameraManager : MonoBehaviour
     {
         Configure();
 		MapManager.Callbacks.MapLoaded += OnMapLoaded;
+		InitializeGizmos();
+    }
+	
+	private void InitializeGizmos()
+    {
+        // Create gizmos
+        _objectMoveGizmo = RTGizmosEngine.Get.CreateObjectMoveGizmo();
+        _objectRotationGizmo = RTGizmosEngine.Get.CreateObjectRotationGizmo();
+        _objectScaleGizmo = RTGizmosEngine.Get.CreateObjectScaleGizmo();
+        _objectUniversalGizmo = RTGizmosEngine.Get.CreateObjectUniversalGizmo();
+
+        // Disable gizmos by default
+        _objectMoveGizmo.Gizmo.SetEnabled(false);
+        _objectRotationGizmo.Gizmo.SetEnabled(false);
+        _objectScaleGizmo.Gizmo.SetEnabled(false);
+        _objectUniversalGizmo.Gizmo.SetEnabled(false);
+
+        // Set target objects for gizmos
+        _objectMoveGizmo.SetTargetObjects(_selectedObjects);
+        _objectRotationGizmo.SetTargetObjects(_selectedObjects);
+        _objectScaleGizmo.SetTargetObjects(_selectedObjects);
+        _objectUniversalGizmo.SetTargetObjects(_selectedObjects);
+
+        // Default to Move gizmo for selection
+        _workGizmo = _objectMoveGizmo;
+        _workGizmoId = GizmoId.Move;
+    }
+
+    private enum GizmoId    {
+            Move = 1,
+            Rotate,
+            Scale,
+            Universal
     }
 
 	public void SetCamera(Vector3 targetPosition)
@@ -90,6 +133,7 @@ public class CameraManager : MonoBehaviour
 	public void SetRenderLimit(){
 		settings = SettingsManager.application;   
 		cam.farClipPlane = settings.prefabRenderDistance;
+		camTransform.farClipPlane = settings.prefabRenderDistance;
 	}
 	
 	public void Configure()
@@ -109,7 +153,8 @@ public class CameraManager : MonoBehaviour
 			Debug.LogError("SettingsManager.application is null. Ensure it is properly initialized.");
 			return; 
 		}
-
+		
+		//cam.depthTextureMode = DepthTextureMode.Depth;
 		cam.farClipPlane = settings.prefabRenderDistance;	
 		key = Keyboard.current;
 		mouse = Mouse.current;
@@ -120,10 +165,23 @@ public class CameraManager : MonoBehaviour
     void Update()
     {
         if (cam == null) return;
+		
 		if (LoadScreen.Instance.isEnabled){
 			return;
 		}
 		
+        if (Keyboard.current.yKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Move);
+        else if (Keyboard.current.eKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Rotate);
+        else if (Keyboard.current.rKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Scale);
+        else if (Keyboard.current.tKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Universal);
+
+		/*
+        // Handle selection
+        if (Mouse.current.leftButton.wasPressedThisFrame && RTGizmosEngine.Get.HoveredGizmo == null)
+        {
+            SelectPrefab();
+        }
+		*/
 		//right click down (rotate cam)
 		if (mouse.rightButton.isPressed) {
 				mouseMovement = mouse.delta;
@@ -137,73 +195,8 @@ public class CameraManager : MonoBehaviour
 				Quaternion dutchlessTilt = Quaternion.Euler(pitch, yaw, 0f);
 				cam.transform.rotation = dutchlessTilt;
 			}
-
-			if (mouse.leftButton.isPressed)			{
-				Vector2 mouseDelta = mouse.delta.ReadValue();
-				Vector3 moveDirection = Vector3.zero;
-
-				if (dragZarrow)				{
-					Vector3 camViewOnX = Vector3.ProjectOnPlane(cam.transform.right, Vector3.up).normalized;
-					float moveAmountX = mouseDelta.x * 0.4f;
-
-					if (!(Vector3.Dot(cam.transform.forward, Vector3.Cross(Vector3.up, Vector3.right)) < 0))
-						moveAmountX = -moveAmountX;
-
-					moveDirection = Vector3.right * moveAmountX;
-					sync = true;
-				}
-
-				if (dragYarrow)				{
-					float moveAmountY = mouseDelta.y * 0.4f;
-
-					if (!(Vector3.Dot(cam.transform.forward, Vector3.up) < 0))
-						moveAmountY = -moveAmountY;
-
-					moveDirection = Vector3.up * moveAmountY;
-					sync = true;
-				}
-
-				if (dragXarrow)				{
-					Vector3 camViewOnZ = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
-					float moveAmountZ = mouseDelta.x * 0.4f;
-
-					if (!(Vector3.Dot(cam.transform.forward, Vector3.Cross(Vector3.up, Vector3.forward)) < 0))
-						moveAmountZ = -moveAmountZ;
-
-					moveDirection = Vector3.forward * moveAmountZ;
-					sync = true;
-				}
-
-				transformTool.transform.position += moveDirection;
-
-				if (sync)
-				{
-					PrefabManager.SyncSelection(transformTool.transform);
-					sync = false;
-				}
-			}
-
-		if (!EventSystem.current.IsPointerOverGameObject()) {
-			
-
-			if (mouse.leftButton.wasPressedThisFrame) {
-				DragTransform();
-			}
-			
-			if (mouse.leftButton.wasReleasedThisFrame) {
-				if (dragXarrow || dragYarrow || dragZarrow){
-					dragXarrow = false;
-					dragYarrow = false;
-					dragZarrow = false;
-				}
-				else
-				{
-					SelectPrefab();
-				}
-			}
-
-		}
 		
+
         sprint = key.shiftKey.isPressed ? 3f : 1f;
 
         float currentSpeed = movementSpeed * sprint * Time.deltaTime;
@@ -249,64 +242,125 @@ public class CameraManager : MonoBehaviour
 		}
     }
 	
-	void SelectPrefab()
+	public void SelectPrefab(PrefabDataHolder holder){
+		GameObject go = holder.gameObject;
+		_selectedObjects.Add(go);
+		UpdateGizmoState();
+	}
+	
+	public void SelectPrefab()
 	{
 		Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
 		RaycastHit hit;
 
 		if (Physics.Raycast(ray, out hit, Mathf.Infinity))
 		{
-			Transform hitTransform = hit.transform;
-			Debug.LogError(hitTransform.tag);
-			
-			while (hitTransform.CompareTag("Untagged")){
-				hitTransform = hitTransform.parent;
-			}
-			
-			if (hitTransform.CompareTag("Prefab"))
+			GameObject hitObject = hit.transform.gameObject;
+			while (hitObject != null && !hitObject.CompareTag("Prefab"))
 			{
-				PrefabDataHolder dataHolder = hitTransform.GetComponent<PrefabDataHolder>();
-				Transform collectionParent = null;
-				Transform current = hitTransform;
+				hitObject = hitObject.transform.parent?.gameObject;
+			}
 
-				while (current.parent != null)
+			if (hitObject != null && hitObject.CompareTag("Prefab"))
+			{
+				PrefabDataHolder dataHolder = hitObject.GetComponent<PrefabDataHolder>();
+				Node node = itemTree.FindFirstNodeByDataRecursive(dataHolder);
+				
+				if (Keyboard.current.leftShiftKey.isPressed)
 				{
-					current = current.parent;
+					if (_selectedObjects.Contains(hitObject)) _selectedObjects.Remove(hitObject);
+					else _selectedObjects.Add(hitObject);
+					node.isChecked = true;					
 					
-					if (current.CompareTag("Collection"))
-					{
-						collectionParent = current;
-						break;
-					}
-				}
-
-				if (collectionParent != null)
-				{
-					Node selection = itemTree.rootNode.FindNodeByDataRecursive(collectionParent);
-					if (selection != null)
-					{
-						selection.isSelected = true;
-						itemTree.FocusOn(selection);
-					}
-					PrefabManager.SetSelection(collectionParent);
+					ItemsWindow.Instance.enabled = true;
+					ItemsWindow.Instance.FocusList(node);
 				}
 				else
 				{
-					Node selection = itemTree.rootNode.FindNodeByDataRecursive(dataHolder);
-					if (selection != null)
-					{
-						selection.isSelected = true;
-						itemTree.FocusOn(selection);
-					}
-					PrefabManager.SetSelection(dataHolder);
+					_selectedObjects.Clear();
+					_selectedObjects.Add(hitObject);
+					node.isChecked = true; 
+					
+					
+					ItemsWindow.Instance.enabled = true;
+					ItemsWindow.Instance.FocusList(node);
 				}
+				
+				UpdateGizmoState();
 				return;
 			}
 		}
-
-		PrefabManager.SetSelection();
+		ItemsWindow.Instance.UncheckAll();
+		_selectedObjects.Clear();
+		UpdateGizmoState();
 	}
+
 	
+	private void SetWorkGizmoId(GizmoId gizmoId)
+    {
+        if (gizmoId == _workGizmoId) return;
+
+        // Disable all gizmos first
+        _objectMoveGizmo.Gizmo.SetEnabled(false);
+        _objectRotationGizmo.Gizmo.SetEnabled(false);
+        _objectScaleGizmo.Gizmo.SetEnabled(false);
+        _objectUniversalGizmo.Gizmo.SetEnabled(false);
+
+        // Set the new work gizmo
+        _workGizmoId = gizmoId;
+        switch(gizmoId)
+        {
+            case GizmoId.Move:
+                _workGizmo = _objectMoveGizmo;
+                break;
+            case GizmoId.Rotate:
+                _workGizmo = _objectRotationGizmo;
+                break;
+            case GizmoId.Scale:
+                _workGizmo = _objectScaleGizmo;
+                break;
+            case GizmoId.Universal:
+                _workGizmo = _objectUniversalGizmo;
+                break;
+        }
+
+        // Enable the work gizmo if there are selected objects
+        if (_selectedObjects.Count > 0)
+        {
+            _workGizmo.Gizmo.SetEnabled(true);
+            _workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
+            _workGizmo.RefreshPositionAndRotation();
+        }
+    }
+
+    public void UpdateGizmoState(List<GameObject> selection)
+    {
+		_selectedObjects = selection;
+        if (_selectedObjects.Count > 0)
+        {
+            _workGizmo.Gizmo.SetEnabled(true);
+            _workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
+            _workGizmo.RefreshPositionAndRotation();
+        }
+        else
+        {
+            _workGizmo.Gizmo.SetEnabled(false);
+        }
+    }	
+	
+    public void UpdateGizmoState()
+    {
+        if (_selectedObjects.Count > 0)
+        {
+            _workGizmo.Gizmo.SetEnabled(true);
+            _workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
+            _workGizmo.RefreshPositionAndRotation();
+        }
+        else
+        {
+            _workGizmo.Gizmo.SetEnabled(false);
+        }
+    }
 	
 	void DragTransform()
 	{
@@ -336,7 +390,7 @@ public class CameraManager : MonoBehaviour
 	}
 	
 	void OnMapLoaded(string mapName=""){
-		CenterCamera();
+		//CenterCamera();
 	}
 	
 	public void CenterCamera()

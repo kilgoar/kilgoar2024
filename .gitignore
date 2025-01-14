@@ -9,6 +9,10 @@ Library/*
 /Logs/
 /Builds/
 /Assets/UIRecycleTree/
+/Assets/EasyRoads3D/
+/Assets/EasyRoads3D scenes/
+/Assets/Runtime Transform Gizmos/
+/Assets/Live Terrain Editor/
 *.log
 *.info
 *.log

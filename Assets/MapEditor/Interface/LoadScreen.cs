@@ -51,7 +51,7 @@ public class LoadScreen : MonoBehaviour
     {
 		Application.targetFrameRate = -1;
         StartCoroutine(RotateLoadingScreen());
-		
+		Application.runInBackground = true;
         // Disable the camera instance
         if (CameraManager.Instance != null)
         {
@@ -62,6 +62,7 @@ public class LoadScreen : MonoBehaviour
 
     private void OnDisable()
     {
+		Application.runInBackground = false;
         StopAllCoroutines();
 
         // Enable the camera instance
@@ -78,7 +79,7 @@ public class LoadScreen : MonoBehaviour
         // Reset progress bar and message for a fresh start
         gameObject.SetActive(true);
         Progress(0);
-        SetMessage("Loading Map");
+        SetMessage("Loading Asset Bundles");
         isEnabled = true;
     }
     
@@ -93,7 +94,7 @@ public class LoadScreen : MonoBehaviour
     {
         while (true)        
         {
-            transform.Rotate(0, 0, -25 * Time.deltaTime);
+            transform.Rotate(0, 0, -20 * Time.deltaTime);
             yield return null;
         }
     }

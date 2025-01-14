@@ -22,17 +22,13 @@ public static class TerrainManager
 		
         TerrainCallbacks.heightmapChanged += HeightMapChanged;
         TerrainCallbacks.textureChanged += SplatMapChanged;
-		
-		
         EditorApplication.update += OnProjectLoad;
+		ShowLandMask();
     }
 
     private static void OnProjectLoad()
     {
-			
 			EditorApplication.update -= OnProjectLoad;
-			
-			
 			FilterTexture = Resources.Load<Texture>("Textures/Brushes/White128");
 			SetTerrainReferences();
     }
@@ -44,10 +40,14 @@ public static class TerrainManager
 		TerrainCallbacks.heightmapChanged += HeightMapChanged;
         TerrainCallbacks.textureChanged += SplatMapChanged;
 		FilterTexture = Resources.Load<Texture>("Textures/Brushes/White128");
+
         SetTerrainReferences();
+		//ShowLandMask();	
 		SetTerrainLayers();
-		HideLandMask();		
+	
 		SetWaterTransparency(.3f);
+		//UpdateHeightCache();
+		HideLandMask();
 	}
 	
     public static class Callbacks
@@ -150,7 +150,25 @@ public static class TerrainManager
         }
         return Alpha;
     }
+	
+	public static void SetPreviewHoles(bool hole)
+	{
+		// Get the actual dimensions of the terrain's hole map
+		int res = AlphaMapRes;
 
+		bool[,] holes = LandMask.terrainData.GetHoles(0, 0, res, res);
+
+		for (int i = 0; i < res; i++)
+		{
+			for (int j = 0; j < res; j++)
+			{
+				holes[j, i] = hole;
+			}
+		}
+		
+		LandMask.terrainData.SetHoles(0, 0, holes);
+	}
+	
 	public static void SetCliffMap(bool[,] spawns)
 	{
 		SpawnMap = spawns;		
@@ -160,6 +178,16 @@ public static class TerrainManager
 		
 	}
 
+    public static void GetTerrainCoordinates(RaycastHit hit, int brushSize, out int x, out int z)
+    {
+        int num = brushSize / 2;
+        Vector3 vector = hit.point - hit.transform.position;
+        Vector3 vector2 = new Vector3(vector.x / Land.terrainData.size.x, vector.y / Land.terrainData.size.y, vector.z / Land.terrainData.size.z);
+        Vector3 vector3 = new Vector3(vector2.x * Land.terrainData.heightmapResolution, 0, vector2.z * Land.terrainData.heightmapResolution);
+        x = ((int)vector3.x) - num;
+        z = ((int)vector3.z) - num;
+    }
+
 	public static void SetCliffMap(float[,] gradient, bool[,] spawns)
 	{
 		SpawnMap = spawns;
@@ -167,55 +195,148 @@ public static class TerrainManager
 		CliffMap = RustMapEditor.Maths.Array.Normalise(gradient, 0f, 2f, Area.HeightMapDimensions());
 		CliffField = RustMapEditor.Maths.Array.HeightToSplat(CliffMap, SpawnMap, LandMask.terrainData.alphamapResolution);
 		LandMask.terrainData.SetAlphamaps(0, 0, CliffField);
-		
+	}
+	
+	public static void CopyHeights()
+	{
+		if (Land == null || LandMask == null)
+		{
+			Debug.LogError("Terrain or LandMask is null.");
+			return;
+		}
+
+		// Assuming both terrains have the same resolution for simplicity
+		float[,] heights = Land.terrainData.GetHeights(0, 0, Land.terrainData.heightmapResolution, Land.terrainData.heightmapResolution);
+		LandMask.terrainData.SetHeights(0, 0, heights);
 	}
 
+	public static void SetBitMap(bool[,] bitmap)
+	{
+		if (LandMask == null)
+		{
+			Debug.LogError("LandMask GameObject is null.");
+			return;
+		}
+
+		if (bitmap == null)
+		{
+			Debug.LogError("Bitmap is null.");
+			return;
+		}
+
+		// Check if the bitmap dimensions match the expected alpha map resolution
+		if (bitmap.GetLength(0) != AlphaMapRes || bitmap.GetLength(1) != AlphaMapRes)
+		{
+			Debug.LogError($"Bitmap dimensions do not match AlphaMap resolution. Expected {AlphaMapRes}x{AlphaMapRes}, got {bitmap.GetLength(0)}x{bitmap.GetLength(1)}.");
+			return;
+		}
+
+		LandMask.terrainData.SetHoles(0, 0, bitmap);
+	}
 	
+
+	
+	public static void SetHeightPreview()
+	{
+		if (Height == null)
+		{
+			UpdateHeights();
+		}
+
+		int width = Height.GetLength(0);
+		int height = Height.GetLength(1);
+		float[,] result = new float[width, height];
+
+		for (int x = 0; x < width; x++)
+		{
+			for (int z = 0; z < height; z++)
+			{
+				// Subtract from height map and ensure the result isn't negative
+				result[x, z] = Height[x, z] / 1000f - 0.001f;
+			}
+		}
+
+		// Set the land mask with the newly computed height map
+		LandMask.terrainData.SetHeightsDelayLOD(0, 0, result);
+	}
+
+	private static float[,] SubtractFromHeightMap(float[,] heightMap, float offset)
+	{
+		float[,] result = new float[heightMap.GetLength(0), heightMap.GetLength(1)];
+		for (int x = 0; x < heightMap.GetLength(0); x++)
+		{
+			for (int z = 0; z < heightMap.GetLength(1); z++)
+			{
+				result[x, z] = heightMap[x, z] - offset;
+			}
+		}
+		return result;
+	}
+
 	public static void SetLandMask(float[,] array)
 	{
-		TerrainManager.ShowLandMask();
 		LandMask.terrainData.SetHeights(0, 0, array);
+	}
+
+	public static void BitView(int index){
+		
+		int res = AlphaMapRes;
+		if (index == -1){
+			LandMask.terrainData.SetHoles(0,0,Land.terrainData.GetHoles(0,0,res,res));
+			return;
+		}
+		LandMask.terrainData.SetHoles(0,0,TopologyData.GetTopologyBitmap(TerrainTopology.IndexToType(index)));
+		
+		
+		return;
+	}
+
+	public static void FillLandMask()
+	{
+		float[,] heights = Land.terrainData.GetHeights(0, 0, AlphaMapRes, AlphaMapRes);
+		LandMask.terrainData.SetHeights(0, 0, heights);
+	}
+	
+	public static void SetLandMaskArea(int x, int y, int brushSize, float offset)
+	{
+		TerrainData terrainData = LandMask.terrainData;
+		int width = terrainData.heightmapResolution;
+		int height = terrainData.heightmapResolution;
+
+		// Calculate the bounds for the area to modify, ensuring they're within the map dimensions
+		int startX = Mathf.Max(0, x - brushSize / 2);
+		int startY = Mathf.Max(0, y - brushSize / 2);
+		int endX = Mathf.Min(width, x + brushSize / 2);
+		int endY = Mathf.Min(height, y + brushSize / 2);
+
+		// Get only the part of the height map we're interested in modifying for better performance
+		float[,] heightMap = terrainData.GetHeights(startX, startY, endX - startX, endY - startY);
+
+		// Modify the height map within the brush area
+		for (int i = 0; i < heightMap.GetLength(0); i++)
+		{
+			for (int j = 0; j < heightMap.GetLength(1); j++)
+			{
+				heightMap[i, j] = Mathf.Max(0, heightMap[i, j] - offset / 1000f); // Convert offset to match height map scale
+			}
+		}
+
+		// Set the modified heights back to the terrain data
+		terrainData.SetHeights(startX, startY, heightMap);
 	}
 	
 	public static void ShowLandMask()
-	{
+	{	
+		if(LandMask!=null){	
+			LandMask.gameObject.SetActive(true);
+		}
 		
-		if (LandMask != null)
-		{
-			Terrain terrainComponent = LandMask.GetComponent<Terrain>();
-			if (terrainComponent != null)
-			{
-				terrainComponent.enabled = true;
-			}
-			else
-			{
-				Debug.LogError("LandMask does not have a Terrain component.");
-			}
-		}
-		else
-		{
-			Debug.LogError("LandMask GameObject is null.");
-		}
 	}
 	
 	public static void HideLandMask()
 	{
-		if (LandMask != null)
-		{
-			Terrain terrainComponent = LandMask.GetComponent<Terrain>();
-			if (terrainComponent != null)
-			{
-				terrainComponent.enabled = false;
-			}
-			else
-			{
-				Debug.LogError("LandMask does not have a Terrain component.");
-			}
-		}
-		else
-		{
-			Debug.LogError("LandMask GameObject is null.");
-		}
+		LandMask.gameObject.SetActive(false);
+
 	}
 	
 	
@@ -227,7 +348,7 @@ public static class TerrainManager
     {
         if (array == null)
         {
-            Debug.LogError($"SetSplatMap(array) is null.");
+            Debug.LogWarning($"SetSplatMap(array) is null.");
             return;
         }
 
@@ -319,6 +440,9 @@ public static class TerrainManager
 
     private static void SplatMapChanged(Terrain terrain, string textureName, RectInt texelRegion, bool synched)
     {
+		if(terrain==LandMask){
+			return;
+		}
         if (!IsLoading && Land.Equals(terrain) && Mouse.current.leftButton.isPressed)
         {
             switch (textureName)
@@ -363,7 +487,6 @@ public static class TerrainManager
     public static void ResetHeightCache()
     {
 		Curvature = null;
-
         Slope = null;
         Height = null;
     }
@@ -650,15 +773,19 @@ public static class TerrainManager
     /// <summary>Callback for whenever the heightmap is updated.</summary>
     private static void HeightMapChanged(Terrain terrain, RectInt heightRegion, bool synched)
     {
+		if(terrain.Equals(LandMask))	{
+			return;
+		}
+		
         if (terrain.Equals(Land))
 		{
-            ResetHeightCache();
+			FillLandMask();
 		}
 
-            ResetHeightCache();
-
+        ResetHeightCache();
         Callbacks.InvokeHeightMapUpdated(terrain.Equals(Land) ? TerrainType.Land : TerrainType.Water);
-
+		//what does this last line do
+		//i need to copy the heightmap over to landmask also whenever this changes
     }
     #endregion
     #endregion
@@ -997,26 +1124,46 @@ public static class TerrainManager
     /// <summary>Changes the active Land and Topology Layers.</summary>
     /// <param name="layer">The LayerType to change to.</param>
     /// <param name="topology">The Topology layer to change to.</param>
-    public static void ChangeLayer(LayerType layer, int topology = -1)
-    {		
-			if (layer == LayerType.Alpha)
-				return;
-			if (layer == LayerType.Topology && (topology < 0 || topology >= TerrainTopology.COUNT))
-			{
-				Debug.LogError($"ChangeLayer({layer}, {topology}) topology parameter out of bounds. Should be between 0 - {TerrainTopology.COUNT - 1}");
-				return;
-			}
+	public static void ChangeLayer(LayerType layer, int topology = -1)
+	{
+		if (layer == LayerType.Alpha)
+			return;
 
-			if (LayerDirty)
+		if (layer == LayerType.Topology && (topology < 0 || topology >= TerrainTopology.COUNT))
+		{
+			Debug.LogError($"ChangeLayer({layer}, {topology}) topology parameter out of bounds. Should be between 0 - {TerrainTopology.COUNT - 1}");
+			return;
+		}
+
+		if (LayerDirty)
+		{
 				SaveLayer();
+		}
 
-			CurrentLayerType = layer;
-			TopologyLayerEnum = (TerrainTopology.Enum)TerrainTopology.IndexToType(topology);
-			SetSplatMap(GetSplatMap(layer, topology), layer, topology);
-			ClearSplatMapUndo();
+		CurrentLayerType = layer;
+		// Check if TerrainTopology.IndexToType returns a valid enum before casting
+		int typeIndex = TerrainTopology.IndexToType(topology);
+		if (Enum.IsDefined(typeof(TerrainTopology.Enum), typeIndex))
+		{
+			TopologyLayerEnum = (TerrainTopology.Enum)typeIndex;
+		}
+		else
+		{
+			Debug.LogError($"Invalid TerrainTopology.Enum for topology index: {topology}");
+		}
 
-			Callbacks.InvokeLayerChanged(layer, topology);
-    }
+		// Assuming GetSplatMap returns a non-null value or has its own null check
+		var splatMap = GetSplatMap(layer, topology);
+		SetSplatMap(splatMap, layer, topology);
+		
+		// Check if ClearSplatMapUndo method exists before calling
+
+		ClearSplatMapUndo();
+		
+
+		Callbacks.InvokeLayerChanged(layer, topology);
+		
+	}
 
     /// <summary>Layer count in layer chosen, used for determining the size of the splatmap array.</summary>
     /// <param name="layer">The LayerType to return the texture count from. (Ground, Biome or Topology)</param>
@@ -1049,11 +1196,25 @@ public static class TerrainManager
     public static void RegisterSplatMapUndo(string name) => Undo.RegisterCompleteObjectUndo(Land.terrainData.alphamapTextures, name);
 
     /// <summary>Clears all undo operations on the currently displayed SplatMap.</summary>
-    public static void ClearSplatMapUndo()
-    {
-        foreach (var tex in Land.terrainData.alphamapTextures)
-            Undo.ClearUndo(tex);
-    }
+	public static void ClearSplatMapUndo()
+	{
+		// Check if Land or terrainData is null before accessing alphamapTextures
+		if (Land != null && Land.terrainData != null)
+		{
+			foreach (var tex in Land.terrainData.alphamapTextures)
+			{
+				// Check if tex is not null before calling Undo.ClearUndo
+				if (tex != null)
+				{
+					Undo.ClearUndo(tex);
+				}
+			}
+		}
+		else
+		{
+			Debug.LogError("Land or Land.terrainData is null. Cannot clear splat map undo.");
+		}
+	}
 	#else
 	public static void RegisterHeightMapUndo(TerrainType terrain, string name) {  }
 	public static void RegisterSplatMapUndo(string name) { }

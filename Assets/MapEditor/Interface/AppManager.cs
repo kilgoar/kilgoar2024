@@ -33,9 +33,12 @@ public class AppManager : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void RuntimeInit()
     {
-		GameObject loadingObject = GameObject.FindGameObjectWithTag("loading");
-        loadingObject.transform.SetAsLastSibling();
-        loadingObject.SetActive(true);
+		//GameObject loadingObject = GameObject.FindGameObjectWithTag("loading");
+        //loadingObject.transform.SetAsLastSibling();
+        //loadingObject.SetActive(true);
+		LoadScreen.Instance.Show();
+		LoadScreen.Instance.transform.SetAsLastSibling();
+
 		
         SceneController.InitializeScene();
         SettingsManager.RuntimeInit();
@@ -48,7 +51,7 @@ public class AppManager : MonoBehaviour
             AssetManager.RuntimeInit();
 
         FilePreset application = SettingsManager.application;
-        MapManager.CreateMap(application.newSize, application.newSplat, application.newBiome, application.newHeight * 1000f);
+        
     }
 
 	private void Start()

@@ -8,19 +8,20 @@
     "style": true,
     "application": {
         "rustDirectory": "E:/Program Files (x86)/Steam/steamapps/common/Rust",
-        "prefabRenderDistance": 1530.0,
+        "prefabRenderDistance": 5000.0,
         "pathRenderDistance": 5000.0,
         "waterTransparency": 0.2511078417301178,
         "loadbundleonlaunch": true,
         "terrainTextureSet": true,
-        "newSize": 1000,
+        "newSize": 4724,
         "newHeight": 0.4172820746898651,
         "newBiome": 2,
         "newSplat": 16,
         "recentFiles": [
             "F:\\newfolder3\\anasazi3k.v1.map",
-            "F:\\newfolder3\\anasazi3k.v10.map",
+            "F:\\newfolder3\\Allprefabs8.map",
             "F:\\NOS4000.map",
+            "F:\\newfolder3\\anasazi3k.v10.map",
             "F:\\Marsv10v1.0.8cliffsores.map",
             "F:\\Marspolygons.map",
             "F:\\newfolder3\\greece.3000.monuments.v2.map",
@@ -28,8 +29,7 @@
             "F:\\newfolder3\\highrisemonuments4.map",
             "F:\\newfolder3\\uqbar3000.v9.map",
             "F:\\newfolder3\\Nymark.3000.v1.map",
-            "F:\\newfolder3\\cobaltcity.v4.map",
-            "F:\\newfolder3\\3kwangen2.map"
+            "F:\\newfolder3\\cobaltcity.v4.map"
         ]
     },
     "crazing": {
@@ -83,69 +83,27 @@
     "geology": {
         "geologyItems": [
             {
-                "customPrefab": "Custom/polygons/cube",
-                "custom": true,
-                "prefabID": 0,
+                "customPrefab": "",
+                "custom": false,
+                "prefabID": 3464059523,
                 "emphasis": 1
             },
             {
-                "customPrefab": "Custom/polygons/parkourCube",
-                "custom": true,
-                "prefabID": 0,
+                "customPrefab": "",
+                "custom": false,
+                "prefabID": 835824009,
                 "emphasis": 1
             },
             {
-                "customPrefab": "Custom/polygons/parkourdodecahedron",
-                "custom": true,
-                "prefabID": 0,
+                "customPrefab": "",
+                "custom": false,
+                "prefabID": 3043824457,
                 "emphasis": 1
             },
             {
-                "customPrefab": "Custom/polygons/parkourOctahedron",
-                "custom": true,
-                "prefabID": 0,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "Custom/polygons/parkourOctahedronMetal",
-                "custom": true,
-                "prefabID": 0,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "Custom/polygons/parkourTetrahedron",
-                "custom": true,
-                "prefabID": 0,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "Custom/polygons/parkourTruncIcosa",
-                "custom": true,
-                "prefabID": 0,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "Custom/polygons/parkourTwig",
-                "custom": true,
-                "prefabID": 0,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "Custom/polygons/tetrahedron",
-                "custom": true,
-                "prefabID": 0,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "Custom/polygons/twigdoubletetrahedron",
-                "custom": true,
-                "prefabID": 0,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "Custom/polygons/woodDodecahedron",
-                "custom": true,
-                "prefabID": 0,
+                "customPrefab": "",
+                "custom": false,
+                "prefabID": 1309014915,
                 "emphasis": 1
             }
         ],
@@ -167,9 +125,9 @@
             "layer": 256
         },
         "filename": "Presets/Geology/mars overhang rocks.json",
-        "title": "pythagoras fields",
+        "title": "china cliffs",
         "density": 132,
-        "frequency": 339,
+        "frequency": 11,
         "floor": 505,
         "ceiling": 1000,
         "biomeIndex": 0,
@@ -185,7 +143,7 @@
         "normalizeY": true,
         "normalizeZ": false,
         "biomeExclusive": true,
-        "cliffTest": false,
+        "cliffTest": true,
         "overlap": false,
         "closeOverlap": false,
         "temperate": true,
@@ -197,7 +155,7 @@
         "dither": false,
         "useSeed": false,
         "slopeRange": true,
-        "curveRange": true,
+        "curveRange": false,
         "heightRange": true,
         "featureMenu": true,
         "rotationMenu": true,
@@ -228,12 +186,12 @@
             "z": 0.0
         },
         "jitterLow": {
-            "x": -10.0,
+            "x": -1.226227879524231,
             "y": 0.018377304077148439,
             "z": 0.18308639526367188
         },
         "jitterHigh": {
-            "x": 10.0,
+            "x": 2.730393409729004,
             "y": 0.13235688209533692,
             "z": 0.19362688064575196
         },
@@ -244,12 +202,12 @@
         "slopeLow": 26.410537719726564,
         "slopeHigh": 147.50717163085938,
         "heights": {
-            "slopeLow": 1.1734871864318848,
-            "slopeHigh": 26.338247299194337,
-            "heightMin": 0.49077197909355166,
+            "slopeLow": 49.599220275878909,
+            "slopeHigh": 180.0,
+            "heightMin": 0.0,
             "heightMax": 1.0,
             "curveMin": -1.0839223861694337,
-            "curveMax": 0.12875008583068849,
+            "curveMax": -0.42713236808776858,
             "slopeWeight": 1.0,
             "curveWeight": 1.0
         },

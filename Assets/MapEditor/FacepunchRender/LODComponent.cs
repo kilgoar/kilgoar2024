@@ -7,13 +7,13 @@ public abstract class LODComponent : RenderableComponent
 {
     public Material sharedMaterial;  // If all LOD levels share the same base material
 
-	private float distance, oldDistance;
-	private int newLevel = -1;
+	protected float distance, oldDistance;
+	protected int newLevel = -1;
 		
     protected LODState[] States;
     protected int currentLODLevel = -1;
 
-       private Coroutine lodCoroutine;
+       //private Coroutine lodCoroutine;
 
 		protected virtual void Awake() 
 		{
