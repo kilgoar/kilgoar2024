@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Linq;
 using UnityEngine;
+using RustMapEditor.Variables;
 
 #if UNITY_EDITOR
 using Unity.EditorCoroutines.Editor;
@@ -13,7 +14,7 @@ using EasyRoads3Dv3;
 public static class PathManager
 {
     private static ERRoadNetwork _roadNetwork;
-    private static int _roadIDCounter = 0;
+    private static int _roadIDCounter = 1;
 	private static Transform roadTransform;
 
     #if UNITY_EDITOR
@@ -45,6 +46,8 @@ public static class PathManager
 
 	public static void SpawnPath(PathData pathData)
 	{
+		//a pathdataholder component containing pathData must be attached to each ERRoad object
+		
 		if (_roadNetwork == null)
 		{
 			Debug.LogWarning("RoadNetwork is not initialized. Cannot create road.");
@@ -72,9 +75,9 @@ public static class PathManager
 			return;
 		}
 
-		string roadName = $"path_{_roadIDCounter++}";
+		string roadName = $"Road {_roadIDCounter++}";
 		ERRoad newRoad = _roadNetwork.CreateRoad(roadName, markers);
-
+		
 		if (newRoad != null)
 		{
 			newRoad.SetName(roadName);
@@ -90,11 +93,16 @@ public static class PathManager
 			newRoad.SetMarkerControlType(0, pathData.spline ? ERMarkerControlType.Spline : ERMarkerControlType.StraightXZ);
 			newRoad.ClosedTrack(!pathData.start && !pathData.end);            
 			newRoad.Refresh();
+			
+			PathDataHolder dataHolder = newRoad.gameObject.AddComponent<PathDataHolder>();
+			dataHolder.pathData = pathData;
 		}
 		else
 		{
 			Debug.LogError($"Failed to create road '{roadName}'.");
 		}
+		
+		roadTransform.gameObject.SetLayerRecursively(9);
 	}
 
     public static void RotatePaths(bool CW)
@@ -181,6 +189,7 @@ public static class PathManager
                     #endif
                     sw.Restart();
                 }
+				Debug.LogError(paths[i].gameObject.name);
                 ERRoad roadToDelete = _roadNetwork.GetRoadByName(paths[i].gameObject.name);
 
                 if (roadToDelete != null)
@@ -192,7 +201,7 @@ public static class PathManager
                     Debug.LogWarning($"Could not find road named {paths[i].gameObject.name} to delete.");
                 }
 
-                GameObject.DestroyImmediate(paths[i].gameObject);
+                
             }
 
             #if UNITY_EDITOR

@@ -13,6 +13,7 @@ using System.Linq;
 
 public class GeologyWindow : MonoBehaviour
 {
+	public TogglePanels tabs;
 	public UIRecycleTree tree;
 	public Toggle placement;
 	public Text footer, item;
@@ -49,23 +50,43 @@ public class GeologyWindow : MonoBehaviour
 	public List<Toggle> TopologyToggles;
 	public Toggle everything;
 	
-	private RectTransform treeTransform;
+	public Button StopGeneration;
+	
+	public Image progress, frame;
+	
+	
+	public static GeologyWindow Instance { get; private set; }
+    
+    private void Awake()
+    {
+        if (Instance == null)        
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject); 
+        }
+        else        
+        {
+            Destroy(gameObject);
+        }
+    }
+    
 	
 	
 	private void PopulatePresetTree(){
-		treeTransform = tree.GetComponent<RectTransform>();
         string path = SettingsManager.AppDataPath() + "Presets/Geology";
 		List<string> pathsList = SettingsManager.GetDataPaths(path, "Geology");	
-		SettingsManager.ConvertPathsToNodes(tree, pathsList, ".json");	
+		SettingsManager.ConvertPathsToNodes(tree, pathsList, ".json");
+		tree.Rebuild();
 	}
 	
     void Start()    {
 		
-		PopulatePresetTree();		
+		PopulatePresetTree();
 		PopulateSettings();
 		
 		
 		PresetField.onValueChanged.AddListener(_ => SendSettings());
+		macroField.onValueChanged.AddListener(_ => OnMacroFieldChanged());
 		
 		tree.onNodeSelected.AddListener(OnSelect);
 		addCollisionItem.onClick.AddListener(AddCollisionItem); 
@@ -132,10 +153,34 @@ public class GeologyWindow : MonoBehaviour
         LoadPreset.onClick.AddListener(OnLoadPreset);
 		MacroDropDown.onValueChanged.AddListener(OnPresetListChanged);
 		DeletePreset.onClick.AddListener(OnDeletePreset);
+		StopGeneration.onClick.AddListener(OnStopGeneration);
+
 		
+		//tabs.OnToggleChanged(1);
+		//tabs.OnToggleChanged(5);
 		SetPreview();
 		
     }
+	
+	private void OnStopGeneration(){
+		GenerativeManager.StopCliffs();
+	}
+	
+	private void OnMacroFieldChanged()
+	{
+		// Check if the macroField's text corresponds to an existing macro path
+		bool isExistingMacroPath = SettingsManager.MacroExists(macroField.text);
+		
+		if (ApplyPresetList != null)
+		{
+			ApplyPresetList.interactable = isExistingMacroPath;
+		}
+		
+		if (SaveList != null)
+		{
+			SaveList.interactable = !string.IsNullOrEmpty(macroField.text);
+		}
+	}
 	
 	private void SetPreview()
 	{
@@ -144,6 +189,8 @@ public class GeologyWindow : MonoBehaviour
 
 		if (preview.isOn && gameObject.activeInHierarchy)
 		{
+			TerrainManager.ShowLandMask();
+
 			GenerativeManager.MakeCliffMap(SettingsManager.geology, OnCliffMapComplete);
 		}
 		else
@@ -153,14 +200,30 @@ public class GeologyWindow : MonoBehaviour
 		}
 	}
 
+	public void Progress(float percent)
+    {
+        if (progress == null || frame == null) return; // Safety check
+
+        RectTransform frameRect = frame.rectTransform;
+        RectTransform progressRect = progress.rectTransform;
+
+        float frameWidth = frameRect.rect.width;
+        float newWidth = frameWidth * .95f * percent;
+
+        // This method respects anchors
+        progressRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, newWidth);
+    }
+
 	private void OnCliffMapComplete()
 	{
 		footer.text = GenerativeManager.GeologySpawns.ToString() + " spawns";
 	}
 
-	private void OnEnable(){		
+	private void OnEnable(){
+		TerrainManager.FillLandMask();
 		PopulatePresetLists();
 		SetPreview();
+		Progress(0f);
 	}
 	
 	private void OnDisable(){
@@ -309,7 +372,7 @@ public class GeologyWindow : MonoBehaviour
 		PopulateCollisionDropdown();
 		hierarchyWindow.PopulateItemList();
 	
-		OnPresetListChanged(0);
+		OnPresetListChanged(MacroDropDown.value); //don't use zero but instead get the index from the  drop down MacroDropDown
 	}
 
 	private void AddCollisionItem()
@@ -423,7 +486,7 @@ public class GeologyWindow : MonoBehaviour
 			var button = itemCopy.transform.Find("RemoveItem").GetComponent<Button>();
 			var minMaxToggle = itemCopy.transform.Find("DistanceToggle").GetComponent<Toggle>();
 
-			layerText.text = item.layer.ToString(); 
+			layerText.text = item.layer.ToString();
 			distanceField.text = item.radius.ToString(); 
 
 			var currentItem = item;
@@ -477,15 +540,18 @@ public class GeologyWindow : MonoBehaviour
 	{
 		var selectedLayerName = collisionLayer.options[index].text;
 
+
 		if (Enum.TryParse(selectedLayerName, out ColliderLayer selectedLayer))		{
+			Debug.LogError((int)selectedLayer);
 			colliderLayer = selectedLayer;
 		}
 	}
 	
 	public void PopulatePresetLists(){
-		
+
 		if (SettingsManager.geologyPresets != null)		{
 			MacroDropDown.ClearOptions();
+			SettingsManager.LoadMacros();
 			MacroDropDown.AddOptions(SettingsManager.geologyPresetLists.ToList());
 		}
 		else
@@ -499,17 +565,18 @@ public class GeologyWindow : MonoBehaviour
 	public void OnSelect(Node selected)	{
 		//footer.text = SettingsManager.AppDataPath() + selected.name;
 		PresetField.text = selected.name;
+		PresetLabel.text = PresetField.text;
+		SettingsManager.LoadGeologyPreset(PresetField.text);
+		PopulateSettings();
+		SetPreview();
 	}
 		
 	public void OnAddToPresetList(){
-		var geologySettings = SettingsManager.geology;
-		geologySettings.filename = $"Presets/Geology/{geologySettings.title}.json"; 
-		SettingsManager.geology = geologySettings;
-        
-		SettingsManager.SaveGeologyPreset();
+
 		SettingsManager.AddToMacro(PresetField.text);
 		
-		SettingsManager.LoadGeologyMacro(PresetField.text);
+		SettingsManager.SaveGeologyMacro(macroField.text);
+		SettingsManager.LoadGeologyMacro(macroField.text);
 		PopulatePresetList();
 	}
 	
@@ -518,6 +585,7 @@ public class GeologyWindow : MonoBehaviour
 	}
 	
 	public void OnApplyPresetList(){
+		SettingsManager.LoadGeologyMacro(macroField.text);
 		GenerativeManager.ApplyGeologyTemplate();
 	}
 	

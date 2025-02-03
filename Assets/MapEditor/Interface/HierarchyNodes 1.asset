@@ -34,10 +34,10 @@ MonoBehaviour:
       color: {r: 1, g: 1, b: 1, a: 1}
   _checkboxIcons:
     checkedState:
-      sprite: {fileID: 0}
+      sprite: {fileID: 1947781011, guid: 97da269d70fc38544ac09238cec00687, type: 3}
       color: {r: 1, g: 1, b: 1, a: 1}
     uncheckedState:
-      sprite: {fileID: 0}
+      sprite: {fileID: 1032138284, guid: 97da269d70fc38544ac09238cec00687, type: 3}
       color: {r: 1, g: 1, b: 1, a: 1}
   _background:
     backgroundImage:

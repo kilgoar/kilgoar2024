@@ -21,7 +21,7 @@ public class TerrainWindow : MonoBehaviour
 	public List<Toggle> TopologyToggles;	
 	public Slider strength, size, height;
 	
-	private int topo, lastIndex;
+	public int topo, lastIndex;
 	
 	Layers layers = new Layers() { Ground = TerrainSplat.Enum.Grass, Biome = TerrainBiome.Enum.Temperate, Topologies = TerrainTopology.Enum.Field};
 	
@@ -85,16 +85,18 @@ public class TerrainWindow : MonoBehaviour
 	}
 	
 	void OnEnable()	{
-		TerrainManager.FillLandMask();		//copy heightmap to landmask
+
 		CoroutineManager.Instance.ChangeStylus(2);
-		SetLayer(MainScript.Instance.brushType);
+
+		//SetLayer(MainScript.Instance.brushType);
 		TerrainManager.ShowLandMask();
+		OnTopologyChanged(0);
 	}
 	
 	void SendSettings(){
 		MainScript.Instance.brushStrength = strength.value;
 		MainScript.Instance.TerrainTarget(height.value);
-		MainScript.Instance.ChangeBrushSize((int)size.value);
+		MainScript.Instance.ChangeBrushSize((int)size.value*2);
 	}
 	
 	void OnDisable(){
@@ -170,7 +172,15 @@ public class TerrainWindow : MonoBehaviour
 	
 	public void OnToggleChanged(int index)
     {
-		if (index < 4){MainScript.Instance.paintMode = -1;}
+		//wow
+		//what has this project come to that i'm on this now
+		
+		//i dont recommend this "main script" whatsoever
+		
+		if (index == 0 || index == 1){MainScript.Instance.paintMode = -1;} // splat and biome
+		if (index == 2){MainScript.Instance.paintMode = -3;}  //alpha
+		if (index == 3){MainScript.Instance.paintMode = -2;}  // topology
+		if (index == 4){MainScript.Instance.paintMode = index;} // heights
 
 		MainScript.Instance.brushType = index;
 		SetLayer(index);

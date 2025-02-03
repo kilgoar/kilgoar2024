@@ -21,6 +21,7 @@ public static class GenerativeManager
 {
 	
 	public static int GeologySpawns;
+	private static Coroutine cliffCoroutine;
 
 	public static void oceans(OceanPreset ocean)
 	{
@@ -1824,7 +1825,32 @@ public static class GenerativeManager
 	
 	public static void spawnCustom(GeologyItem geoItem, Vector3 position, Vector3 rotation, Vector3 scale, Transform parent)
 	{
-		PrefabManager.placeCustomPrefab(SettingsManager.AppDataPath() + geoItem.customPrefab + ".prefab", position, rotation, scale, parent);
+		// Check if geoItem or its customPrefab is null
+		if (geoItem == null || string.IsNullOrEmpty(geoItem.customPrefab))
+		{
+			Debug.LogError("GeologyItem or its customPrefab is null or empty.");
+			return;
+		}
+
+		// Construct the path to the prefab
+		string prefabPath = SettingsManager.AppDataPath() + geoItem.customPrefab + ".prefab";
+
+		// Check if the file exists at the given path
+		if (!System.IO.File.Exists(prefabPath))
+		{
+			Debug.LogError($"Prefab file not found at path: {prefabPath}");
+			return;
+		}
+
+		// Attempt to place the prefab and log the result
+		try
+		{
+			PrefabManager.placeCustomPrefab(prefabPath, position, rotation, scale, parent);
+		}
+		catch (System.Exception e)
+		{
+			Debug.LogError($"Failed to place prefab at {prefabPath}. Error: {e.Message}");
+		}
 	}
 	
 	public static void spawnItem(GeologyItem geoItem, Transform transItem)
@@ -1872,6 +1898,10 @@ public static class GenerativeManager
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.PreviewDither());
 	}
 	
+	public static void StopCliffs(){
+		Debug.LogError("only works in compiled mode");
+	}
+	
 	#else
 		//runtime coroutines
 		public static void insertPrefabCliffs(GeologyPreset geo)
@@ -1888,7 +1918,14 @@ public static class GenerativeManager
 		
 		public static void MakeCliffs(GeologyPreset geo)
 		{
-			CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.MakeCliffs(geo));
+			cliffCoroutine = CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.MakeCliffs(geo));
+		}
+		
+		public static void StopCliffs(){
+			if (cliffCoroutine!=null){
+				CoroutineManager.Instance.StopRuntimeCoroutine(cliffCoroutine);
+				cliffCoroutine = null;
+			}
 		}
 		
 		public static void ApplyGeologyTemplate()
@@ -1932,6 +1969,7 @@ public static class GenerativeManager
 
 			foreach (string filename in SettingsManager.macro)
 			{
+				Debug.LogError(filename + " attempting to apply geology list ");
 				GeologyPreset preset = LoadGeologyPreset(filename); 
 				geologyPresets.Add(preset);
 			}
@@ -2009,6 +2047,7 @@ public static class GenerativeManager
 		float[,] baseMap = land.terrainData.GetHeights(0, 0, land.terrainData.heightmapResolution, land.terrainData.heightmapResolution);
 
 		List<PrefabData> rayList = GetRayDataFromTemplate();
+		GeologyWindow.Instance.Progress(0f);
 
 		for (int i = 2; i < splatRes - 2; i++)
 		{
@@ -2078,8 +2117,15 @@ public static class GenerativeManager
 				}
 				else
 				{
-					cullcount++;
+					cullcount++;			
 				}
+				
+			if(GeologyWindow.Instance !=null){
+					GeologyWindow.Instance.footer.text = GeologySpawns + " spawns, " + cullcount + " collisions, " + count + " items placed";
+					GeologyWindow.Instance.Progress((1f*count+cullcount) / (1f*GeologySpawns));
+			}
+			
+			
 			}
 		}
 
@@ -2134,8 +2180,9 @@ public static class GenerativeManager
 
 public static GeologyPreset LoadGeologyPreset(string filename)
 {
-    string path = SettingsManager.AppDataPath() + $"Presets/Geology/{filename}.preset";
-    if (File.Exists(path))
+    //string path = SettingsManager.AppDataPath() + $"Presets/Geology/{filename}.preset";
+    string path = filename;
+	if (File.Exists(path))
     {
         string json = File.ReadAllText(path);
         return JsonUtility.FromJson<GeologyPreset>(json);
@@ -2265,7 +2312,8 @@ private static void AdjustRotationForNormalization(ref Vector3 rRotate, GeologyP
 		if (spawnMap != null && heightOut != null)
 		{
 			TerrainManager.SetCliffMap(spawnMap);
-			TerrainManager.SetLandMask(heightOut);
+			//TerrainManager.SetLandMask(heightOut);
+			TerrainManager.SetLandMask(spawnMap);
 		}
 		makeCliffMapRunning = false;
 		onComplete?.Invoke();

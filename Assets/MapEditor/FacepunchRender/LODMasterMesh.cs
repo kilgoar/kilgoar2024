@@ -1,11 +1,12 @@
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 public class LODMasterMesh : LODComponent
 {
     public MeshRenderer ReplacementMesh;
     public float Distance;
-    public LODComponent[] ChildComponents;
+    public LODComponent[] ChildComponents;    //this gives us convenient access to all the LOD components in the monument.
     public bool Block;
     public Bounds MeshBounds;
 
@@ -70,6 +71,33 @@ public class LODMasterMesh : LODComponent
     {
 		ReplacementMesh.enabled = newLevel > 0;
     }
+	
+	public List<Renderer> FetchRenderers(){
+		List<Renderer> renderers = new List<Renderer>();
+		
+		MeshRenderer siblingMeshRenderer = GetComponent<MeshRenderer>();
+		if (siblingMeshRenderer != null)
+		{
+			renderers.Add(siblingMeshRenderer);
+		}
+		
+		foreach (LODComponent lod in ChildComponents)
+		{
+			if(lod is RendererLOD){
+				renderers.AddRange(lod.RendererList());
+			}
+			if(lod is TreeLOD){
+				renderers.AddRange(lod.RendererList());
+			}
+			if(lod is MeshLOD){
+				renderers.AddRange(lod.RendererList());
+			}
+			if(lod is MeshCull){
+				renderers.Add(lod.GetRenderer());
+			}
+		}
+		return renderers;
+	}
 
     // Inner class for representing LOD states
     public class LODState

@@ -70,12 +70,12 @@
     "geologyCollisions": [
         {
             "minMax": true,
-            "radius": 8.0,
-            "layer": 256
+            "radius": 50.0,
+            "layer": 8
         },
         {
             "minMax": true,
-            "radius": 30.0,
+            "radius": 50.0,
             "layer": 512
         }
     ],
@@ -97,7 +97,7 @@
     "colliderLayer": 0,
     "closeColliderLayer": 0,
     "avoidTopo": true,
-    "flipping": false,
+    "flipping": true,
     "tilting": false,
     "normalizeX": false,
     "normalizeY": true,
@@ -142,16 +142,16 @@
     },
     "rotationsHigh": {
         "x": 0.0,
-        "y": 0.0,
+        "y": 360.0,
         "z": 0.0
     },
     "jitterLow": {
-        "x": -10.0,
+        "x": -0.1845616102218628,
         "y": 0.018377304077148439,
         "z": 0.18308639526367188
     },
     "jitterHigh": {
-        "x": 10.0,
+        "x": 0.585784912109375,
         "y": 0.13235688209533692,
         "z": 0.19362688064575196
     },

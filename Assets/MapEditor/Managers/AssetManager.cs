@@ -366,7 +366,7 @@ public static class AssetManager
 		return i.ToString();
 	}
 	
-
+	//triangulate prefab identity from path information
 	public static uint fragmentToID(string fragment, string parent, string monument)
 	{
 		string[] parseFragment;

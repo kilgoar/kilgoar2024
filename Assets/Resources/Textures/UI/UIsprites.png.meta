@@ -1182,8 +1182,8 @@ TextureImporter:
       name: colorcube
       rect:
         serializedVersion: 2
-        x: 954
-        y: 823
+        x: 959
+        y: 707
         width: 40
         height: 40
       alignment: 0
@@ -1451,6 +1451,258 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: heightsButton
+      rect:
+        serializedVersion: 2
+        x: 1017
+        y: 710
+        width: 40
+        height: 34
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 47f665df462f27042a20365b52b6bbc6
+      internalID: -2068215905
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TexturesButton
+      rect:
+        serializedVersion: 2
+        x: 1017
+        y: 750
+        width: 40
+        height: 34
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 22ef5941c67681448adbc2f3e4af4968
+      internalID: 695140784
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BiomesButton
+      rect:
+        serializedVersion: 2
+        x: 1071
+        y: 750
+        width: 40
+        height: 34
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 95b08d40fd7afc7498cdf86e52f4178b
+      internalID: 288230266
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ToposButton
+      rect:
+        serializedVersion: 2
+        x: 1071
+        y: 712
+        width: 40
+        height: 34
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9eeb3984a81b9c340b55d74a91862664
+      internalID: 809653150
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: holesButton
+      rect:
+        serializedVersion: 2
+        x: 1130
+        y: 715
+        width: 39
+        height: 34
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 956a39dc70fea864fa662a27ccf97c22
+      internalID: -964829315
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: heightsIcon
+      rect:
+        serializedVersion: 2
+        x: 613
+        y: 527
+        width: 80
+        height: 72
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7a2ff258b8c166c408c1f16b58f45b06
+      internalID: -1932609291
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TexturesIcon
+      rect:
+        serializedVersion: 2
+        x: 722
+        y: 527
+        width: 80
+        height: 72
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6b6e68048f8577e46a7da6a75037a051
+      internalID: -291292275
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BiomesIcon
+      rect:
+        serializedVersion: 2
+        x: 830
+        y: 527
+        width: 80
+        height: 72
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1f086c413f37a6f46908ddb17db288ee
+      internalID: 99715383
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: HolesIcon
+      rect:
+        serializedVersion: 2
+        x: 937
+        y: 527
+        width: 80
+        height: 72
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 30b59f06df1b1414bb6441ac1e89d4ef
+      internalID: 1897090676
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ToposIcon
+      rect:
+        serializedVersion: 2
+        x: 1048
+        y: 527
+        width: 80
+        height: 72
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a35c19287801f204ba0094d1b96382f6
+      internalID: -330601591
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: unfavorite
+      rect:
+        serializedVersion: 2
+        x: 960
+        y: 819
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ee594f78aa1475043a9d51adfc1dadc9
+      internalID: 1032138284
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: favorite
+      rect:
+        serializedVersion: 2
+        x: 960
+        y: 762
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 99a0abafc014d554ba41aea659be06c6
+      internalID: 1947781011
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     physicsShape: []
     bones: []
@@ -1462,15 +1714,22 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
+      BiomesButton: 288230266
+      BiomesIcon: 99715383
       ButtonBright2: -2129174379
       DisabledButton: 770358251
       GeologyGreen: 1458959956
       GeologyWhite: 1619840099
+      HolesIcon: 1897090676
       LockEnabled: -945521933
       RangeSlide: 1661449659
       RustMapper: 536033391
       Slide: 1315434967
       SliderActive: -2088628973
+      TexturesButton: 695140784
+      TexturesIcon: -291292275
+      ToposButton: 809653150
+      ToposIcon: -330601591
       TransformArrowBlue: 1493251540
       TransformArrowGreen: 1480471322
       TransformArrowRed: -1044279211
@@ -1494,6 +1753,7 @@ TextureImporter:
       doorIcon: -1871782716
       doorIconGreen: -1492946611
       enumPopupButton: 685871163
+      favorite: 1947781011
       folder: -1578959667
       folder open: 911976114
       gear: 1788931696
@@ -1501,6 +1761,9 @@ TextureImporter:
       gearIconGreen: 2044013127
       giantGear: 2056188805
       greater than: 1184929559
+      heightsButton: -2068215905
+      heightsIcon: -1932609291
+      holesButton: -964829315
       less than: 2010630619
       map icon new: -260897487
       mapicon: -451219018
@@ -1523,6 +1786,7 @@ TextureImporter:
       textField: -34682274
       trash: -1978091892
       trash green: -1524247354
+      unfavorite: 1032138284
       windowUI: -441366200
   spritePackingTag: 
   pSDRemoveMatte: 0

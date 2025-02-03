@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -85,6 +86,18 @@ public class MeshLOD : LODComponent
             meshRenderer.SetPropertyBlock(materialPropertyBlock);
         
     }
+	
+	
+	public override List<Renderer> RendererList()  
+	{
+		List<Renderer> renderers = new List<Renderer>();  
+
+			if (meshRenderer != null)  {
+				renderers.Add(meshRenderer);  
+			}  
+		return renderers;  
+	}  
+	
 	
     public void SetMaterials(Material[] materials) 
     {

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using UnityEngine;
+using System.Threading.Tasks;
 using static TerrainManager;
 
 public static class TopologyData
@@ -30,7 +31,7 @@ public static class TopologyData
     }
 	
 	public static bool[,] GetTopologyBitmap(int layer)
-	{
+	{ //scale this up by TerrainMap.SplatRatio
 		TerrainMap<int> topology = GetTerrainMap();
 		bool[,] bitMap = new bool[topology.res, topology.res];
 		Parallel.For(0, topology.res, i =>
@@ -41,6 +42,27 @@ public static class TopologyData
 					bitMap[i, j] = true;
 			}
 		});
+		return bitMap;
+	}
+	
+	public static bool[,] GetTopology(int layer, int x, int y, int width, int height)
+	{
+		TerrainMap<int> topology = GetTerrainMap();
+		bool[,] bitMap = new bool[height, width];
+		int xMax = Mathf.Min(x + width, topology.res);
+		int yMax = Mathf.Min(y + height, topology.res);
+		
+		Parallel.For(0, Mathf.Min(height, yMax - y), i =>
+		{
+			for (int j = 0; j < Mathf.Min(width, xMax - x); j++)
+			{
+				if ((topology[y + i, x + j] & layer) != 0)
+				{
+					bitMap[i, j] = true;
+				}
+			}
+		});
+
 		return bitMap;
 	}
 
@@ -64,6 +86,53 @@ public static class TopologyData
         });
         Data = topologyMap.ToByteArray();
     }
+	
+	public static void SetTopology(int layer, int x, int y, int width, int height, bool[,] bitmap)
+	{
+		TerrainMap<int> topologyMap = GetTerrainMap();	
+
+		
+		if (bitmap == null)
+		{
+			
+			return;
+		}
+
+		// Check if the provided bitmap dimensions match the intended region size
+		if (bitmap.GetLength(0) != height || bitmap.GetLength(1) != width)
+		{
+			return;
+		}
+
+
+
+		// Update the specified region of the topology with the new bitmap data
+		Parallel.For(0, height, i =>
+		{
+			for (int j = 0; j < width; j++)
+			{
+				// Check if the coordinate is within the bounds of the terrain
+				if (x + j < topologyMap.res && y + i < topologyMap.res)
+				{
+					// If bitmap is true, set the bit for the layer; if false, unset it
+					if (bitmap[i, j])
+					{
+						topologyMap[y + i, x + j] |= layer; // Set the bit for this layer
+					}
+					else
+					{
+						topologyMap[y + i, x + j] &= ~layer; // Unset the bit for this layer
+					}
+				}
+				else
+				{
+				}
+			}
+		});
+
+		// Convert updated topology back to byte array and update Data
+		Data = topologyMap.ToByteArray();
+	}
 
     public static void Set(TerrainMap<int> topology) => Data = topology.ToByteArray();
 }

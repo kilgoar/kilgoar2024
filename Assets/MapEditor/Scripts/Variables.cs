@@ -154,7 +154,7 @@ namespace RustMapEditor.Variables
 	public enum ColliderLayer
 	{
 		All = Physics.AllLayers,
-		Prefabs = 1<<8,
+		Prefabs = 1<<3,
 		Paths = 1<<9,
 		Land = 1<<10,
 		Water = 1<<4,
@@ -647,6 +647,13 @@ namespace RustMapEditor.Variables
 		}
 		public GeologyCollisions()
 		{		}
+	}
+	
+	[Serializable]
+	public struct Favorites
+	{
+		public List<string> favoriteCustoms;
+
 	}
 	
 	[Serializable]

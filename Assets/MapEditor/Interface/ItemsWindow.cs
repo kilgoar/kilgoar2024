@@ -16,48 +16,26 @@ public class ItemsWindow : MonoBehaviour
 	public Button deleteChecked, checkAll, uncheckAll;
 	private int currentMatchIndex = 0; 
 	private List<Node> matchingNodes = new List<Node>();
-	private static ItemsWindow _instance;
 	
-
+	public static ItemsWindow Instance { get; private set; }
 	
-	private void Awake()
-	{
-		// Ensure the instance is initialized early
-		if (_instance != null)
-		{
-			Debug.LogError("Destroying items window for some bullshit ass reason");
-			Destroy(gameObject);
-			return;
-		}
-		
-		_instance = this; // Initialize the static instance
-		DontDestroyOnLoad(gameObject);
-
-		// Populate the list and initialize components
-		//PopulateList();
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;            
+            DontDestroyOnLoad(gameObject); 
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+	
+	private void Start(){
 		InitializeComponents();
 	}
 
-    public static ItemsWindow Instance
-    {
-        get
-        {
-            // If the instance doesn't exist, find it in the scene
-            if (_instance == null)
-            {
-                _instance = FindObjectOfType<ItemsWindow>();
-                
-                // If no instance exists in the scene, create a new GameObject and attach the ItemsWindow
-                if (_instance == null)
-                {
-                    GameObject singletonObject = new GameObject("ItemsWindow");
-                    _instance = singletonObject.AddComponent<ItemsWindow>();
-					Debug.LogError("Replacing items window for some bullshit");
-                }
-            }
-            return _instance;
-        }
-    }
 
 	private void InitializeComponents()
 	{
@@ -240,6 +218,7 @@ public class ItemsWindow : MonoBehaviour
 	{
 		DeleteCheckedNodesStack(tree.rootNode);
 		tree.Rebuild();
+		CameraManager.Instance.UpdateGizmoState();
 	}
 
 	private void DeleteCheckedNodesStack(Node rootNode)

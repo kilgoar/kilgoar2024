@@ -23,8 +23,11 @@ public class HierarchyWindow : MonoBehaviour
     private void Start()
     {
         AssetManager.Callbacks.BundlesLoaded += OnBundlesLoaded;
-		query.onEndEdit.AddListener(OnQueryEntered);
+		
+		query.onValueChanged.AddListener(OnQueryEntered);
 		tree.onNodeSelected.AddListener(OnSelect);
+		
+		tree.onNodeCheckedChanged.AddListener(OnCheck);
 		
 		geology.interactable = false;
         geology.onClick.AddListener(OnGeologyPressed);
@@ -141,6 +144,11 @@ public class HierarchyWindow : MonoBehaviour
 		}
 	}
 
+	private void OnCheck(Node selection){
+		Debug.LogError("event triggereD");
+		SettingsManager.UpdateFavorite(selection);
+	}
+
 	private void OnSelect(Node selection){
 		if (selection.hasChildren){
 			geology.interactable = false;
@@ -188,6 +196,7 @@ public class HierarchyWindow : MonoBehaviour
 		paths.AddRange(collectionPaths);
 
 		SettingsManager.ConvertPathsToNodes(tree, paths, ".prefab", query.text);
+		SettingsManager.CheckFavorites(tree);
 	}
 
 

@@ -12,6 +12,7 @@ public class TogglePanels : MonoBehaviour
 	public List<GameObject> tabPanels;
 	public List<UIRecycleTree> recycleTrees;
 	
+	
     public void Awake(){
 		Init();
 	}

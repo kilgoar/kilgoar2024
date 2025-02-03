@@ -69,15 +69,27 @@ public class CoroutineManager : MonoBehaviour
     public void ChangeStylus(int style)
     {
         currentStyle = style;
+		//Debug.LogError(style + " " + currentStyle);
     }
 
-    public static void CleanUp()
-    {
-        if (_instance != null)
-        {
-            _instance.StopAllCoroutines();
-        }
-    }
+	private void OnDestroy()
+	{
+		if (_instance == this)
+		{
+			_instance = null;
+		}
+		CleanUp();
+	}
+
+	public static void CleanUp()
+	{
+		if (_instance != null)
+		{
+			_instance.StopAllCoroutines();
+			GameObject.Destroy(_instance.gameObject);
+			_instance = null;
+		}
+	}
 
     private bool OverUI()
     {
@@ -92,24 +104,23 @@ public class CoroutineManager : MonoBehaviour
     private void Update()
     {
         if (!OverUI()){
-		
-			if (Time.time >= nextCrumpetTime)
-			{
+				
 				switch (currentStyle)
 				{
 					case 0: // disabled
 						break;
 					case 1:
-						//ItemStylusMode();
+						ItemStylusMode();
 						break;
 					case 2:
-						PaintBrushMode();
+						if (Time.time >= nextCrumpetTime)	{
+							PaintBrushMode();
+							nextCrumpetTime = Time.time + 0.05f;
+						}
 						break;
 				}
-				nextCrumpetTime = Time.time + 0.1f;
+
 			}
-			
-		}
 
     }
 
@@ -125,22 +136,28 @@ public class CoroutineManager : MonoBehaviour
 
     private void PaintBrushMode()
     {
-		int layerMask = 1 << 10; // "Land" layer
-		//layerMask = ~layerMask & ~(1 << 5); // Exclude UI layer 5
-		//Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask);
-				
+		int layerMask = 1 << 10; // "Land" layer				
 		RaycastHit hit;
         
 		if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask)){
-			
-			//if(MainScript.Instance.brushType == 4){
 
-				
+
 					TerrainManager.GetTerrainCoordinates(hit, MainScript.Instance.brushSize, out int numX, out int numY);
+					
 					
 					if (mouseLeftClick.ReadValue<float>() > 0.5f)
 					{
-						MainScript.Instance.ModifyTerrain(numX, numY);
+						if(MainScript.Instance.paintMode == -1){
+							MainScript.Instance.ModifySplat(numX, numY);
+						}
+						else if (MainScript.Instance.paintMode == -3){
+							MainScript.Instance.ModifyAlpha(numX, numY);
+						}
+						else if (MainScript.Instance.paintMode == -2){
+							MainScript.Instance.ModifyTopology(numX, numY);
+						}
+						else {	MainScript.Instance.ModifyTerrain(numX, numY); }
+						
 						MainScript.Instance.PreviewTerrain(numX, numY);
 					}
 					else
@@ -149,10 +166,17 @@ public class CoroutineManager : MonoBehaviour
 					}
 				
 				return;
-			//}
+
 		}
     }
 	
+	public void StopCoroutine(Coroutine coroutine)
+	{
+		if (coroutine != null)
+		{
+			StopCoroutine(coroutine);
+		}
+	}
 		
 	public Coroutine StartRuntimeCoroutine(IEnumerator coroutine)
     {

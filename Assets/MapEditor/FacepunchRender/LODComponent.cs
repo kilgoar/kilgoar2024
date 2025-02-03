@@ -9,7 +9,8 @@ public abstract class LODComponent : RenderableComponent
 
 	protected float distance, oldDistance;
 	protected int newLevel = -1;
-		
+	
+	
     protected LODState[] States;
     protected int currentLODLevel = -1;
 
@@ -24,7 +25,7 @@ public abstract class LODComponent : RenderableComponent
 		}
 
 		protected abstract void CheckLOD(float distance);
-
+		public virtual Renderer GetRenderer(){ return null; }
 
 		protected virtual int CalculateLODLevel(float distance)
 		{
@@ -54,6 +55,19 @@ public abstract class LODComponent : RenderableComponent
 			// This should not occur due to the previous checks, but we keep it for safety
 			return -1; 
 		}
+
+		public virtual List<Renderer> RendererList()  
+		{
+			List<Renderer> renderers = new List<Renderer>();  
+			if (States == null || States.Length == 0) return renderers;  
+
+			foreach (var state in States)  
+			{  
+				if (state.renderer != null)  
+					renderers.Add(state.renderer);  
+			}  
+			return renderers;  
+		}  
 
 		protected virtual void UpdateLOD(int newLevel)
 		{

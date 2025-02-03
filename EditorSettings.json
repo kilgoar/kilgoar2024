@@ -13,23 +13,23 @@
         "waterTransparency": 0.2511078417301178,
         "loadbundleonlaunch": true,
         "terrainTextureSet": true,
-        "newSize": 4724,
+        "newSize": 1415,
         "newHeight": 0.4172820746898651,
         "newBiome": 2,
         "newSplat": 16,
         "recentFiles": [
+            "F:\\Marspolygons.map",
+            "F:\\NOS4000.map",
+            "F:\\Marsv12v1.0.7terrain.map",
+            "F:\\Marsv10v1.0.8cliffsores.map",
+            "F:\\Marspolygons.map.map",
             "F:\\newfolder3\\anasazi3k.v1.map",
             "F:\\newfolder3\\Allprefabs8.map",
-            "F:\\NOS4000.map",
             "F:\\newfolder3\\anasazi3k.v10.map",
-            "F:\\Marsv10v1.0.8cliffsores.map",
-            "F:\\Marspolygons.map",
             "F:\\newfolder3\\greece.3000.monuments.v2.map",
-            "F:\\Marspolygons.map.map",
             "F:\\newfolder3\\highrisemonuments4.map",
             "F:\\newfolder3\\uqbar3000.v9.map",
-            "F:\\newfolder3\\Nymark.3000.v1.map",
-            "F:\\newfolder3\\cobaltcity.v4.map"
+            "F:\\newfolder3\\Nymark.3000.v1.map"
         ]
     },
     "crazing": {
@@ -279,5 +279,11 @@
             "monumentName": ""
         }
     },
-    "macroSources": false
+    "macroSources": false,
+    "faves": {
+        "favoriteCustoms": [
+            "assets/bundled/prefabs/modding/lootables/crate_normal_random_spawner",
+            "~Custom/polygons/woodDodecahedron"
+        ]
+    }
 }

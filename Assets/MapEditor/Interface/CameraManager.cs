@@ -6,6 +6,8 @@ using RustMapEditor.Variables;
 using UnityEngine.EventSystems;
 using UIRecycleTreeNamespace;
 using RTG;
+using System;
+using System.Linq;
 
 public class CameraManager : MonoBehaviour
 {
@@ -35,7 +37,7 @@ public class CameraManager : MonoBehaviour
 
 	private float currentTime;
 	private float lastUpdateTime = 0f;
-	private float updateFrequency = .1f;
+	private float updateFrequency = .01666f;
 	
 	private ObjectTransformGizmo _objectMoveGizmo;
     private ObjectTransformGizmo _objectRotationGizmo;
@@ -225,6 +227,11 @@ public class CameraManager : MonoBehaviour
         if (key.spaceKey.isPressed) {
             globalMove += cam.transform.up * currentSpeed;
         }
+		
+		if (key.deleteKey.isPressed) {
+			DeleteSelection();
+		}
+		
 		if (globalMove!=Vector3.zero){			
 			cam.transform.position += globalMove;
 			position = cam.transform.position;
@@ -248,51 +255,268 @@ public class CameraManager : MonoBehaviour
 		UpdateGizmoState();
 	}
 	
-	public void SelectPrefab()
+
+
+	public void DeleteSelection()
 	{
-		Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
-		RaycastHit hit;
-
-		if (Physics.Raycast(ray, out hit, Mathf.Infinity))
+		// For each object in _selectedObjects, destroy the object
+		foreach (GameObject go in _selectedObjects) // Use ToList() to avoid modifying the collection while iterating
 		{
-			GameObject hitObject = hit.transform.gameObject;
-			while (hitObject != null && !hitObject.CompareTag("Prefab"))
+			if (go != null)
 			{
-				hitObject = hitObject.transform.parent?.gameObject;
+				UnityEngine.Object.Destroy(go); // Use UnityEngine.Object.Destroy for game objects
 			}
+		}
 
-			if (hitObject != null && hitObject.CompareTag("Prefab"))
+		// Clear the selected object list
+		_selectedObjects.Clear();
+
+		// Update gizmo state after deleting objects
+		UpdateGizmoState();
+	}
+	
+public void SelectPrefab()
+{
+	int prefabLayerMask = 1 << 3; // prefab layer
+	int landLayerMask = 1 << 10; // land layer
+	int allLayersMask = ~0; // all layers
+
+	Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+	RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, allLayersMask);
+
+	// Sort hits by distance to ensure we process them in order from closest to farthest
+	Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+	bool landHitBeforePrefab = false;
+	GameObject hitPrefab = null;
+
+	foreach (RaycastHit hit in hits)
+	{
+		if ((1 << hit.transform.gameObject.layer & landLayerMask) != 0)
+		{
+			landHitBeforePrefab = true; // Land layer hit first or at the same time
+			break;
+		}
+
+		if ((1 << hit.transform.gameObject.layer & prefabLayerMask) != 0)
+		{
+			if (!landHitBeforePrefab) // Only select if no land layer was hit before
+			{
+				hitPrefab = hit.transform.gameObject;
+			}
+			break; // Stop looking once we find a prefab or if land was hit first
+		}
+	}
+
+	if (hitPrefab != null)
+	{
+		GameObject hitObject = hitPrefab;
+		Debug.Log("Hitting object: " + hitObject.name);
+
+		// Search up for parent that has the "Prefab" tag
+		while (hitObject != null && !hitObject.CompareTag("Prefab"))
+		{
+			hitObject = hitObject.transform.parent?.gameObject;
+		}
+
+		if (hitObject != null)
+		{
+			List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(hitObject.GetComponentsInChildren<LODMasterMesh>());
+
+			if (hitObject.CompareTag("Prefab"))
 			{
 				PrefabDataHolder dataHolder = hitObject.GetComponent<PrefabDataHolder>();
-				Node node = itemTree.FindFirstNodeByDataRecursive(dataHolder);
-				
+
+				Node node = null;
+				if (itemTree != null)
+				{
+					node = itemTree.FindFirstNodeByDataRecursive(dataHolder);
+				}
+
+				// Multi-select with shift key
 				if (Keyboard.current.leftShiftKey.isPressed)
 				{
-					if (_selectedObjects.Contains(hitObject)) _selectedObjects.Remove(hitObject);
-					else _selectedObjects.Add(hitObject);
-					node.isChecked = true;					
-					
-					ItemsWindow.Instance.enabled = true;
-					ItemsWindow.Instance.FocusList(node);
+					if (_selectedObjects.Contains(hitObject)){
+						Unselect(hitObject);
+						return;
+					}
+					else
+					{
+						_selectedObjects.Add(hitObject);
+					}
+				}
+				// Singular selection
+				else
+				{
+					Unselect(); // Clear previous selection
+					_selectedObjects.Add(hitObject);
+				}
+
+				if (node != null)
+				{
+					node.isChecked = true;
+					if (ItemsWindow.Instance != null)
+					{
+						ItemsWindow.Instance.enabled = true;
+						ItemsWindow.Instance.FocusList(node);
+					}
+				}
+
+				// Use the lodMasterMesh to fetch renderers and highlight them
+				if (lodMasterMeshes.Count > 0)
+				{
+					List<Renderer> renderers = new List<Renderer>();
+					foreach (var lodMasterMesh in lodMasterMeshes)
+					{
+						renderers.AddRange(lodMasterMesh.FetchRenderers());
+					}
+					EmissionHighlight(renderers);
 				}
 				else
 				{
-					_selectedObjects.Clear();
-					_selectedObjects.Add(hitObject);
-					node.isChecked = true; 
-					
-					
-					ItemsWindow.Instance.enabled = true;
-					ItemsWindow.Instance.FocusList(node);
+					Debug.LogError("No LODMasterMesh found on the prefab.");
+					EmissionHighlight(GetRenderers(hitObject));
 				}
-				
+
 				UpdateGizmoState();
 				return;
 			}
 		}
-		ItemsWindow.Instance.UncheckAll();
-		_selectedObjects.Clear();
+	}
+
+		Unselect();
+	}
+	
+	private void Unselect(GameObject obj)
+	{
+		_selectedObjects.Remove(obj);
+
+		if (obj != null)
+		{
+			List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(obj.GetComponentsInChildren<LODMasterMesh>());
+			
+			if (lodMasterMeshes.Count > 0)
+			{
+				List<Renderer> renderers = new List<Renderer>();
+				foreach (var lodMasterMesh in lodMasterMeshes)
+				{
+					renderers.AddRange(lodMasterMesh.FetchRenderers());
+				}
+				EmissionUnhighlight(renderers);
+			}
+			else
+			{
+				Debug.LogError("attempting to unhighlight");
+				EmissionUnhighlight(GetRenderers(obj)); // Get the renderers from the object using helper method
+			}
+		}
 		UpdateGizmoState();
+	}
+	
+	private void Unselect()
+	{
+		// Unhighlight all previously selected items
+		foreach (GameObject obj in _selectedObjects)
+		{
+			if (obj != null)
+			{
+				List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(obj.GetComponentsInChildren<LODMasterMesh>());
+				
+				if (lodMasterMeshes.Count > 0)
+				{
+					List<Renderer> renderers = new List<Renderer>();
+					foreach (var lodMasterMesh in lodMasterMeshes)
+					{
+						renderers.AddRange(lodMasterMesh.FetchRenderers());
+					}
+					EmissionUnhighlight(renderers);
+				}
+				else
+				{
+					EmissionUnhighlight(GetRenderers(obj)); // Get the renderers from selected objects using helper method
+				}
+			}
+		}
+		_selectedObjects.Clear();
+
+		// Disable all gizmos
+		_workGizmo.Gizmo.SetEnabled(false);
+		_objectMoveGizmo.Gizmo.SetEnabled(false);
+		_objectRotationGizmo.Gizmo.SetEnabled(false);
+		_objectScaleGizmo.Gizmo.SetEnabled(false);
+		_objectUniversalGizmo.Gizmo.SetEnabled(false);
+	}
+
+	private List<Renderer> GetRenderers(GameObject gameObject)
+	{
+		List<Renderer> renderers = new List<Renderer>();
+
+		// Check if the GameObject itself has a Renderer component
+		Renderer renderer = gameObject.GetComponent<Renderer>();
+		if (renderer != null)
+		{
+			renderers.Add(renderer);
+		}
+
+		// Fetch Renderer components from all children
+		Renderer[] childRenderers = gameObject.GetComponentsInChildren<Renderer>();
+		foreach (Renderer childRenderer in childRenderers)
+		{
+			if (childRenderer.gameObject != gameObject) // Avoid adding the parent's renderer if we've already added it
+			{
+				renderers.Add(childRenderer);
+			}
+		}
+
+		return renderers;
+	}
+
+	// Helper method to modify material settings for emission highlight
+	private void EmissionHighlight(List<Renderer> selection)
+	{
+		foreach (Renderer renderer in selection)
+		{
+			Material[] materials = renderer.materials;
+			foreach (Material material in materials)
+			{
+				// Enable emission for the material
+				material.EnableKeyword("_EMISSION");
+				
+				// Set emission color (you can adjust the color as needed)
+				Color emissionColor = Color.yellow; // Example: yellow highlight
+				material.SetColor("_EmissionColor", emissionColor);
+			}
+			renderer.materials = materials;
+		}
+	}
+
+	// Helper method to undo emission highlight
+	private void EmissionUnhighlight(List<Renderer> selection)
+	{
+		if (selection == null) return;
+
+		foreach (Renderer renderer in selection)
+		{
+			if (renderer == null) continue;
+			
+			Material[] materials = renderer.materials;
+			
+			for (int i = 0; i < materials.Length; i++)
+			{
+				Material material = materials[i];
+				if (material == null) continue;
+
+				// Disable emission for the material
+				material.DisableKeyword("_EMISSION");
+				
+				// Reset emission color to black
+				material.SetColor("_EmissionColor", Color.black);
+
+			}
+
+				renderer.materials = materials;
+
+		}
 	}
 
 	
@@ -305,6 +529,11 @@ public class CameraManager : MonoBehaviour
         _objectRotationGizmo.Gizmo.SetEnabled(false);
         _objectScaleGizmo.Gizmo.SetEnabled(false);
         _objectUniversalGizmo.Gizmo.SetEnabled(false);
+
+
+
+
+
 
         // Set the new work gizmo
         _workGizmoId = gizmoId;
@@ -332,21 +561,6 @@ public class CameraManager : MonoBehaviour
             _workGizmo.RefreshPositionAndRotation();
         }
     }
-
-    public void UpdateGizmoState(List<GameObject> selection)
-    {
-		_selectedObjects = selection;
-        if (_selectedObjects.Count > 0)
-        {
-            _workGizmo.Gizmo.SetEnabled(true);
-            _workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
-            _workGizmo.RefreshPositionAndRotation();
-        }
-        else
-        {
-            _workGizmo.Gizmo.SetEnabled(false);
-        }
-    }	
 	
     public void UpdateGizmoState()
     {

@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
+using System.Collections.Generic;
 
 public class RendererLOD : LODComponent
 {
@@ -99,6 +100,19 @@ public class RendererLOD : LODComponent
             }
         }
     }
+	
+	public override List<Renderer> RendererList()  
+	{
+		List<Renderer> renderers = new List<Renderer>();  
+		if (States == null || States.Length == 0) return renderers;  
+
+		foreach (var state in States)  
+		{  
+			if (state.renderer != null)  
+				renderers.Add(state.renderer);  
+		}  
+		return renderers;  
+	}  
 
     public Mesh GetMesh() 
     {

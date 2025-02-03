@@ -25,19 +25,22 @@ public class LoadScreen : MonoBehaviour
         }
     }
     
-    public void Progress(float percent)
-    {
-        if (progress == null || frame == null) return; // Safety check
+	public void Progress(float percent)
+	{
+		if (progress == null || frame == null) return; // Safety check
 
-        RectTransform frameRect = frame.rectTransform;
-        RectTransform progressRect = progress.rectTransform;
+		// Clamp percent between 0 and 1
+		percent = Mathf.Clamp01(percent);
 
-        float frameWidth = frameRect.rect.width;
-        float newWidth = frameWidth * .95f * percent;
+		RectTransform frameRect = frame.rectTransform;
+		RectTransform progressRect = progress.rectTransform;
 
-        // This method respects anchors
-        progressRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, newWidth);
-    }
+		float frameWidth = frameRect.rect.width;
+		float newWidth = frameWidth * 0.95f * percent;
+
+		// This method respects anchors
+		progressRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, newWidth);
+	}
     
     public void SetMessage(string message)    
     {

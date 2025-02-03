@@ -17,6 +17,7 @@ public class RendererBatch : MonoBehaviour
     private List<MeshFilter> meshFilters = new List<MeshFilter>();
     private Dictionary<Material, bool> materialCache = new Dictionary<Material, bool>();
 
+
     void Awake()
     {
         //CollectRenderersAndFilters();

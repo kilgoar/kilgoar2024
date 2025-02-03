@@ -213,11 +213,58 @@ public static class SettingsManager
 		}
 	}
 	
+	public static void UpdateFavorite(Node node){
+		if (node.isChecked){
+			AddFavorite(node);
+			return;
+		}
+		RemoveFavorite(node);
+	}
+	
+	public static void AddFavorite(Node node){
+			string fullPath = node.fullPath;
+
+			faves.favoriteCustoms.Add(fullPath);
+
+			
+		SaveSettings();
+	}
+	
+	public static void RemoveFavorite(Node node)
+	{
+		string fullPath = node.fullPath;
+
+			faves.favoriteCustoms.Remove(fullPath);
+
+
+		SaveSettings();
+	}
+	
+	public static void CheckFavorites(UIRecycleTree tree)
+	{
+
+		CheckNode(tree.rootNode);
+		tree.Reload();
+	}
+
+	private static void CheckNode(Node node)
+	{
+
+		string fullPath = node.fullPath; // or however you get the full path for this node
+		node.SetCheckedWithoutNotify(faves.favoriteCustoms.Contains(fullPath));
+
+
+		foreach (Node child in node.nodes)
+		{
+			CheckNode(child);
+		}
+	}
+	
 	public static void ConvertPathsToNodes(UIRecycleTree tree, List<string> paths, string extension = ".prefab", string searchQuery = "")
 	{
 		tree.Clear();
 		Dictionary<string, Node> nodeMap = new Dictionary<string, Node>();
-
+		
 		foreach (string path in paths)
 		{
 			if (path.EndsWith(extension, StringComparison.Ordinal) || extension.Equals("override", StringComparison.Ordinal))
@@ -286,6 +333,7 @@ public static class SettingsManager
     public static bool LoadBundleOnLaunch { get; set; }
     public static bool TerrainTextureSet { get; set; }
 	
+	public static Favorites faves { get; set; }
 	public static FilePreset application { get; set; }
 	public static CrazingPreset crazing { get; set; }
 	public static PerlinSplatPreset perlinSplat { get; set; }
@@ -314,7 +362,7 @@ public static class SettingsManager
             (
                 RustDirectory, PrefabRenderDistance, PathRenderDistance, WaterTransparency, LoadBundleOnLaunch, TerrainTextureSet, 
 				style, crazing, perlinSplat, ripple, ocean, terracing, perlin, geology, replacer,
-				city, breaker, macroSources, application
+				city, breaker, macroSources, application, faves
             );
             write.Write(JsonUtility.ToJson(editorSettings, true));
 			
@@ -488,6 +536,10 @@ public static class SettingsManager
 		}
 	}
 	
+	public static bool MacroExists(string macroTitle){
+		string macroPath = AppDataPath() + $"Presets/Geology/Macros/{macroTitle}.macro";
+		return File.Exists(macroPath);
+	}
 	
 	public static void AddToMacro(string macroTitle)
 	{
@@ -524,6 +576,7 @@ public static class SettingsManager
 			city = editorSettings.city;
 			macroSources = editorSettings.macroSources;
 			application = editorSettings.application;
+			faves = editorSettings.faves;
         }
 		
 		LoadPresets();
@@ -538,7 +591,6 @@ public static class SettingsManager
 	
 	public static void LoadMacros()
 	{
-		
 		geologyPresetLists = SettingsManager.GetPresetTitles(AppDataPath() + "Presets/Geology/Macros/");
 	}
 	
@@ -549,6 +601,7 @@ public static class SettingsManager
 		string[] parse;
 		string[] filenames = new string [geologyPresets.Length];
 		int filenameID;
+		
 		for(int i = 0; i < geologyPresets.Length; i++)
 		{
 			parse = geologyPresets[i].Split(delimiters);
@@ -603,13 +656,14 @@ public struct EditorSettings
 	public RustCityPreset city;
 	public BreakerPreset breaker;
 	public bool macroSources;
+	public Favorites faves;
 
     public EditorSettings
     (
         string rustDirectory = @"C:\Program Files (x86)\Steam\steamapps\common\Rust", float prefabRenderDistance = 700f, float pathRenderDistance = 200f, 
         float waterTransparency = 0.2f, bool loadbundleonlaunch = false, bool terrainTextureSet = false, bool style = true, CrazingPreset crazing = new CrazingPreset(), PerlinSplatPreset perlinSplat = new PerlinSplatPreset(),
 		RipplePreset ripple = new RipplePreset(), OceanPreset ocean = new OceanPreset(), TerracingPreset terracing = new TerracingPreset(), PerlinPreset perlin = new PerlinPreset(), GeologyPreset geology = new GeologyPreset(), 
-		ReplacerPreset replacer = new ReplacerPreset(), RustCityPreset city = new RustCityPreset(), BreakerPreset breaker = new BreakerPreset(), bool macroSources = true, FilePreset application = new FilePreset()
+		ReplacerPreset replacer = new ReplacerPreset(), RustCityPreset city = new RustCityPreset(), BreakerPreset breaker = new BreakerPreset(), bool macroSources = true, FilePreset application = new FilePreset(), Favorites faves = new Favorites()
 	)
         {
             this.rustDirectory = rustDirectory;
@@ -632,5 +686,6 @@ public struct EditorSettings
 			this.breaker = breaker;
 			this.macroSources = macroSources;
 			this.application = application;
+			this.faves = faves;
         }
 }

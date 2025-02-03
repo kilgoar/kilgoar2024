@@ -61,6 +61,21 @@ public class TreeLOD : LODComponent
 		}
 		return -1; // Default fallback, shouldn't occur
 	}
+	
+	public List<Renderer> RendererList()
+	{
+		List<Renderer> renderers = new List<Renderer>();
+		if (States == null || States.Length == 0) return renderers;
+
+		foreach (TreeLODState state in States)
+		{
+			if (state.renderer != null)
+			{
+				renderers.Add(state.renderer);
+			}
+		}
+		return renderers;
+	}
 
     protected override void UpdateLOD(int newLevel)
     {

@@ -6,12 +6,14 @@ public class MeshCull : LODComponent
 {
     // Public Fields
 	private float cullDistance=25f; // Distance at which to cull the mesh
-    private Renderer renderer;
+    
+	private Renderer meshCullRenderer;
 
+	public override Renderer GetRenderer(){ return meshCullRenderer; }
  
 	protected override void Awake()
 	{
-		if (!gameObject.TryGetComponent(out renderer))
+		if (!gameObject.TryGetComponent(out meshCullRenderer))
 		{
 			Debug.LogWarning($"No Renderer component found on {gameObject.name}. Disabling MeshCull component.");
 			this.enabled = false; // Disable this script if no renderer is found
@@ -25,7 +27,7 @@ public class MeshCull : LODComponent
 
     protected override void CheckLOD(float distanceToCamera)
     {
-		if (renderer!=null){
+		if (meshCullRenderer!=null){
 			if (distanceToCamera > cullDistance)	{
 				HideObject();
 				return;
@@ -36,12 +38,12 @@ public class MeshCull : LODComponent
 
     private void HideObject()
     {
-        renderer.enabled = false;
+        meshCullRenderer.enabled = false;
     }
 
     private void ShowObject()
     {
-		renderer.enabled = true;
+		meshCullRenderer.enabled = true;
     }
 
     // Override this if you need to implement custom LOD behavior alongside culling

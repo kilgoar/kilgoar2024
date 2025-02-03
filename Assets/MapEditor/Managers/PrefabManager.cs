@@ -115,6 +115,21 @@ public static class PrefabManager
 	//public static Transform CollectionSelection { get; private set; }
 
     public static Dictionary<string, Transform> PrefabCategories = new Dictionary<string, Transform>();
+	
+	private static readonly Dictionary<uint, string> BlockedColliders = new Dictionary<uint, string>
+	{
+		// Radiation volumes
+		{2899507223, "Oil Rig Radiation"},
+		{1744658818, "Sphere Radiation"},
+		
+		// No-build volumes
+		{3224970585, "Sphere No Build"},
+		{4190049974, "Cube No Build"},
+		
+		// Use 1111111111 to represent all other listed volumes
+		{1111111111, "Other Blocked Volumes"} // This ID identifies all other volumes like AI, Audio, etc.
+	};
+
 
 	/*
 	public static void SetSelection(){
@@ -259,13 +274,19 @@ public static class PrefabManager
 	public static GameObject Setup(GameObject go, string filePath)
 	{
 		// Apply global changes to the GameObject
-		go.SetLayerRecursively(8);
+		go.SetLayerRecursively(3);
 		go.SetTagRecursively("Untagged");
 		go.tag = "Prefab";
 		go.SetStaticRecursively(false);
 		go.RemoveNameUnderscore();
 		
-		// Convert Span to Array
+		//fast load monuments pseudo code
+		//try to retrieve the lod master mesh object (always child object)//
+		//demonstrate fetching a list of lod components//
+		//retrieve renderers//
+		//fix renderer mode on them and see what happens//
+		//skip out on slow loading (below) //
+		
 		Component[] allComponents = go.GetComponentsInChildren<Component>(true);
 
 		// Attach prefab data holder
@@ -285,7 +306,7 @@ public static class PrefabManager
 				{
 					unprocessedColliders.Add(collider);
 				}
-				//collider.enabled = false;
+				
 				continue;
 			}
 			
@@ -366,10 +387,36 @@ public static class PrefabManager
 		return go;
 	}
 
+	public static (string colliderName, string parentName, string monumentName) GetHierarchyInfo(this GameObject gameObject)
+    {
+        List<string> pathComponents = new List<string>();
+        Transform current = gameObject.transform;
+
+        // Traverse up the hierarchy without reversing
+        while (current != null)
+        {
+            pathComponents.Add(current.name);
+            current = current.parent;
+        }
+
+        // Ensure we have at least three components for collider, parent, and monument
+        if (pathComponents.Count < 2)
+        {
+            return (pathComponents[0], "", "");
+        }
+
+        string colliderName = pathComponents[0]; // First element is the collider's GameObject
+        string parentName = pathComponents[1]; // Second element is the parent
+        string monumentName = pathComponents[pathComponents.Count - 1]; // Second to last element, always representing the monument
+
+        return (colliderName, parentName, monumentName);
+    }
+
     public static void ActivateColliders()
     {
         foreach (var collider in unprocessedColliders)
         {
+
             if (collider is MeshCollider meshCollider)
             {
                 if (meshCollider.sharedMesh is { isReadable: true })
@@ -392,7 +439,16 @@ public static class PrefabManager
             }
             else
             {
-                collider.enabled = true; // Enable non-MeshCollider colliders
+				//identify non-mesh monument colliders which interfere with selecting items, using prefab breaking dictionary
+				var (firstName, parentName, monumentName) = collider.gameObject.GetHierarchyInfo();
+				uint testID = AssetManager.fragmentToID(firstName, parentName, monumentName);
+		
+				if (BlockedColliders.ContainsKey(testID) )  //blocked collider dictionary lists interfering colliders
+				{
+					Debug.Log($"Interfering collider found: {BlockedColliders[testID]} at {collider.gameObject.name}");
+					collider.gameObject.layer = 2; //set to a layer that will not interact with ray casts
+				}
+                collider.enabled = true; // Enable non-MeshCollider colliders in any case
             }
         }
 
@@ -2376,38 +2432,26 @@ public static class PrefabManager
 			IsChangingPrefabs = false;
 		}
 
-		public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID, Transform prefabParent)
+	public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID, Transform prefabParent)
+	{
+		bool loading = LoadScreen.Instance == null;
+
+		int length = prefabs.Length;
+		
+		for (int i = 0; i < length; i++)
 		{
-			// Check if LoadScreen is initialized
-			if (LoadScreen.Instance == null)
-			{
-				Debug.LogError("LoadScreen instance is not available.");
-				yield break;
-			}
-			
-			int length = prefabs.Length;
-			string prefabName;
-			int index;
+			GameObject prefab = Load(prefabs[i].id);
+			Spawn(prefab, prefabs[i], prefabParent);
 
-			LoadScreen.Instance.Show();
-			List<Task> tasks = new List<Task>(length);
-			
-
-			for (int i = 0; i < length; i++)
+			if (loading)
 			{
-				index = i;
-				tasks.Add(Task.Run(() => 
-				{
-					GameObject prefab = Load(prefabs[index].id);
-					Spawn(prefab, prefabs[index], prefabParent);
-				}));
-				
-				LoadScreen.Instance.SetMessage($"Prefab {index + 1} of {length}");
-				LoadScreen.Instance.Progress((float)(index + 1) / length);
+				LoadScreen.Instance.SetMessage($"Prefab {i + 1} of {length}");
+				LoadScreen.Instance.Progress((float)(i + 1) / length);
 			}
-			
-			LoadScreen.Instance.Hide();
+
+			yield return null; // Wait for next frame before continuing loop
 		}
+	}
 		
 		public static IEnumerator SpawnCircuits(CircuitData[] circuitData, int progressID = 0)
 		{

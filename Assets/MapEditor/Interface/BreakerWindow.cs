@@ -47,13 +47,13 @@ public class BreakerWindow : MonoBehaviour
         buttons[8].onClick.AddListener(LoadID);
         buttons[9].onClick.AddListener(Send);
         buttons[10].onClick.AddListener(SaveOverride);
-        buttons[11].onClick.AddListener(LoadOverride);
+        //buttons[11].onClick.AddListener(LoadOverride);
 
 		tree.onNodeSelected.AddListener(OnNodeSelect);
 
         for (int i = 0; i < fields.Count; i++)        {
             int index = i; 
-            fields[i].onEndEdit.AddListener((value) => FieldChanged(index, value));
+            fields[i].onValueChanged.AddListener((value) => FieldChanged(index, value));
         }
     }
 
@@ -170,6 +170,7 @@ public class BreakerWindow : MonoBehaviour
             fields[17].text = selection.colliderScales.box.z.ToString();
             fields[18].text = selection.name;
             fields[19].text = selection.id.ToString();
+			fields[20].text = selection.name;
         }
     }
 
@@ -205,6 +206,17 @@ public class BreakerWindow : MonoBehaviour
 
     void FieldChanged(int index, string value)
     {
+		if (index == 20){
+					try
+						{
+							fields[21].text = SettingsManager.fragmentIDs.fragmentNamelist[fields[20].text].ToString();
+						}
+						catch (KeyNotFoundException)
+						{
+							fields[21].text = "";
+						}
+			return;
+		}
         DataChanged();
     }
 
@@ -221,6 +233,12 @@ public class BreakerWindow : MonoBehaviour
     void ReplacePrefabScaleWith(WorldSerialization.VectorData scale) => selection.prefabData.scale = scale;
     void LoadID() => Debug.Log("Load ID logic here");
     void Send() => Debug.Log("Send logic here");
-    void SaveOverride() => Debug.Log("Save Override logic here");
+    
+	private void SaveOverride(){
+			SettingsManager.fragmentIDs.fragmentNamelist[fields[20].text] = uint.Parse(fields[21].text);	
+			SettingsManager.fragmentIDs.Serialize();
+			SettingsManager.SaveFragmentLookup();
+	}
+	
     void LoadOverride() => Debug.Log("Load Override logic here");
 }

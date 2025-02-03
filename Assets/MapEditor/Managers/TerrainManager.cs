@@ -97,7 +97,7 @@ public static class TerrainManager
     public static int SplatMapRes { get; private set; }
     /// <summary>The world size of each splat relative to the terrain size it covers.</summary>
     public static float SplatSize { get => Land.terrainData.size.x / SplatMapRes; }
-
+	public static float SplatRatio { get => Land.terrainData.heightmapResolution / SplatMapRes; }
     public static bool AlphaDirty { get; set; } = true;
     #endregion
 
@@ -150,6 +150,38 @@ public static class TerrainManager
         }
         return Alpha;
     }
+	
+	public static bool[,] GetAlphaMap(int x, int y, int width, int height)
+	{
+		if (AlphaDirty)
+		{
+			Alpha = new bool[AlphaMapRes, AlphaMapRes]; // Assuming AlphaMapRes is the size of the entire map
+			Land.terrainData.GetHoles(0, 0, AlphaMapRes, AlphaMapRes);
+			AlphaDirty = false;
+		}
+
+		// Create a new array for the specified region
+		bool[,] regionAlpha = new bool[height, width];
+
+		// Copy the relevant part of Alpha to regionAlpha
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				if (x + j < AlphaMapRes && y + i < AlphaMapRes)
+				{
+					regionAlpha[i, j] = Alpha[y + i, x + j];
+				}
+				else
+				{
+					// If we're asking for an area outside the terrain, we'll default to false (no hole)
+					regionAlpha[i, j] = false;
+				}
+			}
+		}
+
+		return regionAlpha;
+	}
 	
 	public static void SetPreviewHoles(bool hole)
 	{
@@ -210,6 +242,29 @@ public static class TerrainManager
 		LandMask.terrainData.SetHeights(0, 0, heights);
 	}
 
+	public static void FillLandMaskAlpha(){
+		SetHoleMap(true);
+	}
+	
+
+	public static void SetHoleMap(bool hole)
+		{			
+			TerrainData terrainData = LandMask.terrainData;
+			int resolution = terrainData.heightmapResolution-1;
+
+			bool[,] holes = new bool[resolution, resolution];
+
+			for (int y = 0; y < resolution; y++)
+			{
+				for (int x = 0; x < resolution; x++)
+				{
+					holes[x, y] = hole;
+				}
+			}
+
+			terrainData.SetHoles(0, 0, holes);
+		}
+	
 	public static void SetBitMap(bool[,] bitmap)
 	{
 		if (LandMask == null)
@@ -277,19 +332,131 @@ public static class TerrainManager
 	{
 		LandMask.terrainData.SetHeights(0, 0, array);
 	}
+	
+	public static void SetLandMask(bool[,] array){
+		int size = array.GetLength(0) - 1;
+		bool[,] small = new bool[size, size];
 
-	public static void BitView(int index){
-		
+		for (int i = 0; i < size; i++)
+		{
+			for (int j = 0; j < size; j++)
+			{
+				small[i, j] = array[i, j];
+			}
+		}
+
+		LandMask.terrainData.SetHoles(0, 0, small);
+	}
+
+	// -1 shows alpha layer, others show topologies
+	public static void BitView(int index)
+	{
 		int res = AlphaMapRes;
-		if (index == -1){
-			LandMask.terrainData.SetHoles(0,0,Land.terrainData.GetHoles(0,0,res,res));
+		if (index == -1)
+		{
+			LandMask.terrainData.SetHoles(0, 0, Land.terrainData.GetHoles(0, 0, res, res));
 			return;
 		}
-		LandMask.terrainData.SetHoles(0,0,TopologyData.GetTopologyBitmap(TerrainTopology.IndexToType(index)));
-		
-		
-		return;
+
+		bool[,] screwed = TopologyData.GetTopologyBitmap(TerrainTopology.IndexToType(index));
+
+		int splatRatio = (int)TerrainManager.SplatRatio;
+		bool[,] upscaled = UpscaleBitmap(screwed);
+
+		LandMask.terrainData.SetHoles(0, 0, upscaled);
 	}
+
+
+
+public static bool[,] GetTopologyBitview(int layer, int x, int y, int width, int height)
+{
+    // Multiply x, y, width, and height by SplatRatio
+    int scaledX = (int)(x / SplatRatio);
+    int scaledY = (int)(y / SplatRatio);
+    int scaledWidth = (int)(width / SplatRatio);
+    int scaledHeight = (int)(height / SplatRatio);
+
+    return UpscaleBitmap(TopologyData.GetTopology(layer, scaledX, scaledY, scaledWidth, scaledHeight));
+}
+
+public static void SetTopologyBitview(int layer, int x, int y, int width, int height, bool[,] bitmap)
+{
+    // Divide x, y, width, and height by SplatRatio
+    int scaledX = (int)(x / SplatRatio);
+    int scaledY = (int)(y / SplatRatio);
+    int scaledWidth = (int)(width / SplatRatio);
+    int scaledHeight = (int)(height / SplatRatio);
+
+    TopologyData.SetTopology(layer, scaledX, scaledY, scaledWidth, scaledHeight, DownscaleBitmap(bitmap));
+}
+
+public static bool[,] DownscaleBitmap(bool[,] source)
+{
+    int splatRatio = (int)SplatRatio;
+    int sourceWidth = source.GetLength(0);
+    int sourceHeight = source.GetLength(1);
+    
+    int targetWidth = sourceWidth / splatRatio;
+    int targetHeight = sourceHeight / splatRatio;
+    
+    bool[,] downscaled = new bool[targetWidth, targetHeight];
+
+    for (int i = 0; i < targetWidth; i++)
+    {
+        for (int j = 0; j < targetHeight; j++)
+        {
+            // Determine the area to check for each downscaled pixel
+            bool anyTrue = false;
+            for (int x = 0; x < splatRatio; x++)
+            {
+                for (int y = 0; y < splatRatio; y++)
+                {
+                    int sourceX = i * splatRatio + x;
+                    int sourceY = j * splatRatio + y;
+                    if (sourceX < sourceWidth && sourceY < sourceHeight)
+                    {
+                        anyTrue |= source[sourceX, sourceY]; // Use OR to check if any pixel in the area is true
+                    }
+                }
+            }
+            downscaled[i, j] = anyTrue;
+        }
+    }
+
+    return downscaled;
+}
+
+
+
+public static bool[,] UpscaleBitmap(bool[,] source)
+{
+    int sourceWidth = source.GetLength(0);
+    int sourceHeight = source.GetLength(1);
+    
+	int targetWidth = sourceWidth*(int)SplatRatio;
+	int targetHeight = sourceHeight*(int)SplatRatio;
+	
+    bool[,] upscaled = new bool[targetWidth, targetHeight];
+
+    for (int i = 0; i < targetWidth; i++)
+    {
+        for (int j = 0; j < targetHeight; j++)
+        {
+            int sourceI = i / (int)SplatRatio;
+            int sourceJ = j / (int)SplatRatio;
+            if (sourceI < sourceWidth && sourceJ < sourceHeight)
+            {
+                upscaled[i, j] = source[sourceI, sourceJ];
+            }
+            else
+            {
+                upscaled[i, j] = false; // Default to false if out of bounds
+            }
+        }
+    }
+
+    return upscaled;
+}
 
 	public static void FillLandMask()
 	{
@@ -437,6 +604,51 @@ public static class TerrainManager
         Land.terrainData.SetHoles(0, 0, Alpha);
         AlphaDirty = false;
     }
+
+	/// <summary>Sets a specific region of the AlphaMap (Holes) of the terrain with only the changed areas.</summary>
+	public static void SetAlphaMap(bool[,] array, int x, int y, int width, int height)
+	{
+		if (array == null)
+		{
+			Debug.LogError($"SetAlphaMap(array, x: {x}, y: {y}, width: {width}, height: {height}) is null.");
+			return;
+		}
+
+		// Check if the provided array dimensions match the intended region size
+		if (array.GetLength(0) != height || array.GetLength(1) != width)
+		{
+			Debug.LogError($"SetAlphaMap(array[{array.GetLength(0)}, {array.GetLength(1)}], x: {x}, y: {y}, width: {width}, height: {height}) dimensions invalid, should be array[{height}, {width}].");
+			return;
+		}
+
+		// Ensure Alpha has the size of the entire map
+		if (Alpha == null || Alpha.GetLength(0) != AlphaMapRes || Alpha.GetLength(1) != AlphaMapRes)
+		{
+			Alpha = new bool[AlphaMapRes, AlphaMapRes];
+		}
+
+		// Update Alpha with new data
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				// Check if the coordinate is within the bounds of the terrain
+				if (x + j < AlphaMapRes && y + i < AlphaMapRes)
+				{
+					Alpha[y + i, x + j] = array[i, j];
+				}
+				else
+				{
+					Debug.LogWarning($"Attempted to set a hole outside of terrain bounds at ({x + j}, {y + i}).");
+				}
+			}
+		}
+
+
+		// Set only the changed region of the holes
+		Land.terrainData.SetHoles(x, y, array);
+		AlphaDirty = false;
+	}
 
     private static void SplatMapChanged(Terrain terrain, string textureName, RectInt texelRegion, bool synched)
     {
@@ -779,13 +991,12 @@ public static class TerrainManager
 		
         if (terrain.Equals(Land))
 		{
-			FillLandMask();
+			//FillLandMask();
 		}
 
         ResetHeightCache();
         Callbacks.InvokeHeightMapUpdated(terrain.Equals(Land) ? TerrainType.Land : TerrainType.Water);
-		//what does this last line do
-		//i need to copy the heightmap over to landmask also whenever this changes
+		
     }
     #endregion
     #endregion
@@ -1137,7 +1348,7 @@ public static class TerrainManager
 
 		if (LayerDirty)
 		{
-				SaveLayer();
+			SaveLayer();
 		}
 
 		CurrentLayerType = layer;

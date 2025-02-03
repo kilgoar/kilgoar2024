@@ -1003,6 +1003,34 @@
         {
             "fragment": "cover_panel_e (29)",
             "id": 3775558681
+        },
+        {
+            "fragment": "TriggerWakeAIZ",
+            "id": 1111111111
+        },
+        {
+            "fragment": "NoRespawnZone",
+            "id": 1111111111
+        },
+        {
+            "fragment": "NexusFerryAvoid",
+            "id": 1111111111
+        },
+        {
+            "fragment": "MusicZone",
+            "id": 1111111111
+        },
+        {
+            "fragment": "Fog Volume",
+            "id": 1111111111
+        },
+        {
+            "fragment": "TunnelTriggerWakeAIZ",
+            "id": 1111111111
+        },
+        {
+            "fragment": "Reverb",
+            "id": 1111111111
         }
     ]
 }
