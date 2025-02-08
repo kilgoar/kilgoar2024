@@ -92,7 +92,7 @@
     "filename": "Presets/Geology/mars overhang rocks.json",
     "title": "pythagoras fields",
     "density": 132,
-    "frequency": 13,
+    "frequency": 419,
     "floor": 505,
     "ceiling": 1000,
     "biomeIndex": 0,
@@ -113,14 +113,14 @@
     "closeOverlap": false,
     "temperate": false,
     "arid": true,
-    "arctic": true,
-    "tundra": true,
+    "arctic": false,
+    "tundra": false,
     "road": false,
     "monument": false,
     "dither": false,
     "useSeed": false,
-    "slopeRange": true,
-    "curveRange": true,
+    "slopeRange": false,
+    "curveRange": false,
     "heightRange": true,
     "featureMenu": true,
     "rotationMenu": true,
@@ -169,12 +169,12 @@
     "heights": {
         "slopeLow": 0.0,
         "slopeHigh": 48.04412841796875,
-        "heightMin": 0.49077197909355166,
+        "heightMin": 0.5,
         "heightMax": 1.0,
         "curveMin": -1.0839223861694337,
         "curveMax": 1.076789140701294,
         "slopeWeight": 1.0,
         "curveWeight": 1.0
     },
-    "topologies": 2145905663
+    "topologies": 1139238144
 }

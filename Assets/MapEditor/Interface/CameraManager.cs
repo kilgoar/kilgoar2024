@@ -37,7 +37,7 @@ public class CameraManager : MonoBehaviour
 
 	private float currentTime;
 	private float lastUpdateTime = 0f;
-	private float updateFrequency = .01666f;
+	private float updateFrequency = .5f;
 	
 	private ObjectTransformGizmo _objectMoveGizmo;
     private ObjectTransformGizmo _objectRotationGizmo;
@@ -50,6 +50,7 @@ public class CameraManager : MonoBehaviour
 	
 	private GizmoId _workGizmoId;
 	private ObjectTransformGizmo _workGizmo;
+
 
     FilePreset settings;
 	
@@ -234,21 +235,19 @@ public class CameraManager : MonoBehaviour
 			DeleteSelection();
 		}
 		
-		if (globalMove!=Vector3.zero){			
+		if (globalMove!=Vector3.zero){
+		
 			cam.transform.position += globalMove;
-			position = cam.transform.position;
-			
-			if (LoadScreen.Instance.isEnabled){
-				return;
-			}
+			position = cam.transform.position;			
 			currentTime = Time.time;
-			if (currentTime - lastUpdateTime < updateFrequency)
+			
+			if (currentTime - lastUpdateTime > updateFrequency)
 			{
-				return;
+				AreaManager.UpdateSectors(position, settings.prefabRenderDistance);
 			}
 			lastUpdateTime = currentTime;
-			AreaManager.UpdateSectors(position, settings.prefabRenderDistance);	//send changed position to area manager for LODs
 		}
+
     }
 	
 	public void SelectPrefab(PrefabDataHolder holder){

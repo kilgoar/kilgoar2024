@@ -57,9 +57,11 @@ public static class PrefabManager
 		
 		TransformTool = GameObject.FindGameObjectWithTag("TransformTool").transform;
 		
-		
+		DefaultCollider = GameObject.FindGameObjectWithTag("DefaultCollider");
+		boxCollider = DefaultCollider.GetComponent<BoxCollider>();
 		
 		EditorSpace = GameObject.FindGameObjectWithTag("EditorSpace").transform;
+		
 		
         if (DefaultPrefab != null && PrefabParent != null)
         {
@@ -90,6 +92,8 @@ public static class PrefabManager
 	public static Transform TransformTool;
 	
     public static GameObject DefaultPrefab { get; private set; }
+	public static GameObject DefaultCollider { get; private set; }
+	public static BoxCollider boxCollider { get; private set; }
 	
     public static Transform PrefabParent { get; private set; }
     public static GameObject PrefabToSpawn;
@@ -116,6 +120,10 @@ public static class PrefabManager
 
     public static Dictionary<string, Transform> PrefabCategories = new Dictionary<string, Transform>();
 	
+	
+	
+    
+	 
 	private static readonly Dictionary<uint, string> BlockedColliders = new Dictionary<uint, string>
 	{
 		// Radiation volumes
@@ -268,6 +276,9 @@ public static class PrefabManager
         return obj.transform;
     }
 
+
+
+
     /// <summary>Sets up the prefabs loaded from the bundle file for use in the editor.</summary>
     /// <param name="go">GameObject to process, should be from one of the asset bundles.</param>
     /// <param name="filePath">Asset filepath of the gameobject, used to get and set the PrefabID.</param>
@@ -347,40 +358,36 @@ public static class PrefabManager
 
 			if (component is CanvasGroup canvasGroup)
 			{
-				canvasGroup.enabled = true;
+				canvasGroup.enabled = false;
 				continue;
 			}
 
 			if (component is Animator animator)
 			{
-				animator.enabled = true;
+				animator.enabled = false;
 				animator.runtimeAnimatorController = null;
 				continue;
 			}
 
 			if (component is Light light)
 			{
-				light.enabled = true;
+				light.enabled = false;
 				continue;
 			}
 
 			if (component is ParticleSystem particleSystem)
 			{
 				var emission = particleSystem.emission;
-				emission.enabled = true;
+				emission.enabled = false;
 				continue;
 			}
 
 
 		}
 		if(unprocessedColliders.Count == 0){
-			
-			BoxCollider defaultCollider = go.AddComponent<BoxCollider>();
-			defaultCollider.size = new Vector3(1f, 1f, 1f);
-			defaultCollider.center = Vector3.zero;
-			unprocessedColliders.Add(defaultCollider);
+			boxCollider = go.AddComponent<BoxCollider>();
 		}
-		ActivateColliders(go);
+		ActivateColliders();
 		
 		prefabDataHolder.AddLODs(lodComponents);
 		go.SetActive(true);
@@ -412,7 +419,7 @@ public static class PrefabManager
 			return (colliderName, parentName, monumentName);
 		}
 	
-	public static void ActivateColliders(GameObject go)
+	public static void ActivateColliders()
 	{
 
 		foreach (var collider in unprocessedColliders)
@@ -455,24 +462,14 @@ public static class PrefabManager
 							
 							if (BlockedColliders.TryGetValue(testID, out string blockedColliderName))
 							{
-								Debug.LogError($"Interfering collider found: {blockedColliderName} at {collider.gameObject.name}");
+								//Debug.LogError($"Interfering collider found: {blockedColliderName} at {collider.gameObject.name}");
 								collider.gameObject.layer = 2; // Set to a layer that won't interact with ray casts
 							}
 						}
-						else
-						{
-							Debug.LogWarning($"Hierarchy info for {collider.gameObject.name} contains null or empty strings.");
-						}
+						
 					}
-					else
-					{
-						Debug.LogWarning($"Failed to get hierarchy info for {collider.gameObject.name}");
-					}
-				}
-				else
-				{
-					Debug.LogError("Collider's GameObject is null");
-				}
+					
+				}				
 				collider.enabled = true; // Enable non-MeshCollider colliders in any case
 			}
 		}
@@ -2359,31 +2356,46 @@ public static class PrefabManager
 	
 	
 	
-	private static class Coroutines
+private static class Coroutines
 	{
-		public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID)
+    static List<Task> tasks = new List<Task>();
+	
+	
+	//this is the better of the two spawn prefabs, keep this one first
+	public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID)
+	{
+		if (prefabs.Length == 0)
 		{
-			if(prefabs.Length == 0)	{
-				yield break;
-			}
-			LoadScreen.Instance.Show();
-
-			int length = prefabs.Length;
-			string prefabName;
-			
-			for (int i = 0; i < length; i++)
-			{
-				Spawn(Load(prefabs[i].id), prefabs[i], PrefabParent);
-				prefabName = AssetManager.ToName(prefabs[i].id);
-				LoadScreen.Instance.SetMessage($"Prefab {i + 1} of {length}");
-				LoadScreen.Instance.Progress((1f*i)/(1f*length));
-				yield return null;
-			}
-			
-			LoadScreen.Instance.Hide();
-
-
+			yield break;
 		}
+
+		LoadScreen.Instance.Show();
+
+		int length = prefabs.Length;
+		int batchSize = 32; // Number of prefabs to process before yielding
+
+		for (int i = 0; i < length; i++)
+		{
+			// Spawn the prefab
+			Spawn(Load(prefabs[i].id), prefabs[i], PrefabParent);
+
+			// Update progress
+			LoadScreen.Instance.SetMessage($"Prefab {i + 1} of {length}");
+			LoadScreen.Instance.Progress((1f * i) / (1f * length));
+
+			// Yield control every 'batchSize' iterations
+			if (i % batchSize == 0)
+			{
+				yield return null; // Yield to allow the engine to process other tasks
+			}
+		}
+
+		// Ensure a final yield to process any remaining work
+		yield return null;
+
+		LoadScreen.Instance.Hide();
+	}
+
 
 		public static IEnumerator DeletePrefabs(PrefabDataHolder[] prefabs, int progressID = 0)
 		{
@@ -2485,22 +2497,41 @@ public static class PrefabManager
 
 	public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID, Transform prefabParent)
 	{
-		bool loading = LoadScreen.Instance == null;
-
+		bool loading = LoadScreen.Instance != null; // Assuming you want to load when LoadScreen is active
+		int batchSize = 32; // Number of prefabs per batch, adjust based on performance needs
 		int length = prefabs.Length;
+		int batches = (length + batchSize - 1) / batchSize; // Ceiling division for number of batches
 		
-		for (int i = 0; i < length; i++)
+		List<Task> tasks = new List<Task>(length);
+
+		for (int batchIndex = 0; batchIndex < batches; batchIndex++)
 		{
-			GameObject prefab = Load(prefabs[i].id);
-			Spawn(prefab, prefabs[i], prefabParent);
+			int start = batchIndex * batchSize;
+			int end = Mathf.Min(start + batchSize, length);
 
 			if (loading)
 			{
-				LoadScreen.Instance.SetMessage($"Prefab {i + 1} of {length}");
-				LoadScreen.Instance.Progress((float)(i + 1) / length);
+				// Create a batch task
+				tasks.Add(Task.Run(() => 
+				{
+					for (int i = start; i < end; i++)
+					{
+						GameObject prefab = Load(prefabs[i].id);
+						Spawn(prefab, prefabs[i], prefabParent);
+					}
+				}));
+			}
+			else
+			{
+				// If not loading, spawn synchronously
+				for (int i = start; i < end; i++)
+				{
+					GameObject prefab = Load(prefabs[i].id);
+					Spawn(prefab, prefabs[i], prefabParent);
+				}
 			}
 
-			yield return null; // Wait for next frame before continuing loop
+			yield return null; // Wait for next frame after processing each batch
 		}
 	}
 		

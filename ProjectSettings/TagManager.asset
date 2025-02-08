@@ -20,6 +20,7 @@ TagManager:
   - loading
   - EmptyLOD
   - EasyRoads
+  - DefaultCollider
   layers:
   - Default
   - TransparentFX

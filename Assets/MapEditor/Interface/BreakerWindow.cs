@@ -58,6 +58,7 @@ public class BreakerWindow : MonoBehaviour
         buttons[8].onClick.AddListener(LoadID);
         buttons[9].onClick.AddListener(SendID);
         buttons[10].onClick.AddListener(SaveOverride);
+		buttons[12].onClick.AddListener(CollapseAllInTree);
 
 		tree.onNodeSelected.AddListener(OnNodeSelect);
 
@@ -587,7 +588,7 @@ public class BreakerWindow : MonoBehaviour
 	
 	void PopulateDropdown()
 	{
-		string[] monuments = SettingsManager.GetPresetTitles("Presets/Breaker/");
+		string[] monuments = SettingsManager.GetPresetTitles(SettingsManager.AppDataPath() + "Presets/Breaker/");
 		breakingList.options = monuments.Select(title => new Dropdown.OptionData(title)).ToList();
 	}
 	
@@ -757,7 +758,7 @@ public class BreakerWindow : MonoBehaviour
 			root = SerializeNode(rootNode)
 		};
 		// Step 2: Serialize and save the data to a file
-		string fileName = $"Presets/Breaker/{filename}.dat";
+		string fileName = SettingsManager.AppDataPath() + $"Presets/Breaker/{filename}.dat";
 		try
 		{
 			using (var fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None))
@@ -788,7 +789,7 @@ public class BreakerWindow : MonoBehaviour
 			return;
 		}
 
-		string fileName = $"Presets/Breaker/{filename}.dat";
+		string fileName = SettingsManager.AppDataPath() + $"Presets/Breaker/{filename}.dat";
 		SerializableTree serializableTree = null;
 
 		// Step 1: Read and deserialize the file

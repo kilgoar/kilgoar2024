@@ -28,7 +28,7 @@ public static class AreaManager
     {
         sectors.Clear();
         prefabDataBySector.Clear();
-        int sectorSize = 500;
+        int sectorSize = 200;
         for (int x = 0; x < TerrainManager.TerrainSize.x; x += sectorSize)
         {
             for (int z = 0; z < TerrainManager.TerrainSize.z; z += sectorSize)
@@ -43,7 +43,7 @@ public static class AreaManager
     public static Area CreateSector(int x, int z)
     {
         // Add center point 
-        int sectorSize = 500;
+        int sectorSize = 200;
         int x1 = (int)Mathf.Min(x + sectorSize, TerrainManager.TerrainSize.x);
         int z1 = (int)Mathf.Min(z + sectorSize, TerrainManager.TerrainSize.z);
         Area newSector = new Area(x, x1, z, z1);
@@ -63,7 +63,7 @@ public static class AreaManager
         }
 
         // If no sector found, create a new one for the position
-        int sectorSize = 500;
+        int sectorSize = 200;
         int xSector = (int)Mathf.Floor(position.x / sectorSize) * sectorSize;
         int zSector = (int)Mathf.Floor(position.z / sectorSize) * sectorSize;
 
@@ -76,60 +76,64 @@ public static class AreaManager
         return newSector;
     }
     
-	public static IEnumerator UpdateSectorsCoroutine(Vector3 position, float distance)
-	{
-		// Find sectors within the specified distance
-		List<Area> activeSectors = FindSectors(position, distance);
+public static IEnumerator UpdateSectorsCoroutine(Vector3 position, float distance)
+{
+    // Find sectors within the specified distance
+    List<Area> activeSectors = FindSectors(position, distance);
 
-		int sectorCount = activeSectors.Count;
-		int batchSize = 2; // Divide work into manageable batches
-		List<PrefabDataHolder> toRemove = new List<PrefabDataHolder>();
-		
-		// Process sectors in parallel using batches
-		for (int i = 0; i < sectorCount; i += batchSize)
-		{
-			int start = i;
-			int end = Mathf.Min(i + batchSize, sectorCount); // Calculate batch range
+    int sectorCount = activeSectors.Count;
+    int batchSize = 2; // Divide work into manageable batches
+    List<PrefabDataHolder> toRemove = new List<PrefabDataHolder>();
 
-			for (int j = start; j < end; j++)
-			{
-				Area sector = activeSectors[j];
-				
-				toRemove.Clear();
-				
-				if (prefabDataBySector.TryGetValue(sector, out List<PrefabDataHolder> prefabHolders))
-				{
-					// Use a list to collect items to remove
+    // Throttle settings
+    float checksPerSecond = 10f; // Target 10 checks per second
+    float delayBetweenBatches = 1f / checksPerSecond; // Time per check (0.1 seconds for 10 checks/second)
 
+    // Process sectors in parallel using batches
+    for (int i = 0; i < sectorCount; i += batchSize)
+    {
+        int start = i;
+        int end = Mathf.Min(i + batchSize, sectorCount); // Calculate batch range
 
-					foreach (var holder in prefabHolders)
-					{
-						if (holder != null)
-						{
-							holder.Refresh();
-						}
-						else
-						{
-							toRemove.Add(holder); // Mark for removal
-						}
-					}
+        for (int j = start; j < end; j++)
+        {
+            Area sector = activeSectors[j];
 
-					// Remove null entries from the list after processing
-					foreach (var holder in toRemove)
-					{
-						prefabHolders.Remove(holder);
-					}
+            toRemove.Clear();
 
-					// If the list becomes empty after removing nulls, consider removing the sector from the dictionary
-					if (prefabHolders.Count == 0)
-					{
-						prefabDataBySector.Remove(sector);
-					}
-				}
-			}
-		}
-		yield return null;
-	}
+            if (prefabDataBySector.TryGetValue(sector, out List<PrefabDataHolder> prefabHolders))
+            {
+                // Use a list to collect items to remove
+                foreach (var holder in prefabHolders)
+                {
+                    if (holder != null)
+                    {
+                        holder.Refresh();
+                    }
+                    else
+                    {
+                        toRemove.Add(holder); // Mark for removal
+                    }
+                }
+
+                // Remove null entries from the list after processing
+                foreach (var holder in toRemove)
+                {
+                    prefabHolders.Remove(holder);
+                }
+
+                // If the list becomes empty after removing nulls, consider removing the sector from the dictionary
+                if (prefabHolders.Count == 0)
+                {
+                    prefabDataBySector.Remove(sector);
+                }
+            }
+        }
+
+        // Add a delay to throttle the coroutine to ~10 checks per second
+        yield return new WaitForSeconds(delayBetweenBatches);
+    }
+}
 
     public static void UpdateSectors(Vector3 position, float distance)
     {
