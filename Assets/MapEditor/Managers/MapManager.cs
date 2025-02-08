@@ -613,10 +613,10 @@ public static class MapManager
 		//int spwCircuit = Progress.Start("Circuits", null, Progress.Options.Sticky, progressID);
 		
         
-		PrefabManager.SpawnPrefabs(mapInfo.prefabData, spwPrefab, parent);
+		PrefabManager.SpawnCustomPrefabs(mapInfo.prefabData, spwPrefab, parent);
 		//PrefabManager.SpawnCircuits(mapInfo.circuitData, spwCircuit);
 		#else
-		PrefabManager.SpawnPrefabs(mapInfo.prefabData, 0, parent);
+		PrefabManager.SpawnCustomPrefabs(mapInfo.prefabData, 0, parent);
 		#endif
     }
 	

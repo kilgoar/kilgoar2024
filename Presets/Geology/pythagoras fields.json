@@ -75,7 +75,12 @@
         },
         {
             "minMax": true,
-            "radius": 50.0,
+            "radius": 20.0,
+            "layer": 512
+        },
+        {
+            "minMax": false,
+            "radius": 70.0,
             "layer": 512
         }
     ],
@@ -87,7 +92,7 @@
     "filename": "Presets/Geology/mars overhang rocks.json",
     "title": "pythagoras fields",
     "density": 132,
-    "frequency": 339,
+    "frequency": 13,
     "floor": 505,
     "ceiling": 1000,
     "biomeIndex": 0,
@@ -106,7 +111,7 @@
     "cliffTest": false,
     "overlap": false,
     "closeOverlap": false,
-    "temperate": true,
+    "temperate": false,
     "arid": true,
     "arctic": true,
     "tundra": true,
@@ -162,12 +167,12 @@
     "slopeLow": 26.410537719726564,
     "slopeHigh": 147.50717163085938,
     "heights": {
-        "slopeLow": 1.1734871864318848,
-        "slopeHigh": 26.338247299194337,
+        "slopeLow": 0.0,
+        "slopeHigh": 48.04412841796875,
         "heightMin": 0.49077197909355166,
         "heightMax": 1.0,
         "curveMin": -1.0839223861694337,
-        "curveMax": 0.12875008583068849,
+        "curveMax": 1.076789140701294,
         "slopeWeight": 1.0,
         "curveWeight": 1.0
     },

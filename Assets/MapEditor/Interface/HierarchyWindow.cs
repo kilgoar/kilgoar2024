@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,6 +12,8 @@ using RustMapEditor.Variables;
 
 public class HierarchyWindow : MonoBehaviour
 {
+	public static HierarchyWindow Instance { get; private set; }
+
     public UIRecycleTree tree;
 	public InputField query;
 	public Text footer;
@@ -19,6 +22,21 @@ public class HierarchyWindow : MonoBehaviour
 	
 	public GameObject itemTemplate;
 	public GameObject content;
+	
+	private void Awake()
+    {
+        // Ensure only one instance of HierarchyWindow exists
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject); // Destroy duplicate instances
+        }
+        else
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject); // Optional: Persist across scenes
+        }
+    }
+
 	
     private void Start()
     {
@@ -59,6 +77,10 @@ public class HierarchyWindow : MonoBehaviour
 		string path;
 		path = tree.selectedNode.fullPath;
 		
+		if(tree.selectedNode.data!=null){
+			path=(string)tree.selectedNode.data;
+		}
+		
 		if(path == null){
 			return null;
 		}
@@ -86,14 +108,22 @@ public class HierarchyWindow : MonoBehaviour
 		PopulateItemList();
 	}
 	
+	public void PlacePrefab(Vector3 position){
+		if(tree.selectedNode!=null){
+			GenerativeManager.SpawnFeature(selectedNodeItem(), position-PrefabManager.PrefabParent.transform.position, Vector3.zero, Vector3.one, PrefabManager.PrefabParent);
+		}
+	}
+	
 	private void OnPlaceOrigin(){
+		if(tree.selectedNode!=null){
 		GenerativeManager.SpawnFeature(selectedNodeItem(), Vector3.zero, Vector3.zero, Vector3.one, PrefabManager.PrefabParent);
-		
+
 		Transform origin = PrefabManager.PrefabParent.GetChild(PrefabManager.PrefabParent.childCount - 1);
 		
 		//enable the window for access
 		AppManager.Instance.ActivateWindow(5);
 		BreakerWindow.Instance.PopulateTree(origin);
+		}
 	}
 	
 	public void PopulateItemList()
@@ -145,8 +175,8 @@ public class HierarchyWindow : MonoBehaviour
 	}
 
 	private void OnCheck(Node selection){
-		Debug.LogError("event triggereD");
 		SettingsManager.UpdateFavorite(selection);
+		SettingsManager.CheckFavorites(tree);
 	}
 
 	private void OnSelect(Node selection){
@@ -163,6 +193,10 @@ public class HierarchyWindow : MonoBehaviour
 		}
 		
 		string path = selection.fullPath;
+		
+		if(selection.data!=null){
+			path=(string)selection.data;
+		}
 		uint ID =  AssetManager.ToID(selection.fullPath + ".prefab");
 		
 		
@@ -187,25 +221,41 @@ public class HierarchyWindow : MonoBehaviour
     }
 	
 	private void LoadTree(){	
-		List<string> paths = new List<string>(AssetManager.BundleLookup.Keys);
+	
+		List<string> paths = new List<string>();
+		
+		foreach (var path in SettingsManager.faves.favoriteCustoms)		{
+				paths.Add("~Favorites/" + path);
+		}
+		paths.AddRange(AssetManager.BundleLookup.Keys);
 
 		string basePath = SettingsManager.AppDataPath() + "Custom";
 
 		List<string> collectionPaths = SettingsManager.GetDataPaths(basePath, "Custom");
-
+		
 		paths.AddRange(collectionPaths);
+
 
 		SettingsManager.ConvertPathsToNodes(tree, paths, ".prefab", query.text);
 		SettingsManager.CheckFavorites(tree);
+		
+
+		//this, but add "~Favorites/" to the beginning of the path
 	}
 
 
 	private void OnQueryEntered(string query)
     {
+		tree.Clear();
         LoadTree();
-		if(!query.Equals("",StringComparison.Ordinal))
+		if(!query.Equals("",StringComparison.Ordinal)){
 			tree.ExpandAll();
+			}
+		else{
+			tree.CollapseAll();
+		}
     }
+	
 
 
 

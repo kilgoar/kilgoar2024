@@ -1,0 +1,1036 @@
+{
+    "fragmentPairs": [
+        {
+            "fragment": "SimpleSwitch_RCD_PressButton",
+            "id": 2055550712
+        },
+        {
+            "fragment": "SimpleSwitch_garage",
+            "id": 2055550712
+        },
+        {
+            "fragment": "SimpleSwitch_Lab",
+            "id": 2055550712
+        },
+        {
+            "fragment": "SimpleSwitch_upstairs",
+            "id": 2055550712
+        },
+        {
+            "fragment": "walkway_b_support_pillar_var_300",
+            "id": 3008617311
+        },
+        {
+            "fragment": "walkway_b_150x150__no_rail",
+            "id": 252377240
+        },
+        {
+            "fragment": "arctic_base_ground_walkway_f_50",
+            "id": 988048472
+        },
+        {
+            "fragment": "walkway_b_300x300_a",
+            "id": 1287300856
+        },
+        {
+            "fragment": "walkway_b_300x300_corner",
+            "id": 1992713269
+        },
+        {
+            "fragment": "generator.static_powerplant",
+            "id": 1331920001
+        },
+        {
+            "fragment": "generator.static_garage",
+            "id": 1331920001
+        },
+        {
+            "fragment": "generator.static_escape",
+            "id": 1331920001
+        },
+        {
+            "fragment": "generator.static_main",
+            "id": 1331920001
+        },
+        {
+            "fragment": "generator.static_armory",
+            "id": 1331920001
+        },
+        {
+            "fragment": "FuseBox_surface",
+            "id": 3622071578
+        },
+        {
+            "fragment": "FuseBox_armory",
+            "id": 3622071578
+        },
+        {
+            "fragment": "fusebox_a",
+            "id": 3622071578
+        },
+        {
+            "fragment": "fusebox_entrance",
+            "id": 3622071578
+        },
+        {
+            "fragment": "fusebox_control_room",
+            "id": 3622071578
+        },
+        {
+            "fragment": "fusebox_surface",
+            "id": 3622071578
+        },
+        {
+            "fragment": "fusebox_armory",
+            "id": 3622071578
+        },
+        {
+            "fragment": "patrol_helicopter_gibs",
+            "id": 893284419
+        },
+        {
+            "fragment": "bunker.door",
+            "id": 4054330822
+        },
+        {
+            "fragment": "industrial_bld_j_grey",
+            "id": 239207260
+        },
+        {
+            "fragment": "industrial_bld_i_grey",
+            "id": 3947470407
+        },
+        {
+            "fragment": "industrial_bld_h_grey",
+            "id": 4109921046
+        },
+        {
+            "fragment": "industrial_bld_c_grey",
+            "id": 3218222784
+        },
+        {
+            "fragment": "industrial_bld_f_grey",
+            "id": 2378803546
+        },
+        {
+            "fragment": "industrial_bld_e_grey",
+            "id": 1926269204
+        },
+        {
+            "fragment": "fusebox",
+            "id": 3622071578
+        },
+        {
+            "fragment": "office_planter_600_brick",
+            "id": 362425135
+        },
+        {
+            "fragment": "rocket_factory_tower_ledge_a",
+            "id": 366766480
+        },
+        {
+            "fragment": "office_planter_300_brick",
+            "id": 217857271
+        },
+        {
+            "fragment": "Water_cull",
+            "id": 1206870171
+        },
+        {
+            "fragment": "sentry.bandit.static",
+            "id": 1386184467
+        },
+        {
+            "fragment": "SpawnGroupSnowmobile",
+            "id": 4133757319
+        },
+        {
+            "fragment": "simplelight_downstairs",
+            "id": 1797934483
+        },
+        {
+            "fragment": "simplelight_upstairs",
+            "id": 4133757319
+        },
+        {
+            "fragment": "train_crane_a_yellow",
+            "id": 1351652590
+        },
+        {
+            "fragment": "train_crane_a_red",
+            "id": 1198689434
+        },
+        {
+            "fragment": "water_tower_industrial_red",
+            "id": 128145233
+        },
+        {
+            "fragment": "spheretank_storage_tank",
+            "id": 4289935487
+        },
+        {
+            "fragment": "fx-fusebox-sparks",
+            "id": 0
+        },
+        {
+            "fragment": "ladder_volume_core (2)",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder (1)",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder_trigger_chimney",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder_volume_tower_b",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder_volume_tower_c",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder_volume_dock",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder_volume",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder_trigger_sewers",
+            "id": 3381066643
+        },
+        {
+            "fragment": "sliding_blast_door_PressButton",
+            "id": 4224395968
+        },
+        {
+            "fragment": "sliding_blast_door_WheelSwitch",
+            "id": 3767520300
+        },
+        {
+            "fragment": "ladder_volume (1)",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder_volume (2)",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder_volume (3)",
+            "id": 3381066643
+        },
+        {
+            "fragment": "ladder_volume (4)",
+            "id": 3381066643
+        },
+        {
+            "fragment": "windowhack",
+            "id": 3000049339
+        },
+        {
+            "fragment": "stairs_colider",
+            "id": 3000049339
+        },
+        {
+            "fragment": "collider_helper (2)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "collider_helper (1)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "collider_helper",
+            "id": 3000049339
+        },
+        {
+            "fragment": "/Barrel Spawner/",
+            "id": 1076121145
+        },
+        {
+            "fragment": "/Loot Spawner/",
+            "id": 2486800063
+        },
+        {
+            "fragment": "SafeZoneLarge",
+            "id": 316558065
+        },
+        {
+            "fragment": "MissionProvider_Stables_A",
+            "id": 930153435
+        },
+        {
+            "fragment": "MissionProvider_Stables_B",
+            "id": 3892089538
+        },
+        {
+            "fragment": "MissionProvider_Fishing_A",
+            "id": 350957926
+        },
+        {
+            "fragment": "MissionProvider_Fishing_B",
+            "id": 322083179
+        },
+        {
+            "fragment": "shop-music",
+            "id": 0
+        },
+        {
+            "fragment": "AlarmSystem",
+            "id": 680397581
+        },
+        {
+            "fragment": "stables_shopkeeper",
+            "id": 7488435
+        },
+        {
+            "fragment": "boat_shopkeeper",
+            "id": 2913617060
+        },
+        {
+            "fragment": "NPCVendingMachine_FishExchange",
+            "id": 712757139
+        },
+        {
+            "fragment": "Shopkeeper_VM_Invis (4)",
+            "id": 858853278
+        },
+        {
+            "fragment": "SafeZone",
+            "id": 316558065
+        },
+        {
+            "fragment": "recycler_static",
+            "id": 1729604075
+        },
+        {
+            "fragment": "Excavator_Lights",
+            "id": 863874129
+        },
+        {
+            "fragment": "Engine",
+            "id": 2982299738
+        },
+        {
+            "fragment": "Excavator_Output_Pile",
+            "id": 673116596
+        },
+        {
+            "fragment": "Excavator_Output_Pile (1)",
+            "id": 673116596
+        },
+        {
+            "fragment": "ReinforcementsListener",
+            "id": 667569163
+        },
+        {
+            "fragment": "LandingTrigger",
+            "id": 1594218189
+        },
+        {
+            "fragment": "SlotMachine",
+            "id": 2230162530
+        },
+        {
+            "fragment": "SlotMachine (1)",
+            "id": 2230162530
+        },
+        {
+            "fragment": "SlotMachine (2)",
+            "id": 2230162530
+        },
+        {
+            "fragment": "small_refinery_static",
+            "id": 919097516
+        },
+        {
+            "fragment": "carshredder.entity",
+            "id": 1114045676
+        },
+        {
+            "fragment": "Water Trigger",
+            "id": 1165979067
+        },
+        {
+            "fragment": "prevent_movement",
+            "id": 3521578167
+        },
+        {
+            "fragment": "prevent_movement (1)",
+            "id": 3521578167
+        },
+        {
+            "fragment": "prevent_movement (2)",
+            "id": 3521578167
+        },
+        {
+            "fragment": "prevent_movement (3)",
+            "id": 3521578167
+        },
+        {
+            "fragment": "prevent_movement (4)",
+            "id": 3521578167
+        },
+        {
+            "fragment": "DropZone",
+            "id": 4069184361
+        },
+        {
+            "fragment": "prevent_building",
+            "id": 3224970585
+        },
+        {
+            "fragment": "PreventBuilding (1)",
+            "id": 3224970585
+        },
+        {
+            "fragment": "Prevent_building",
+            "id": 3224970585
+        },
+        {
+            "fragment": "ReclaimContainerStatic",
+            "id": 3273404916
+        },
+        {
+            "fragment": "PlayerRespawnSpawner",
+            "id": 1919922518
+        },
+        {
+            "fragment": "PreventBuilding",
+            "id": 3224970585
+        },
+        {
+            "fragment": "window_hack",
+            "id": 3000049339
+        },
+        {
+            "fragment": "Cube",
+            "id": 3000049339
+        },
+        {
+            "fragment": "Cube (1)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "Cube (2)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "Cube (3)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "Cube (4)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "Cube (5)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "Cube (6)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "Cube (7)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "Cube (8)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "Cube (9)",
+            "id": 3000049339
+        },
+        {
+            "fragment": "airwolf_compound",
+            "id": 3614389919
+        },
+        {
+            "fragment": "elevator.static.top",
+            "id": 1033358365
+        },
+        {
+            "fragment": "corridor_train_tunnel_entrance",
+            "id": 840796039
+        },
+        {
+            "fragment": "entrance_monuments_b",
+            "id": 3604512213
+        },
+        {
+            "fragment": "entrance_monuments_a",
+            "id": 856899687
+        },
+        {
+            "fragment": "Water_Culling_Volume",
+            "id": 1206870171
+        },
+        {
+            "fragment": "phonebooth.static",
+            "id": 1009655496
+        },
+        {
+            "fragment": "Bandit Swamp Fog FX",
+            "id": 393956209
+        },
+        {
+            "fragment": "arctic_research_base_a_fx",
+            "id": 4258326242
+        },
+        {
+            "fragment": "bandit_conversationalist",
+            "id": 251735616
+        },
+        {
+            "fragment": "Marketplace",
+            "id": 3953076030
+        },
+        {
+            "fragment": "pavement_6x6_nocurb",
+            "id": 1771757602
+        },
+        {
+            "fragment": "pavement_6x6_nocurb (1)",
+            "id": 1771757602
+        },
+        {
+            "fragment": "pavement_6x6_nocurb (2)",
+            "id": 1771757602
+        },
+        {
+            "fragment": "pavement_6x6_nocurb (3)",
+            "id": 1771757602
+        },
+        {
+            "fragment": "ExcavatorSignalComputer",
+            "id": 3268004142
+        },
+        {
+            "fragment": "exhaust_colliders",
+            "id": 3000049339
+        },
+        {
+            "fragment": "/ScientistSpawners/",
+            "id": 2359528520
+        },
+        {
+            "fragment": "ScientistSpawnPoint",
+            "id": 2359528520
+        },
+        {
+            "fragment": "/HackedCrateSpawn/",
+            "id": 2043434947
+        },
+        {
+            "fragment": "/Terrain triggers/",
+            "id": 1960680350
+        },
+        {
+            "fragment": "/Collider helpers/",
+            "id": 3000049339
+        },
+        {
+            "fragment": "/helpers/",
+            "id": 3000049339
+        },
+        {
+            "fragment": "/military_tunnel_lab_scientist_spawner/",
+            "id": 2359528520
+        },
+        {
+            "fragment": "Door",
+            "id": 0
+        },
+        {
+            "fragment": "/AirWolfSpawner/",
+            "id": 3960558419
+        },
+        {
+            "fragment": "/HorseSpawners/",
+            "id": 4058311563
+        },
+        {
+            "fragment": "/BoatSpawner/",
+            "id": 2609911909
+        },
+        {
+            "fragment": "/Prevent_movement/",
+            "id": 3521578167
+        },
+        {
+            "fragment": "/Prevent_movment/",
+            "id": 3521578167
+        },
+        {
+            "fragment": "/Prevent Building/",
+            "id": 4190049974
+        },
+        {
+            "fragment": "/PreventBuilding (1)/",
+            "id": 4190049974
+        },
+        {
+            "fragment": "/PreventBuilding/",
+            "id": 4190049974
+        },
+        {
+            "fragment": "/SamSites/",
+            "id": 2934818568
+        },
+        {
+            "fragment": "/Diesel Spawner/",
+            "id": 3903362521
+        },
+        {
+            "fragment": "/ShredableSpawner/",
+            "id": 1995839277
+        },
+        {
+            "fragment": "/blocker/",
+            "id": 3521578167
+        },
+        {
+            "fragment": "/bandit_town_npc_spawner/",
+            "id": 967694666
+        },
+        {
+            "fragment": "/Crate Spawner Container Office/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner Tier2/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crates_spawner_tier2/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner Office/",
+            "id": 3071563544
+        },
+        {
+            "fragment": "/Crate Spawner Office (1)/",
+            "id": 3071563544
+        },
+        {
+            "fragment": "/Crate Spawner Tier/",
+            "id": 3071563544
+        },
+        {
+            "fragment": "/Crate Spawner Tier2 (1)/",
+            "id": 3071563544
+        },
+        {
+            "fragment": "/Crate Spawner Armory/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner High cabin/",
+            "id": 2486800063
+        },
+        {
+            "fragment": "/Crate Spawner Low cabin/",
+            "id": 2486800063
+        },
+        {
+            "fragment": "/Crate Spawner Warehouse/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner Control Room/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Electric_poles/",
+            "id": 4171653793
+        },
+        {
+            "fragment": "/Crate Spawner Bandit Core/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner_Lab/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner Plant/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner Tower/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner_L4/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner_L6/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner_L5/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Barrel Spawner Tower/",
+            "id": 1076121145
+        },
+        {
+            "fragment": "/Elite Spawner_Lab/",
+            "id": 1428457674
+        },
+        {
+            "fragment": "/Elite Spawner_L6/",
+            "id": 1428457674
+        },
+        {
+            "fragment": "HTNSpawn",
+            "id": 2359528520
+        },
+        {
+            "fragment": "/Barrel Spawner Plant/",
+            "id": 1076121145
+        },
+        {
+            "fragment": "/Ore LootSpawner/",
+            "id": 1654744457
+        },
+        {
+            "fragment": "/Minecart_spawner/",
+            "id": 2913715266
+        },
+        {
+            "fragment": "/Minecart Spawner/",
+            "id": 2913715266
+        },
+        {
+            "fragment": "/Minecrate_spawner/",
+            "id": 3843853141
+        },
+        {
+            "fragment": "/Minecrate Spawner/",
+            "id": 3843853141
+        },
+        {
+            "fragment": "/Mine_crate_spawner/",
+            "id": 3843853141
+        },
+        {
+            "fragment": "/Elite Spawner/",
+            "id": 1428457674
+        },
+        {
+            "fragment": "/Blue Spawner/",
+            "id": 1428457674
+        },
+        {
+            "fragment": "/Vehicle Comp Spawner/",
+            "id": 2499231611
+        },
+        {
+            "fragment": "/Food Spawner/",
+            "id": 244382885
+        },
+        {
+            "fragment": "/Crate Spawner/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crates_spawner/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner (1)/",
+            "id": 2486800063
+        },
+        {
+            "fragment": "/Barrel Spawner (1)/",
+            "id": 1076121145
+        },
+        {
+            "fragment": "/Barrel Spawner (2)/",
+            "id": 1076121145
+        },
+        {
+            "fragment": "/BarrelSpawner/",
+            "id": 1076121145
+        },
+        {
+            "fragment": "/Fuel/",
+            "id": 1604081969
+        },
+        {
+            "fragment": "/Oil Barrel Spawner/",
+            "id": 2997114422
+        },
+        {
+            "fragment": "/Crate Spawner_Average/",
+            "id": 2486800063
+        },
+        {
+            "fragment": "/Crate Spawner Average/",
+            "id": 2486800063
+        },
+        {
+            "fragment": "/Low Crate Spawner/",
+            "id": 2486800063
+        },
+        {
+            "fragment": "/Crate Spawner_Blend/",
+            "id": 2678767843
+        },
+        {
+            "fragment": "/Crate Spawner_Excellent/",
+            "id": 1428457674
+        },
+        {
+            "fragment": "/Oil_Barrels_spawner/",
+            "id": 2997114422
+        },
+        {
+            "fragment": "/Barrels_spawner/",
+            "id": 1076121145
+        },
+        {
+            "fragment": "Props",
+            "id": 0
+        },
+        {
+            "fragment": "Rocks",
+            "id": 0
+        },
+        {
+            "fragment": "Radiation",
+            "id": 0
+        },
+        {
+            "fragment": "GameObject",
+            "id": 0
+        },
+        {
+            "fragment": "Oil Rig FX",
+            "id": 3496704987
+        },
+        {
+            "fragment": "Oil Rig Lighting",
+            "id": 1051135025
+        },
+        {
+            "fragment": "oilrig_stairs_small",
+            "id": 2902432828
+        },
+        {
+            "fragment": "Small Oil Rig Lighting",
+            "id": 517659167
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn",
+            "id": 2663428525
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (3)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (2)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (1)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "manhole_square_big (2)",
+            "id": 2737816132
+        },
+        {
+            "fragment": "manhole_square_big (1)",
+            "id": 2737816132
+        },
+        {
+            "fragment": "manhole_square_big (3)",
+            "id": 2737816132
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (5)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (4)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "nuclear_silo_tunnel_300x600_crn (6)",
+            "id": 2663428525
+        },
+        {
+            "fragment": "cover panel decal e",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover panel e",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (1)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (2)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (3)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (4)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (28)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (5)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (6)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (7)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (8)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (9)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (10)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (11)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (12)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (13)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (14)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (15)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (16)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (17)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (18)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (19)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (20)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (21)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (22)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (23)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (24)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (25)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (26)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (27)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "cover_panel_e (29)",
+            "id": 3775558681
+        },
+        {
+            "fragment": "TriggerWakeAIZ",
+            "id": 1111111111
+        },
+        {
+            "fragment": "NoRespawnZone",
+            "id": 1111111111
+        },
+        {
+            "fragment": "NexusFerryAvoid",
+            "id": 1111111111
+        },
+        {
+            "fragment": "MusicZone",
+            "id": 1111111111
+        },
+        {
+            "fragment": "Fog Volume",
+            "id": 1111111111
+        },
+        {
+            "fragment": "TunnelTriggerWakeAIZ",
+            "id": 1111111111
+        },
+        {
+            "fragment": "Reverb",
+            "id": 1111111111
+        },
+        {
+            "fragment": "trigger",
+            "id": 1111111111
+        }
+    ]
+}

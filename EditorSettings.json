@@ -18,9 +18,9 @@
         "newBiome": 2,
         "newSplat": 16,
         "recentFiles": [
+            "F:\\Marsv12v1.0.7terrain.map",
             "F:\\Marspolygons.map",
             "F:\\NOS4000.map",
-            "F:\\Marsv12v1.0.7terrain.map",
             "F:\\Marsv10v1.0.8cliffsores.map",
             "F:\\Marspolygons.map.map",
             "F:\\newfolder3\\anasazi3k.v1.map",
@@ -282,8 +282,7 @@
     "macroSources": false,
     "faves": {
         "favoriteCustoms": [
-            "assets/bundled/prefabs/modding/lootables/crate_normal_random_spawner",
-            "~Custom/polygons/woodDodecahedron"
+            "assets/bundled/prefabs/autospawn/monument/offshore/oilrig_2"
         ]
     }
 }

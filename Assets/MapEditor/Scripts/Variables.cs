@@ -155,6 +155,7 @@ namespace RustMapEditor.Variables
 	{
 		All = Physics.AllLayers,
 		Prefabs = 1<<3,
+		Volumes = 1<<2,
 		Paths = 1<<9,
 		Land = 1<<10,
 		Water = 1<<4,

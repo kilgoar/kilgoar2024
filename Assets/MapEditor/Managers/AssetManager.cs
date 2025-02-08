@@ -374,7 +374,8 @@ public static class AssetManager
 		uint parentID = 0;
 		uint ID = 0;
 		uint returnID = 0;
-			
+		
+
 		if (SettingsManager.fragmentIDs.fragmentNamelist.TryGetValue("/" + parent + "/", out parentID))
 		{		}
 		else
@@ -397,7 +398,6 @@ public static class AssetManager
 			else
 			{		}
 		}
-		
 		
 
 		if (PrefabLookup.TryGetValue(newFragment, out ID))

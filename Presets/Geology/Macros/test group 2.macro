@@ -1,7 +1,10 @@
 {
     "macroList": [
-        "Presets/Geology/china cliffs.json",
-        "Presets/Geology/pythagoras fields.json",
-        "Presets/Geology/pythagoras fields.json"
+        "Presets/Geology/ore spawns.json",
+        "Presets/Geology/ore spawns.json",
+        "Presets/Geology/ore spawns.json",
+        "Presets/Geology/ore spawns.json",
+        "Presets/Geology/ore spawns.json",
+        "Presets/Geology/collider ui test.json"
     ]
 }

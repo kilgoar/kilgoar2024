@@ -28,7 +28,7 @@ public static class AreaManager
     {
         sectors.Clear();
         prefabDataBySector.Clear();
-        int sectorSize = 125;
+        int sectorSize = 500;
         for (int x = 0; x < TerrainManager.TerrainSize.x; x += sectorSize)
         {
             for (int z = 0; z < TerrainManager.TerrainSize.z; z += sectorSize)
@@ -43,7 +43,7 @@ public static class AreaManager
     public static Area CreateSector(int x, int z)
     {
         // Add center point 
-        int sectorSize = 125;
+        int sectorSize = 500;
         int x1 = (int)Mathf.Min(x + sectorSize, TerrainManager.TerrainSize.x);
         int z1 = (int)Mathf.Min(z + sectorSize, TerrainManager.TerrainSize.z);
         Area newSector = new Area(x, x1, z, z1);
@@ -63,7 +63,7 @@ public static class AreaManager
         }
 
         // If no sector found, create a new one for the position
-        int sectorSize = 125;
+        int sectorSize = 500;
         int xSector = (int)Mathf.Floor(position.x / sectorSize) * sectorSize;
         int zSector = (int)Mathf.Floor(position.z / sectorSize) * sectorSize;
 

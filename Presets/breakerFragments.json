@@ -817,10 +817,6 @@
             "id": 0
         },
         {
-            "fragment": "props",
-            "id": 0
-        },
-        {
             "fragment": "GameObject",
             "id": 0
         },
@@ -1030,6 +1026,10 @@
         },
         {
             "fragment": "Reverb",
+            "id": 1111111111
+        },
+        {
+            "fragment": "trigger",
             "id": 1111111111
         }
     ]

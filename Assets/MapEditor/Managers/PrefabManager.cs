@@ -280,22 +280,14 @@ public static class PrefabManager
 		go.SetStaticRecursively(false);
 		go.RemoveNameUnderscore();
 		
-		//fast load monuments pseudo code
-		//try to retrieve the lod master mesh object (always child object)//
-		//demonstrate fetching a list of lod components//
-		//retrieve renderers//
-		//fix renderer mode on them and see what happens//
-		//skip out on slow loading (below) //
-		
-		Component[] allComponents = go.GetComponentsInChildren<Component>(true);
-
 		// Attach prefab data holder
 		var prefabDataHolder = go.AddComponent<PrefabDataHolder>();
 		prefabDataHolder.prefabData = new PrefabData { id = AssetManager.ToID(filePath) };
+	
+		Component[] allComponents = go.GetComponentsInChildren<Component>(true);
 
 		// Create LOD component list
 		List<LODComponent> lodComponents = new List<LODComponent>(allComponents.Length);
-
 		for (int i = 0; i < allComponents.Length; i++)
 		{
 			var component = allComponents[i];
@@ -309,7 +301,7 @@ public static class PrefabManager
 				
 				continue;
 			}
-			
+			 
 			if (component is Renderer renderer)
 			{
 				try
@@ -361,100 +353,132 @@ public static class PrefabManager
 
 			if (component is Animator animator)
 			{
-				animator.enabled = false;
+				animator.enabled = true;
 				animator.runtimeAnimatorController = null;
 				continue;
 			}
 
 			if (component is Light light)
 			{
-				light.enabled = false;
+				light.enabled = true;
 				continue;
 			}
 
 			if (component is ParticleSystem particleSystem)
 			{
 				var emission = particleSystem.emission;
-				emission.enabled = false;
+				emission.enabled = true;
 				continue;
 			}
 
 
 		}
-		ActivateColliders();
-		prefabDataHolder.AddLODs(lodComponents);			
-		go.SetActive(false);
+		if(unprocessedColliders.Count == 0){
+			
+			BoxCollider defaultCollider = go.AddComponent<BoxCollider>();
+			defaultCollider.size = new Vector3(1f, 1f, 1f);
+			defaultCollider.center = Vector3.zero;
+			unprocessedColliders.Add(defaultCollider);
+		}
+		ActivateColliders(go);
+		
+		prefabDataHolder.AddLODs(lodComponents);
+		go.SetActive(true);
 		return go;
 	}
-
+	
 	public static (string colliderName, string parentName, string monumentName) GetHierarchyInfo(this GameObject gameObject)
-    {
-        List<string> pathComponents = new List<string>();
-        Transform current = gameObject.transform;
+		{
+			List<string> pathComponents = new List<string>();
+			Transform current = gameObject.transform;
 
-        // Traverse up the hierarchy without reversing
-        while (current != null)
-        {
-            pathComponents.Add(current.name);
-            current = current.parent;
-        }
+			// Traverse up the hierarchy without reversing
+			while (current != null)
+			{
+				pathComponents.Add(current.name);
+				current = current.parent;
+			}
 
-        // Ensure we have at least three components for collider, parent, and monument
-        if (pathComponents.Count < 2)
-        {
-            return (pathComponents[0], "", "");
-        }
+			// Ensure we have at least three components for collider, parent, and monument
+			if (pathComponents.Count < 2)
+			{
+				return (pathComponents[0], "", "");
+			}
 
-        string colliderName = pathComponents[0]; // First element is the collider's GameObject
-        string parentName = pathComponents[1]; // Second element is the parent
-        string monumentName = pathComponents[pathComponents.Count - 1]; // Second to last element, always representing the monument
+			string colliderName = pathComponents[0]; // First element is the collider's GameObject
+			string parentName = pathComponents[1]; // Second element is the parent
+			string monumentName = pathComponents[pathComponents.Count - 1]; // Second to last element, always representing the monument
 
-        return (colliderName, parentName, monumentName);
-    }
+			return (colliderName, parentName, monumentName);
+		}
+	
+	public static void ActivateColliders(GameObject go)
+	{
 
-    public static void ActivateColliders()
-    {
-        foreach (var collider in unprocessedColliders)
-        {
-
-            if (collider is MeshCollider meshCollider)
-            {
-                if (meshCollider.sharedMesh is { isReadable: true })
-                {
-                    try
-                    {
-                        meshCollider.convex = true;
-                        meshCollider.enabled = true;
-                    }
-                    catch
-                    {
-                        meshCollider.enabled = false;
-                    }
-                }
-                else
-                {
-                    meshCollider.enabled = false;
-                }
-                meshCollider.isTrigger = false;
-            }
-            else
-            {
-				//identify non-mesh monument colliders which interfere with selecting items, using prefab breaking dictionary
-				var (firstName, parentName, monumentName) = collider.gameObject.GetHierarchyInfo();
-				uint testID = AssetManager.fragmentToID(firstName, parentName, monumentName);
-		
-				if (BlockedColliders.ContainsKey(testID) )  //blocked collider dictionary lists interfering colliders
+		foreach (var collider in unprocessedColliders)
+		{
+			if (collider is MeshCollider meshCollider)
+			{
+				if (meshCollider.sharedMesh != null && meshCollider.sharedMesh.isReadable)
 				{
-					Debug.Log($"Interfering collider found: {BlockedColliders[testID]} at {collider.gameObject.name}");
-					collider.gameObject.layer = 2; //set to a layer that will not interact with ray casts
+					try
+					{
+						meshCollider.convex = true;
+						meshCollider.enabled = true;
+					}
+					catch
+					{
+						meshCollider.enabled = false;
+					}
 				}
-                collider.enabled = true; // Enable non-MeshCollider colliders in any case
-            }
-        }
-
-        // Clear the cache after activation
-        unprocessedColliders.Clear();
-    }
+				else
+				{
+					meshCollider.enabled = false;
+				}
+				meshCollider.isTrigger = false;
+			}
+			else
+			{
+				// Check if the GameObject is valid before proceeding
+				if (collider.gameObject != null)
+				{
+					
+					///hide problem volumes
+					var hierarchyInfo = collider.gameObject.GetHierarchyInfo();					
+					if (hierarchyInfo != default((string, string, string)))
+					{
+						var (firstName, parentName, monumentName) = hierarchyInfo;
+						
+						if (!string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(parentName) && !string.IsNullOrEmpty(monumentName))
+						{
+							uint testID = AssetManager.fragmentToID(firstName, parentName, monumentName);
+							
+							if (BlockedColliders.TryGetValue(testID, out string blockedColliderName))
+							{
+								Debug.LogError($"Interfering collider found: {blockedColliderName} at {collider.gameObject.name}");
+								collider.gameObject.layer = 2; // Set to a layer that won't interact with ray casts
+							}
+						}
+						else
+						{
+							Debug.LogWarning($"Hierarchy info for {collider.gameObject.name} contains null or empty strings.");
+						}
+					}
+					else
+					{
+						Debug.LogWarning($"Failed to get hierarchy info for {collider.gameObject.name}");
+					}
+				}
+				else
+				{
+					Debug.LogError("Collider's GameObject is null");
+				}
+				collider.enabled = true; // Enable non-MeshCollider colliders in any case
+			}
+		}
+		// Clear the cache after activation
+		unprocessedColliders.Clear();
+	}
 
 	
 	public static void Spawn(GameObject go, PrefabData prefabData, Transform parent)
@@ -833,23 +857,34 @@ public static class PrefabManager
 	
 	public static int GetFragmentStyle(BreakingData breakingData)
 	{
-		//stop scrap tarp gears trash
+		Debug.LogError("hey");
+		
+		if (breakingData.Equals((BreakingData)default))
+		{
+			return 0; // or some other sentinel value indicating an error or invalid input
+		}
+		Debug.LogError("babeh");
+		// Check for ignore condition
 		if (breakingData.ignore)
 		{
-			return 4;
+			return 4;  // trash
+		}	
+		else if (breakingData.prefabData!= null && breakingData.prefabData.id == 0){
+			return 2; // stop sign
+			
 		}
-		else if (breakingData.prefabData.id == 0)
+		else if (breakingData.colliderScales != null && 
+				 (breakingData.colliderScales.box != Vector3.zero || 
+				  breakingData.colliderScales.sphere != Vector3.zero || 
+				  breakingData.colliderScales.capsule != Vector3.zero))
 		{
-			return 2;
+			return 3; // tarp
 		}
-		else if((breakingData.colliderScales.box != Vector3.zero) || (breakingData.colliderScales.sphere != Vector3.zero) || (breakingData.colliderScales.capsule != Vector3.zero))
-		{
-			return 3;
-		}
-		else
+		else  // Default case
 		{
 			return 0;
 		}
+		Debug.LogError("ereerere");
 	}
 	
 	public static Texture2D GetIcon(BreakingData breakingData, IconTextures icons)
@@ -1090,6 +1125,11 @@ public static class PrefabManager
 		else { prefabsParent = parent; }
 		
 		GameObject defaultObj = Load(id);
+		
+		if (defaultObj==null){
+			Debug.LogError(id + " prefab asset not found. this should not be possible.");
+		}
+		
 		PrefabData newPrefab = new PrefabData();
 		defaultObj.SetActive(true);
 		
@@ -2157,6 +2197,17 @@ public static class PrefabManager
 								id = GetPalette(palette);
 							}
 		return id;
+	}
+
+	public static void SpawnCustomPrefabs(PrefabData[] prefabs, int progressID, Transform prefabParent)
+	{
+		int length = prefabs.Length;
+		
+		for (int i = 0; i < length; i++)
+		{
+			GameObject prefab = Load(prefabs[i].id);
+			Spawn(prefab, prefabs[i], prefabParent);
+		}
 	}
 
 	public static void deletePrefabsOffArid(PrefabDataHolder[] prefabs)

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16c437c744b3d4b4eb10c147ae6b5798, type: 3}
   m_Name: Height Range
   m_EditorClassIdentifier: 
-  maxSetting: 1000
+  maxSetting: 1
   minSetting: 0
   title: Height
   whole: 0

@@ -1,5 +1,6 @@
 {
     "macroList": [
-        "Presets/Geology/china cliffs.json"
+        "Presets/Geology/china cliffs.json",
+        "Presets/Geology/ore spawns.json"
     ]
 }

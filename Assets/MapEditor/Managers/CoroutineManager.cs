@@ -18,7 +18,9 @@ public class CoroutineManager : MonoBehaviour
     private Texture2D paintBrushTexture;
     private InputAction mouseLeftClick;
     private int heightTool;
-
+	private int layerMask = 1 << 10; // "Land" layer
+	private RaycastHit hit;
+	
     public static CoroutineManager Instance
     {
         get
@@ -130,14 +132,23 @@ public class CoroutineManager : MonoBehaviour
 
         if (Mouse.current.leftButton.wasPressedThisFrame && RTGizmosEngine.Get.HoveredGizmo == null)
         {
+			if (Keyboard.current.altKey.isPressed) {
+				if (HierarchyWindow.Instance!=null){
+					if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask)){
+						HierarchyWindow.Instance.PlacePrefab(hit.point); 
+					}
+
+				}
+			
+			}
             CameraManager.Instance.SelectPrefab();
         }
     }
 
     private void PaintBrushMode()
     {
-		int layerMask = 1 << 10; // "Land" layer				
-		RaycastHit hit;
+				
+		
         
 		if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask)){
 
@@ -170,7 +181,7 @@ public class CoroutineManager : MonoBehaviour
 		}
     }
 	
-	public void StopCoroutine(Coroutine coroutine)
+	public void StopRuntimeCoroutine(Coroutine coroutine)
 	{
 		if (coroutine != null)
 		{

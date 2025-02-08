@@ -39,9 +39,39 @@ public static class SettingsManager
 				CopyDirectory("Custom", Path.Combine(AppDataPath(), "Custom"));
 				CopyEditorSettings(Path.Combine(AppDataPath(), "EditorSettings.json"));
 		}
+		//overwrite [appdatapath]/presets/breakerFragments with (default) presets/breakerFragments.json - only if the default file is larger
+		UpdateBreakerFragmentsIfNewer();
 		
-        LoadSettings();
+		LoadFragmentLookup();
+		LoadSettings();
     }
+	
+	private static void UpdateBreakerFragmentsIfNewer()
+	{
+		string defaultFragmentsPath = "Presets/breakerFragments.json";
+		string targetFragmentsPath = Path.Combine(AppDataPath(), "Presets", "breakerFragments.json");
+		string autosavePath = Path.Combine(AppDataPath(), "Presets", "autosaveFragments.json");
+
+		if (File.Exists(defaultFragmentsPath))
+		{
+			if (File.Exists(targetFragmentsPath))
+			{
+				// Save existing file as autosave before overwriting
+				File.Copy(targetFragmentsPath, autosavePath, true);
+				Debug.Log("Saved current breakerFragments as autosaveFragments.json.");
+			}
+
+			if (!File.Exists(targetFragmentsPath) || new FileInfo(defaultFragmentsPath).Length > new FileInfo(targetFragmentsPath).Length)
+			{
+				File.Copy(defaultFragmentsPath, targetFragmentsPath, true);
+				Debug.Log("Updated breakerFragments.json with the default version.");
+			}
+		}
+		else
+		{
+			Debug.LogWarning("Default breakerFragments.json not found.");
+		}
+	}
 	
 	public static string AppDataPath()
 	{
@@ -71,6 +101,37 @@ public static class SettingsManager
         {
             string directoryName = Path.GetFileName(directory);
             CopyDirectory(directory, Path.Combine(destinationDir, directoryName));
+        }
+    }
+
+	public static void CopyFile(string sourcePath, string destinationPath, bool overwrite = true)
+    {
+        try
+        {
+            // Check if the source file exists
+            if (File.Exists(sourcePath))
+            {
+                // Copy the file to the destination
+                File.Copy(sourcePath, destinationPath, overwrite);
+                
+                // Log success
+                Debug.Log($"File copied from: {sourcePath} to: {destinationPath}");
+            }
+            else
+            {
+                // Log warning if source file does not exist
+                Debug.LogWarning($"Source file not found at: {sourcePath}");
+            }
+        }
+        catch (IOException e)
+        {
+            // Handle IO exceptions (like disk full, file in use, etc.)
+            Debug.LogError($"Error copying file: {e.Message}");
+        }
+        catch (UnauthorizedAccessException e)
+        {
+            // Handle permission issues
+            Debug.LogError($"Permission denied when copying file: {e.Message}");
         }
     }
 
@@ -223,6 +284,9 @@ public static class SettingsManager
 	
 	public static void AddFavorite(Node node){
 			string fullPath = node.fullPath;
+			if(node.data!=null){
+				fullPath = (string)node.data;
+			}
 
 			faves.favoriteCustoms.Add(fullPath);
 
@@ -233,8 +297,11 @@ public static class SettingsManager
 	public static void RemoveFavorite(Node node)
 	{
 		string fullPath = node.fullPath;
+		if(node.data!=null){
+			fullPath =  (string)node.data;
+		}
 
-			faves.favoriteCustoms.Remove(fullPath);
+		faves.favoriteCustoms.Remove(fullPath);
 
 
 		SaveSettings();
@@ -249,8 +316,11 @@ public static class SettingsManager
 
 	private static void CheckNode(Node node)
 	{
-
-		string fullPath = node.fullPath; // or however you get the full path for this node
+		string fullPath = node.fullPath; 
+		if(node.data != null){
+			fullPath =  (string)node.data;
+		}
+		
 		node.SetCheckedWithoutNotify(faves.favoriteCustoms.Contains(fullPath));
 
 
@@ -264,15 +334,20 @@ public static class SettingsManager
 	{
 		tree.Clear();
 		Dictionary<string, Node> nodeMap = new Dictionary<string, Node>();
-		
+
+		// Create a root node for "~Favorites" explicitly
+		Node favoritesRootNode = null;
+
 		foreach (string path in paths)
 		{
-			if (path.EndsWith(extension, StringComparison.Ordinal) || extension.Equals("override", StringComparison.Ordinal))
+			// Check if the path matches the extension or starts with "~Favorites/"
+			if (path.EndsWith(extension, StringComparison.Ordinal) || 
+				extension.Equals("override", StringComparison.Ordinal) || 
+				path.StartsWith("~Favorites/", StringComparison.Ordinal))
 			{
-				// Remove the "~Geology" prefix from the path
 				string searchPath = path.Replace(extension, "", StringComparison.Ordinal)
 										.Replace("\\", "/", StringComparison.Ordinal);
-				
+
 				// Strip the prefix "~Geology/" if present
 				if (searchPath.StartsWith("~Geology/", StringComparison.Ordinal))
 				{
@@ -282,35 +357,73 @@ public static class SettingsManager
 				// Proceed if it matches the search query or if the query is empty
 				if (string.IsNullOrEmpty(searchQuery) || searchPath.Contains(searchQuery, StringComparison.Ordinal))
 				{
-					string[] parts = searchPath.Split('/');
-					Node currentNode = null;
+					bool isFavoritePath = path.StartsWith("~Favorites/", StringComparison.Ordinal);
 
-					for (int i = 0; i < parts.Length; i++)
+					if (isFavoritePath)
 					{
-						string part = parts[i];
-						string fullPath = string.Join("/", parts, 0, i + 1);
-
-						if (!nodeMap.TryGetValue(fullPath, out currentNode))
+						// Handle "~Favorites/" paths: Flatten them under "~Favorites" root
+						if (favoritesRootNode == null)
 						{
-							currentNode = new Node(part);
-							nodeMap[fullPath] = currentNode;
+							// Create the "~Favorites" root node if it doesn't exist
+							favoritesRootNode = new Node("~Favorites");
+							tree.rootNode.nodes.AddWithoutNotify(favoritesRootNode);
+							favoritesRootNode.tree = tree;
+						}
 
-							if (i == 0)
+						// Extract the filename (last part of the path)
+						string filename = System.IO.Path.GetFileName(path);
+
+						// Create a node for the filename
+						Node favoriteNode = new Node(filename);
+
+						// Attach the actual path (without "~Favorites/") to node.data
+						string actualPath = path.Substring("~Favorites/".Length);
+						/*
+						if (!actualPath.EndsWith(extension, StringComparison.Ordinal))
+						{
+							actualPath += extension; // Add extension if not already present
+						}
+						*/
+						favoriteNode.data = actualPath;
+						
+						// Add the node directly under the "~Favorites" root
+						favoritesRootNode.nodes.AddWithoutNotify(favoriteNode);
+						favoriteNode.parentNode = favoritesRootNode;
+						favoriteNode.tree = tree;
+					}
+					else
+					{
+						// Handle non-"~Favorites/" paths (e.g., "~Geology/")
+						string[] parts = searchPath.Split('/');
+						Node currentNode = null;
+
+						for (int i = 0; i < parts.Length; i++)
+						{
+							string part = parts[i];
+							string fullPath = string.Join("/", parts, 0, i + 1);
+
+							if (!nodeMap.TryGetValue(fullPath, out currentNode))
 							{
-								// Add children of "~Geology" directly to the tree root
-								tree.rootNode.nodes.AddWithoutNotify(currentNode);
-							}
-							else
-							{
-								string parentPath = string.Join("/", parts, 0, i);
-								if (nodeMap.TryGetValue(parentPath, out Node parentNode))
+								currentNode = new Node(part);
+								nodeMap[fullPath] = currentNode;
+
+								if (i == 0)
 								{
-									parentNode.nodes.AddWithoutNotify(currentNode);
-									currentNode.parentNode = parentNode;
+									// Add top-level nodes directly to the tree root
+									tree.rootNode.nodes.AddWithoutNotify(currentNode);
 								}
-							}
+								else
+								{
+									string parentPath = string.Join("/", parts, 0, i);
+									if (nodeMap.TryGetValue(parentPath, out Node parentNode))
+									{
+										parentNode.nodes.AddWithoutNotify(currentNode);
+										currentNode.parentNode = parentNode;
+									}
+								}
 
-							currentNode.tree = tree;
+								currentNode.tree = tree;
+							}
 						}
 					}
 				}
@@ -545,7 +658,6 @@ public static class SettingsManager
 	{
 		string macroPath = AppDataPath() + $"Presets/Geology/{macroTitle}.json";
 		macro.Add(macroPath);
-		SaveGeologyMacro(macroTitle);
 	}
 	
 

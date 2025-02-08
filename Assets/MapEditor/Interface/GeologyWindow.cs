@@ -50,10 +50,9 @@ public class GeologyWindow : MonoBehaviour
 	public List<Toggle> TopologyToggles;
 	public Toggle everything;
 	
-	public Button StopGeneration;
+	public Button StopGeneration, include, exclude;
 	
 	public Image progress, frame;
-	
 	
 	public static GeologyWindow Instance { get; private set; }
     
@@ -82,8 +81,9 @@ public class GeologyWindow : MonoBehaviour
     void Start()    {
 		
 		PopulatePresetTree();
-		PopulateSettings();
-		
+		PopulateSettings();			
+		OnPresetListChanged(MacroDropDown.value);
+		colliderLayer = ColliderLayer.Prefabs;
 		
 		PresetField.onValueChanged.AddListener(_ => SendSettings());
 		macroField.onValueChanged.AddListener(_ => OnMacroFieldChanged());
@@ -137,6 +137,9 @@ public class GeologyWindow : MonoBehaviour
 		arctic.onValueChanged.AddListener(_ => SendSettingsPreview());
 		tundra.onValueChanged.AddListener(_ => SendSettingsPreview());
 		
+		exclude.onClick.AddListener(() => OnExcludeClicked());
+        include.onClick.AddListener(() => OnIncludeClicked());
+		
 		everything.onValueChanged.AddListener(_ => FlipEverything());
 		
 		for (int i = 0; i < TopologyToggles.Count; i++){
@@ -155,11 +158,39 @@ public class GeologyWindow : MonoBehaviour
 		DeletePreset.onClick.AddListener(OnDeletePreset);
 		StopGeneration.onClick.AddListener(OnStopGeneration);
 
-		
+		collisionLayer.onValueChanged.AddListener(OnCollisionLayerChanged);
 		//tabs.OnToggleChanged(1);
 		//tabs.OnToggleChanged(5);
 		SetPreview();
 		
+    }
+	
+	//clicking each one should make them become  non interactable and the other interactable
+	//
+    private void OnIncludeClicked()
+    {
+        var settings = SettingsManager.geology;
+        settings.avoidTopo = false;
+
+        // Update button states
+        include.interactable = false; // Disable include button
+        exclude.interactable = true;  // Enable exclude button
+		
+		SettingsManager.geology = settings;
+		SetPreview();
+    }
+
+    private void OnExcludeClicked()
+    {
+        var settings = SettingsManager.geology;
+        settings.avoidTopo = true;
+
+        // Update button states
+        include.interactable = true;  // Enable include button
+        exclude.interactable = false; // Disable exclude button
+		
+		SettingsManager.geology = settings;
+		SetPreview();
     }
 	
 	private void OnStopGeneration(){
@@ -208,7 +239,7 @@ public class GeologyWindow : MonoBehaviour
         RectTransform progressRect = progress.rectTransform;
 
         float frameWidth = frameRect.rect.width;
-        float newWidth = frameWidth * .95f * percent;
+        float newWidth = frameWidth * .98f * percent;
 
         // This method respects anchors
         progressRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, newWidth);
@@ -371,20 +402,18 @@ public class GeologyWindow : MonoBehaviour
 		PopulateCollisionList();
 		PopulateCollisionDropdown();
 		hierarchyWindow.PopulateItemList();
-	
-		OnPresetListChanged(MacroDropDown.value); //don't use zero but instead get the index from the  drop down MacroDropDown
+
 	}
 
 	private void AddCollisionItem()
 	{
 		GeologyCollisions item = new GeologyCollisions();
 		
-		if (int.TryParse(distance.text, out int parsedRadius))		{
+		if (float.TryParse(distance.text, out float parsedRadius))		{
 			item.radius = parsedRadius;
 		}
-		item.minMax = minMax;
+		item.minMax = minMax.isOn;
 		item.layer = colliderLayer;
-		
 		SettingsManager.geology.geologyCollisions.Add(item);
 		
 		PopulateCollisionList(); 
@@ -446,7 +475,13 @@ public class GeologyWindow : MonoBehaviour
 	
 	private void FlipEverything()	{
 		bool thing = everything.isOn;
-
+		
+		var geo = SettingsManager.geology;		
+		geo.avoidTopo=thing;
+		SettingsManager.geology =geo;
+		
+		SetPreview();
+		/*
 		// Use SetIsOnWithoutNotify to avoid triggering events
 		for (int i = 0; i < TopologyToggles.Count; i++)
 		{     
@@ -459,6 +494,7 @@ public class GeologyWindow : MonoBehaviour
 		tundra.SetIsOnWithoutNotify(thing);
 		SendSettings();
 		SetPreview();
+		*/
 	}
 	
 	private void PopulateToggleList()
@@ -488,6 +524,7 @@ public class GeologyWindow : MonoBehaviour
 
 			layerText.text = item.layer.ToString();
 			distanceField.text = item.radius.ToString(); 
+			minMaxToggle.isOn = item.minMax;
 
 			var currentItem = item;
 
@@ -523,23 +560,32 @@ public class GeologyWindow : MonoBehaviour
 		}
 	}
 	
-	private void PopulateCollisionDropdown()	{
+	private void PopulateCollisionDropdown()
+	{
 		collisionLayer.ClearOptions();
 
-		var options = new List<string>(Enum.GetNames(typeof(ColliderLayer)));
+		// Only add the specific layers you want to display
+		var options = new List<string>
+		{
+			nameof(ColliderLayer.Prefabs),
+			nameof(ColliderLayer.Volumes),
+			nameof(ColliderLayer.Paths),
+			nameof(ColliderLayer.Land),
+			nameof(ColliderLayer.Water)
+		};
 
 		collisionLayer.AddOptions(options);
 
-		collisionLayer.value = options.IndexOf(colliderLayer.ToString());
+		int defaultIndex = options.IndexOf(nameof(ColliderLayer.Prefabs)); // default
+		collisionLayer.value = defaultIndex >= 0 ? defaultIndex : 0; // Safe default to 0 if not found
 		collisionLayer.RefreshShownValue();
+		
 
-		collisionLayer.onValueChanged.AddListener(OnCollisionLayerChanged);
 	}
 	
 	private void OnCollisionLayerChanged(int index)
 	{
 		var selectedLayerName = collisionLayer.options[index].text;
-
 
 		if (Enum.TryParse(selectedLayerName, out ColliderLayer selectedLayer))		{
 			Debug.LogError((int)selectedLayer);
@@ -573,8 +619,7 @@ public class GeologyWindow : MonoBehaviour
 		
 	public void OnAddToPresetList(){
 
-		SettingsManager.AddToMacro(PresetField.text);
-		
+		SettingsManager.AddToMacro(PresetField.text);		
 		SettingsManager.SaveGeologyMacro(macroField.text);
 		SettingsManager.LoadGeologyMacro(macroField.text);
 		PopulatePresetList();
@@ -585,6 +630,7 @@ public class GeologyWindow : MonoBehaviour
 	}
 	
 	public void OnApplyPresetList(){
+		StopGeneration.interactable = false;
 		SettingsManager.LoadGeologyMacro(macroField.text);
 		GenerativeManager.ApplyGeologyTemplate();
 	}

@@ -46,6 +46,8 @@ public class CameraManager : MonoBehaviour
 	
 	private List<GameObject> _selectedObjects = new List<GameObject>();
 	
+	private int layerMask = 1 << 10; // "Land" layer	
+	
 	private GizmoId _workGizmoId;
 	private ObjectTransformGizmo _workGizmo;
 
@@ -203,7 +205,7 @@ public class CameraManager : MonoBehaviour
 
         float currentSpeed = movementSpeed * sprint * Time.deltaTime;
         globalMove = Vector3.zero;
-
+		
         if (key.wKey.isPressed) {
             globalMove += cam.transform.forward * currentSpeed;
         }
@@ -311,7 +313,6 @@ public void SelectPrefab()
 	if (hitPrefab != null)
 	{
 		GameObject hitObject = hitPrefab;
-		Debug.Log("Hitting object: " + hitObject.name);
 
 		// Search up for parent that has the "Prefab" tag
 		while (hitObject != null && !hitObject.CompareTag("Prefab"))
@@ -374,7 +375,6 @@ public void SelectPrefab()
 				}
 				else
 				{
-					Debug.LogError("No LODMasterMesh found on the prefab.");
 					EmissionHighlight(GetRenderers(hitObject));
 				}
 

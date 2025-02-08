@@ -2,5 +2,5 @@ using UnityEngine;
 
 public abstract class BaseNetworkable : MonoBehaviour
 {
-    public uint prefabID;
+    //public uint prefabID;
 }
