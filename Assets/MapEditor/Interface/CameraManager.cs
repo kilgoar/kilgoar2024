@@ -37,20 +37,22 @@ public class CameraManager : MonoBehaviour
 
 	private float currentTime;
 	private float lastUpdateTime = 0f;
-	private float updateFrequency = .5f;
+	private float updateFrequency = .3f;
 	
 	private ObjectTransformGizmo _objectMoveGizmo;
     private ObjectTransformGizmo _objectRotationGizmo;
     private ObjectTransformGizmo _objectScaleGizmo;
     private ObjectTransformGizmo _objectUniversalGizmo;
 	
-	private List<GameObject> _selectedObjects = new List<GameObject>();
+	public List<GameObject> _selectedObjects = new List<GameObject>();
 	
 	private int layerMask = 1 << 10; // "Land" layer	
 	
 	private GizmoId _workGizmoId;
 	private ObjectTransformGizmo _workGizmo;
 
+	private List<RaycastHit> previousHits = new List<RaycastHit>();
+	private int currentSelectionIndex = 0;
 
     FilePreset settings;
 	
@@ -175,18 +177,7 @@ public class CameraManager : MonoBehaviour
 			return;
 		}
 		
-        if (Keyboard.current.yKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Move);
-        else if (Keyboard.current.eKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Rotate);
-        else if (Keyboard.current.rKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Scale);
-        else if (Keyboard.current.tKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Universal);
 
-		/*
-        // Handle selection
-        if (Mouse.current.leftButton.wasPressedThisFrame && RTGizmosEngine.Get.HoveredGizmo == null)
-        {
-            SelectPrefab();
-        }
-		*/
 		//right click down (rotate cam)
 		if (mouse.rightButton.isPressed) {
 				mouseMovement = mouse.delta;
@@ -201,243 +192,308 @@ public class CameraManager : MonoBehaviour
 				cam.transform.rotation = dutchlessTilt;
 			}
 		
+		if(!AppManager.Instance.IsAnyInputFieldActive()){
 
-        sprint = key.shiftKey.isPressed ? 3f : 1f;
+			float sprint = .5f; // Default speed
 
-        float currentSpeed = movementSpeed * sprint * Time.deltaTime;
-        globalMove = Vector3.zero;
-		
-        if (key.wKey.isPressed) {
-            globalMove += cam.transform.forward * currentSpeed;
-        }
+			if (Keyboard.current.yKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Move);
+			else if (Keyboard.current.eKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Rotate);
+			else if (Keyboard.current.rKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Scale);
+			else if (Keyboard.current.tKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Universal);
 
-        if (key.sKey.isPressed) {
-            globalMove -= cam.transform.forward * currentSpeed;
-        }
-
-        if (key.aKey.isPressed) {
-            globalMove -= cam.transform.right * currentSpeed;
-        }
-
-        if (key.dKey.isPressed) {
-            globalMove += cam.transform.right * currentSpeed;
-        }
-
-        if (key.ctrlKey.isPressed) {
-            globalMove -= cam.transform.up * currentSpeed;
-        }
-
-        if (key.spaceKey.isPressed) {
-            globalMove += cam.transform.up * currentSpeed;
-        }
-		
-		if (key.deleteKey.isPressed) {
-			DeleteSelection();
-		}
-		
-		if (globalMove!=Vector3.zero){
-		
-			cam.transform.position += globalMove;
-			position = cam.transform.position;			
-			currentTime = Time.time;
-			
-			if (currentTime - lastUpdateTime > updateFrequency)
+			if (Keyboard.current.shiftKey.isPressed && Keyboard.current.altKey.isPressed)
 			{
-				AreaManager.UpdateSectors(position, settings.prefabRenderDistance);
+				sprint = 0.0375f; // Alt and Shift pressed
 			}
-			lastUpdateTime = currentTime;
-		}
+			else if (Keyboard.current.shiftKey.isPressed)
+			{
+				sprint = 3f; // Only Shift pressed
+			}
+			else if (Keyboard.current.altKey.isPressed)
+			{
+				sprint = 0.075f; // Only Alt pressed
+			}
 
-    }
+			float currentSpeed = movementSpeed * sprint * Time.deltaTime;
+
+			globalMove = Vector3.zero;
+			
+			if (key.wKey.isPressed) {
+				globalMove += cam.transform.forward * currentSpeed;
+			}
+
+			if (key.sKey.isPressed) {
+				globalMove -= cam.transform.forward * currentSpeed;
+			}
+
+			if (key.aKey.isPressed) {
+				globalMove -= cam.transform.right * currentSpeed;
+			}
+
+			if (key.dKey.isPressed) {
+				globalMove += cam.transform.right * currentSpeed;
+			}
+
+			if (key.ctrlKey.isPressed) {
+				globalMove -= cam.transform.up * currentSpeed;
+			}
+
+			if (key.spaceKey.isPressed) {
+				globalMove += cam.transform.up * currentSpeed;
+			}
+			
+			if (key.deleteKey.isPressed) {
+				DeleteSelection();
+				
+				if(ItemsWindow.Instance!=null){
+					ItemsWindow.Instance.PopulateList();
+				}
+				
+			}
+			
+			if (globalMove!=Vector3.zero){
+			
+				cam.transform.position += globalMove;
+				position = cam.transform.position;			
+				currentTime = Time.time;
+				
+				if (currentTime - lastUpdateTime > updateFrequency)
+				{
+					AreaManager.UpdateSectors(position, settings.prefabRenderDistance);
+				}
+				lastUpdateTime = currentTime;
+			}
+			
+			if(ItemsWindow.Instance!=null){
+				if(ItemsWindow.Instance.gameObject.activeInHierarchy){
+						ItemsWindow.Instance.UpdateData();
+					}
+				}
+		}
+	}
 	
-	public void SelectPrefab(PrefabDataHolder holder){
-		GameObject go = holder.gameObject;
+	public void SelectPrefabWithoutNotify(GameObject go){
 		_selectedObjects.Add(go);
+		ItemsWindow.Instance.SetSelection(go);
+		EmissionHighlight(GetRenderers(go));
 		UpdateGizmoState();
 	}
 	
+	public void SelectPrefab(GameObject go){
+		_selectedObjects.Add(go);
+		ItemsWindow.Instance.SetSelection(go);
+		EmissionHighlight(GetRenderers(go));
+		UpdateItemsWindow();
+		UpdateGizmoState();
 
-
+	}
+	
+	private void UpdateItemsWindow(){
+		if(ItemsWindow.Instance != null){
+			ItemsWindow.Instance.PopulateList();
+			ItemsWindow.Instance.CheckSelection();
+			itemTree.Rebuild();
+			ItemsWindow.Instance.FocusItem(_selectedObjects);
+		}
+	}
+	
 	public void DeleteSelection()
 	{
+		_workGizmo.Gizmo.SetEnabled(false);
 		// For each object in _selectedObjects, destroy the object
 		foreach (GameObject go in _selectedObjects) // Use ToList() to avoid modifying the collection while iterating
 		{
 			if (go != null)
 			{
+				//first find matching node by data in items window and delete it
+				Node toDestroy = itemTree.FindFirstNodeByDataRecursive(go);
+				if (toDestroy!=null){
+				toDestroy.parentNode.nodes.RemoveWithoutNotify(toDestroy);
+				}
 				UnityEngine.Object.Destroy(go); // Use UnityEngine.Object.Destroy for game objects
+				
 			}
 		}
-
-		// Clear the selected object list
 		_selectedObjects.Clear();
-
-		// Update gizmo state after deleting objects
+		
+		itemTree.Rebuild();
 		UpdateGizmoState();
 	}
 	
-public void SelectPrefab()
-{
-	int prefabLayerMask = 1 << 3; // prefab layer
-	int landLayerMask = 1 << 10; // land layer
-	int allLayersMask = ~0; // all layers
-
-	Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
-	RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, allLayersMask);
-
-	// Sort hits by distance to ensure we process them in order from closest to farthest
-	Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
-	bool landHitBeforePrefab = false;
-	GameObject hitPrefab = null;
-
-	foreach (RaycastHit hit in hits)
-	{
-		if ((1 << hit.transform.gameObject.layer & landLayerMask) != 0)
-		{
-			landHitBeforePrefab = true; // Land layer hit first or at the same time
-			break;
-		}
-
-		if ((1 << hit.transform.gameObject.layer & prefabLayerMask) != 0)
-		{
-			if (!landHitBeforePrefab) // Only select if no land layer was hit before
-			{
-				hitPrefab = hit.transform.gameObject;
-			}
-			break; // Stop looking once we find a prefab or if land was hit first
-		}
-	}
-
-	if (hitPrefab != null)
-	{
-		GameObject hitObject = hitPrefab;
-
-		// Search up for parent that has the "Prefab" tag
-		while (hitObject != null && !hitObject.CompareTag("Prefab"))
+	private GameObject FindParentWithTag(GameObject hitObject, string tag){
+		while (hitObject != null && !hitObject.CompareTag(tag))
 		{
 			hitObject = hitObject.transform.parent?.gameObject;
 		}
+		return hitObject;
+	}
+	
+	public void SelectPrefab()
+	{
+		int meshCount=0;
+		int volumesCount=0;
+		
+		int prefabLayerMask = 1 << 3; // prefab layer
+		int landLayerMask = 1 << 10; // land layer
+		int allLayersMask = ~0; // all layers
 
-		if (hitObject != null)
+		Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+		RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, allLayersMask);
+
+		Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+		// Determine the closest land distance
+		float landDistance = float.MaxValue;
+		foreach (var hit in hits)
 		{
-			List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(hitObject.GetComponentsInChildren<LODMasterMesh>());
-
-			if (hitObject.CompareTag("Prefab"))
+			if ((1 << hit.transform.gameObject.layer & landLayerMask) != 0)
 			{
-				PrefabDataHolder dataHolder = hitObject.GetComponent<PrefabDataHolder>();
+				landDistance = hit.distance;
+				break;
+			}
+		}
 
-				Node node = null;
-				if (itemTree != null)
-				{
-					node = itemTree.FindFirstNodeByDataRecursive(dataHolder);
-				}
+		// Rebuild the hits array with priority baked into the sorting
+		List<RaycastHit> prioritizedHits = new List<RaycastHit>();
 
-				// Multi-select with shift key
-				if (Keyboard.current.leftShiftKey.isPressed)
-				{
+		// Add prefabs first, only those closer than the land
+		foreach (var hit in hits)
+		{
+			if ((1 << hit.transform.gameObject.layer & prefabLayerMask) != 0 && hit.distance < landDistance)
+			{
+				prioritizedHits.Add(hit);
+				meshCount++;
+			}
+		}
+
+		// Add volumes next (layer 2), also limited by the land distance
+		foreach (var hit in hits)
+		{
+			if ((1 << hit.transform.gameObject.layer & (1 << 2)) != 0 && hit.distance < landDistance)
+			{
+				prioritizedHits.Add(hit);
+				volumesCount++;
+			}
+		}
+	
+		foreach (var hit in prioritizedHits)
+		{
+			Debug.LogError(hit.transform.name);
+		}
+	
+		Debug.LogError(meshCount + " meshes and " + volumesCount + " volumes");
+
+		// Check if the prioritized hits match the previous set
+		bool hitsUnchanged = prioritizedHits.SequenceEqual(previousHits);
+		
+
+		// If unchanged, cycle the selection
+		if (hitsUnchanged && prioritizedHits.Count > 1)
+		{
+			currentSelectionIndex = (currentSelectionIndex + 1) % prioritizedHits.Count;
+		}
+		else
+		{
+			currentSelectionIndex = 0;
+		}
+		
+		previousHits = new List<RaycastHit>(prioritizedHits);
+
+		// Select the current hit based on the index
+		GameObject hitPrefab = null;
+		if (prioritizedHits.Count > 0)
+		{
+			hitPrefab = prioritizedHits[currentSelectionIndex].transform.gameObject;
+		}
+
+
+
+		if (hitPrefab != null)
+		{
+			GameObject hitObject;
+			
+			if(Keyboard.current.altKey.isPressed){
+				hitObject = FindParentWithTag(hitPrefab, "Collection");
+			}
+			else{		
+				hitObject = FindParentWithTag(hitPrefab, "Prefab");
+			}
+			
+			if (hitObject != null)
+			{
+					List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(hitObject.GetComponentsInChildren<LODMasterMesh>());
+
 					if (_selectedObjects.Contains(hitObject)){
-						Unselect(hitObject);
-						return;
+							Unselect(hitObject);
+							return;
+					}
+
+					// Multi-select with shift key
+					if (Keyboard.current.leftShiftKey.isPressed)
+					{
+							_selectedObjects.Add(hitObject);
 					}
 					else
 					{
+						Unselect(); // Clear previous selection
 						_selectedObjects.Add(hitObject);
 					}
-				}
-				// Singular selection
-				else
-				{
-					Unselect(); // Clear previous selection
-					_selectedObjects.Add(hitObject);
-				}
-
-				if (node != null)
-				{
-					node.isChecked = true;
-					if (ItemsWindow.Instance != null)
-					{
-						ItemsWindow.Instance.enabled = true;
-						ItemsWindow.Instance.FocusList(node);
+					
+					//find corresponding node for item
+					Node node = null;
+					if (itemTree != null)	{
+						node = itemTree.FindFirstNodeByDataRecursive(hitObject);
 					}
-				}
 
-				// Use the lodMasterMesh to fetch renderers and highlight them
-				if (lodMasterMeshes.Count > 0)
-				{
-					List<Renderer> renderers = new List<Renderer>();
-					foreach (var lodMasterMesh in lodMasterMeshes)
-					{
-						renderers.AddRange(lodMasterMesh.FetchRenderers());
+					//focus item
+					if (node != null)	{
+						if (ItemsWindow.Instance != null)	{
+							ItemsWindow.Instance.FocusList(node);
+						}
 					}
-					EmissionHighlight(renderers);
-				}
-				else
-				{
-					EmissionHighlight(GetRenderers(hitObject));
-				}
 
-				UpdateGizmoState();
-				return;
+					// Use the lodMasterMesh to fetch renderers and highlight them
+					if (lodMasterMeshes.Count > 0)
+					{
+						List<Renderer> renderers = new List<Renderer>();
+						foreach (var lodMasterMesh in lodMasterMeshes)
+						{
+							renderers.AddRange(lodMasterMesh.FetchRenderers());
+						}
+						EmissionHighlight(renderers);
+					}
+					else
+					{
+						EmissionHighlight(GetRenderers(hitObject));
+					}
+					UpdateItemsWindow();
+					UpdateGizmoState();
+					return;
+				
 			}
 		}
-	}
 
 		Unselect();
 	}
 	
-	private void Unselect(GameObject obj)
+	public void Unselect(GameObject obj)
 	{
 		_selectedObjects.Remove(obj);
-
-		if (obj != null)
-		{
-			List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(obj.GetComponentsInChildren<LODMasterMesh>());
-			
-			if (lodMasterMeshes.Count > 0)
-			{
-				List<Renderer> renderers = new List<Renderer>();
-				foreach (var lodMasterMesh in lodMasterMeshes)
-				{
-					renderers.AddRange(lodMasterMesh.FetchRenderers());
-				}
-				EmissionUnhighlight(renderers);
-			}
-			else
-			{
-				Debug.LogError("attempting to unhighlight");
-				EmissionUnhighlight(GetRenderers(obj)); // Get the renderers from the object using helper method
-			}
-		}
+		EmissionUnhighlight(GetRenderers(obj)); // Get the renderers from the object using helper method
+		UpdateItemsWindow();
 		UpdateGizmoState();
 	}
 	
-	private void Unselect()
+	public void Unselect()
 	{
 		// Unhighlight all previously selected items
 		foreach (GameObject obj in _selectedObjects)
 		{
-			if (obj != null)
-			{
-				List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(obj.GetComponentsInChildren<LODMasterMesh>());
-				
-				if (lodMasterMeshes.Count > 0)
-				{
-					List<Renderer> renderers = new List<Renderer>();
-					foreach (var lodMasterMesh in lodMasterMeshes)
-					{
-						renderers.AddRange(lodMasterMesh.FetchRenderers());
-					}
-					EmissionUnhighlight(renderers);
-				}
-				else
-				{
-					EmissionUnhighlight(GetRenderers(obj)); // Get the renderers from selected objects using helper method
-				}
+			if (obj != null) {
+				EmissionUnhighlight(GetRenderers(obj)); // Get the renderers from selected objects using helper method
 			}
 		}
 		_selectedObjects.Clear();
-
 		// Disable all gizmos
 		_workGizmo.Gizmo.SetEnabled(false);
 		_objectMoveGizmo.Gizmo.SetEnabled(false);
@@ -449,25 +505,39 @@ public void SelectPrefab()
 	private List<Renderer> GetRenderers(GameObject gameObject)
 	{
 		List<Renderer> renderers = new List<Renderer>();
+		List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(gameObject.GetComponentsInChildren<LODMasterMesh>());
+				
+		//add renderers from hlod
+		if (lodMasterMeshes.Count > 0)
+			{
+				foreach (var lodMasterMesh in lodMasterMeshes)
+					{
+						renderers.AddRange(lodMasterMesh.FetchRenderers());
+						return renderers;
+					}
+			}
+		
+		
+		//add renderers by recursive traversal (too expensive for large objects)
+		AddRenderersFromChildren(ref renderers, gameObject);
 
+		return renderers;
+	}
+	
+	void AddRenderersFromChildren(ref List<Renderer> renderers, GameObject obj)
+	{
 		// Check if the GameObject itself has a Renderer component
-		Renderer renderer = gameObject.GetComponent<Renderer>();
+		Renderer renderer = obj.GetComponent<Renderer>();
 		if (renderer != null)
 		{
 			renderers.Add(renderer);
 		}
 
-		// Fetch Renderer components from all children
-		Renderer[] childRenderers = gameObject.GetComponentsInChildren<Renderer>();
-		foreach (Renderer childRenderer in childRenderers)
+		// Recursively check all children
+		foreach (Transform child in obj.transform)
 		{
-			if (childRenderer.gameObject != gameObject) // Avoid adding the parent's renderer if we've already added it
-			{
-				renderers.Add(childRenderer);
-			}
+			AddRenderersFromChildren(ref renderers, child.gameObject);
 		}
-
-		return renderers;
 	}
 
 	// Helper method to modify material settings for emission highlight
@@ -528,10 +598,6 @@ public void SelectPrefab()
         _objectRotationGizmo.Gizmo.SetEnabled(false);
         _objectScaleGizmo.Gizmo.SetEnabled(false);
         _objectUniversalGizmo.Gizmo.SetEnabled(false);
-
-
-
-
 
 
         // Set the new work gizmo

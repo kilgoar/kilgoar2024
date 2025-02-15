@@ -87,7 +87,7 @@ public static IEnumerator UpdateSectorsCoroutine(Vector3 position, float distanc
 
     // Throttle settings
     float checksPerSecond = 10f; // Target 10 checks per second
-    float delayBetweenBatches = 1f / checksPerSecond; // Time per check (0.1 seconds for 10 checks/second)
+    float delayBetweenBatches = .25f / checksPerSecond; // Time per check (0.1 seconds for 10 checks/second)
 
     // Process sectors in parallel using batches
     for (int i = 0; i < sectorCount; i += batchSize)

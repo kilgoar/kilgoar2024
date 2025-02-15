@@ -49,6 +49,8 @@ public static class PrefabManager
 	public static void RuntimeInit()
 	{
 		DefaultPrefab = Resources.Load<GameObject>("Prefabs/DefaultPrefab");
+		DefaultSphereVolume = Resources.Load<GameObject>("Prefabs/DefaultSphereVolume");
+		DefaultCubeVolume = Resources.Load<GameObject>("Prefabs/DefaultCubeVolume");
 		
 		ElectricsParent = GameObject.FindGameObjectWithTag("Electrics").transform;
         NPCsParent = GameObject.FindGameObjectWithTag("NPC").transform;
@@ -92,6 +94,9 @@ public static class PrefabManager
 	public static Transform TransformTool;
 	
     public static GameObject DefaultPrefab { get; private set; }
+	public static GameObject DefaultSphereVolume { get; private set; }
+	public static GameObject DefaultCubeVolume { get; private set; }
+	
 	public static GameObject DefaultCollider { get; private set; }
 	public static BoxCollider boxCollider { get; private set; }
 	
@@ -119,117 +124,27 @@ public static class PrefabManager
 	//public static Transform CollectionSelection { get; private set; }
 
     public static Dictionary<string, Transform> PrefabCategories = new Dictionary<string, Transform>();
-	
-	
-	
-    
-	 
-	private static readonly Dictionary<uint, string> BlockedColliders = new Dictionary<uint, string>
+
+	private static readonly List<string> BlockedColliderNames = new List<string>
 	{
-		// Radiation volumes
-		{2899507223, "Oil Rig Radiation"},
-		{1744658818, "Sphere Radiation"},
-		
-		// No-build volumes
-		{3224970585, "Sphere No Build"},
-		{4190049974, "Cube No Build"},
-		
-		// Use 1111111111 to represent all other listed volumes
-		{1111111111, "Other Blocked Volumes"} // This ID identifies all other volumes like AI, Audio, etc.
+		"TriggerWakeAIZ",
+		"TunnelTriggerWakeAIZ",
+		"Prevent Building",
+		"trigger",
+		"Reverb",
+		"Fog Volume",
+		"MusicZone",
+		"NexusFerryAvoid",
+		"NoRespawnZone",
+		"TargetDetection",
+		"Oil Rig Radiation",
+		"Sphere Radiation",
+		"Sphere No Build",
+		"Cube No Build",
+		"Airfield AI",
+		"Trainyard AI",
+		"RadiationSphere",
 	};
-
-
-	/*
-	public static void SetSelection(){
-		CollectionSelection = null;
-		CurrentSelection = null;
-		TransformToolManager.ToggleTransformTool(false);
-	}
-
-	public static void SetSelection(Transform collection)
-	{
-		CurrentSelection = null;
-		CollectionSelection = collection;
-
-		if (CollectionSelection != null)
-		{
-			TransformToolManager.ToggleTransformTool(true);
-			TransformTool.transform.localPosition = collection.localPosition;
-			return;
-		}
-		TransformToolManager.ToggleTransformTool(false);
-	}
-
-	public static void SetSelection(PrefabDataHolder prefab)
-	{
-		// Null out the collection selection
-		CollectionSelection = null;
-		CurrentSelection = prefab;
-
-		if (CurrentSelection != null)
-		{
-			// Calculate the final position using the helper method
-			Vector3 finalPosition = GetCollectionAdjustedPosition(prefab.transform);
-
-			// Set the final calculated position to the transform tool's local position
-			TransformToolManager.ToggleTransformTool(true);
-			TransformTool.transform.localPosition = finalPosition;
-		}
-		else
-		{
-			TransformToolManager.ToggleTransformTool(false);
-		}
-	}
-
-	public static void SyncSelection(Transform moveLocation)
-	{
-		if (CurrentSelection != null)
-		{
-			// Calculate the final position using the helper method
-			Vector3 finalPosition = GetCollectionAdjustedPosition(moveLocation, true);
-
-			// Update prefab data and cast it
-			CurrentSelection.prefabData.position = finalPosition;
-			CurrentSelection.CastPrefabData();
-		}
-		else if (CollectionSelection != null)
-		{
-			SyncTransformData(CollectionSelection, moveLocation);
-		}
-	}
-
-	public static Vector3 GetCollectionAdjustedPosition(Transform transform, bool subtract = false)
-	{
-		Vector3 adjustedPosition = transform.localPosition;
-		Transform parent = transform.parent;
-
-		// Traverse up the hierarchy and adjust position based on Collection parents
-		while (parent != null)
-		{
-			if (parent.CompareTag("Collection"))
-			{
-				if (subtract)
-				{
-					adjustedPosition -= parent.localPosition;
-				}
-				else
-				{
-					adjustedPosition += parent.localPosition;
-				}
-			}
-			parent = parent.parent;
-		}
-
-		return adjustedPosition;
-	}
-
-
-	private static void SyncTransformData(Transform target, Transform source)
-	{
-		if (target == null || source == null) return;
-		target.localPosition = source.localPosition;
-	}
-	*/
 	
     public static bool IsChangingPrefabs { get; private set; }
 
@@ -245,7 +160,12 @@ public static class PrefabManager
     /// <summary>Loads, sets up and returns the prefab at the prefab id.</summary>
     /// <param name="id">The prefab manifest id.</param>
     public static GameObject Load(uint id) => Load(AssetManager.ToPath(id));
-
+    public static GameObject LoadAsync(uint id)
+	{ 
+		ResourceRequest loadRequest = Resources.LoadAsync<GameObject>(AssetManager.ToPath(id));
+		return loadRequest.asset as GameObject;
+	}
+	
     /// <summary>Searches through all prefabs found in bundle files, returning matches.</summary>
     /// <returns>List of strings containing the path matching the <paramref name="key"/>.</returns>
     public static List<string> Search(string key)
@@ -444,13 +364,13 @@ public static class PrefabManager
 				}
 				meshCollider.isTrigger = false;
 			}
-			else
+			else 
 			{
 				// Check if the GameObject is valid before proceeding
 				if (collider.gameObject != null)
 				{
-					
-					///hide problem volumes
+					/*
+					//hide problem volumes
 					var hierarchyInfo = collider.gameObject.GetHierarchyInfo();					
 					if (hierarchyInfo != default((string, string, string)))
 					{
@@ -458,19 +378,22 @@ public static class PrefabManager
 						
 						if (!string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(parentName) && !string.IsNullOrEmpty(monumentName))
 						{
-							uint testID = AssetManager.fragmentToID(firstName, parentName, monumentName);
+							//uint testID = AssetManager.fragmentToID(firstName, parentName, monumentName);
 							
-							if (BlockedColliders.TryGetValue(testID, out string blockedColliderName))
+							if (BlockedColliderNames.Contains(firstName))
 							{
-								//Debug.LogError($"Interfering collider found: {blockedColliderName} at {collider.gameObject.name}");
+								Debug.LogError($"Interfering collider found: {firstName} at {monumentName}");
 								collider.gameObject.layer = 2; // Set to a layer that won't interact with ray casts
 							}
 						}
-						
 					}
+						*/
+						collider.gameObject.layer = 2; // Set to a layer to de-prioritize volume selections
+				
+					
 					
 				}				
-				collider.enabled = true; // Enable non-MeshCollider colliders in any case
+				collider.enabled = true; // Enable colliders 
 			}
 		}
 		// Clear the cache after activation
@@ -481,7 +404,6 @@ public static class PrefabManager
 	public static void Spawn(GameObject go, PrefabData prefabData, Transform parent)
 	{
 		GameObject newObj = GameObject.Instantiate(go, parent);
-
 		Transform transform = newObj.transform;
 
 		// Set all transform properties in one go to reduce calls
@@ -854,13 +776,11 @@ public static class PrefabManager
 	
 	public static int GetFragmentStyle(BreakingData breakingData)
 	{
-		Debug.LogError("hey");
-		
+
 		if (breakingData.Equals((BreakingData)default))
 		{
 			return 0; // or some other sentinel value indicating an error or invalid input
 		}
-		Debug.LogError("babeh");
 		// Check for ignore condition
 		if (breakingData.ignore)
 		{
@@ -881,7 +801,6 @@ public static class PrefabManager
 		{
 			return 0;
 		}
-		Debug.LogError("ereerere");
 	}
 	
 	public static Texture2D GetIcon(BreakingData breakingData, IconTextures icons)
@@ -905,6 +824,21 @@ public static class PrefabManager
 		}
 	}
 	
+	public static PrefabData ItemToPrefab(Transform item, string parentName, string monumentName, string categoryName)
+	{
+		var prefab = new PrefabData();
+		Vector3 scale = new Vector3();
+		scale = item.lossyScale;
+		
+		prefab.category = categoryName;
+		
+		prefab.position = item.position - PrefabParent.position;
+		prefab.rotation = item.eulerAngles;
+		prefab.id = AssetManager.fragmentToID(item.name, parentName, monumentName);
+		
+		prefab.scale = scale;
+		return prefab;
+	}
 	
 	public static PrefabData ItemToPrefab(Transform item, string parentName, string monumentName)
 	{
@@ -914,12 +848,11 @@ public static class PrefabManager
 		
 		prefab.category = monumentName;
 		
-		prefab.position = item.position;
+		prefab.position = item.position - PrefabParent.position;
 		prefab.rotation = item.eulerAngles;
 		prefab.id = AssetManager.fragmentToID(item.name, parentName, monumentName);
 		
 		prefab.scale = scale;
-		
 		return prefab;
 	}
 	
@@ -1424,6 +1357,46 @@ public static class PrefabManager
 			}
 		}
 		Debug.LogError(count + " prefabs deleted.");
+	}
+	
+	public static string removeDuplicates(PrefabDataHolder[] prefabs)
+	{
+		int count = 0;
+		Vector3 variance = new Vector3(.009f, .009f, .009f);
+		for (int k = 0; k < prefabs.Length; k++)
+		{
+			for (int l = 0; l <prefabs.Length; l++)
+			{
+				if (prefabs[k]!=null && prefabs[l]!=null)
+				{
+					if (prefabs[k].prefabData.id == prefabs[l].prefabData.id 
+					&& Mathf.Abs(prefabs[k].prefabData.position.x - prefabs[l].prefabData.position.x) < variance.x 
+					&& Mathf.Abs(prefabs[k].prefabData.position.y - prefabs[l].prefabData.position.y) < variance.y
+					&& Mathf.Abs(prefabs[k].prefabData.position.z - prefabs[l].prefabData.position.z) < variance.z	
+					
+					&& Mathf.Abs(prefabs[k].prefabData.rotation.x - prefabs[l].prefabData.rotation.x) < variance.x 
+					&& Mathf.Abs(prefabs[k].prefabData.rotation.y - prefabs[l].prefabData.rotation.y) < variance.y
+					&& Mathf.Abs(prefabs[k].prefabData.rotation.z - prefabs[l].prefabData.rotation.z) < variance.z	
+					
+					&& Mathf.Abs(prefabs[k].prefabData.scale.x - prefabs[l].prefabData.scale.x) < variance.x 
+					&& Mathf.Abs(prefabs[k].prefabData.scale.y - prefabs[l].prefabData.scale.y) < variance.y
+					&& Mathf.Abs(prefabs[k].prefabData.scale.z - prefabs[l].prefabData.scale.z) < variance.z	)
+					{
+						if (k!=l)
+						{
+							Debug.LogError(prefabs[k].prefabData.id + " x:" + prefabs[k].prefabData.position.x +
+							" y:" + prefabs[k].prefabData.position.y +
+							" z:" + prefabs[k].prefabData.position.z);
+							GameObject.DestroyImmediate(prefabs[k].gameObject);
+							prefabs[k] = null;
+							count ++;
+						}
+						
+					}
+				}
+			}
+		}
+		return (count + " duplicates removed");
 	}
 
 	public static void addSpawners()
@@ -2315,13 +2288,18 @@ public static class PrefabManager
 		Debug.LogError(count + " prefabs removed");
 	}
 	
-	public static void SpawnPrefabs(List<BreakingData> fragment, Transform parent)
-        {
-		
+	public static void UpdatePrefabs(){
+		foreach (PrefabDataHolder holder in CurrentMapPrefabs){
+			holder.UpdatePrefabData();
+		}
+	}
+	
+	public static void SpawnPrefabs(List<BreakingData> fragment, Transform parent)        {
+			
 			float adjustZ = 500f;
 			float adjustXY = TerrainManager.TerrainSize.x / 2f;
-			Vector3 adjuster = new Vector3(adjustXY,adjustZ,adjustXY);
 			
+			Vector3 adjuster = new Vector3(adjustXY,adjustZ,adjustXY);
 			
             for (int i = 0; i < fragment.Count; i++)
             {
@@ -2329,31 +2307,11 @@ public static class PrefabManager
 				{
 					if (fragment[i].prefabData.id != 0)
 					{
-						fragment[i].prefabData.position -= adjuster;
-						Spawn(Load(fragment[i].prefabData.id), fragment[i].prefabData, parent);	
-						fragment[i].prefabData.position += adjuster;
+						Spawn(Load(fragment[i].prefabData.id), fragment[i].prefabData, parent);
 					}
 				}
             }
         }
-	/*
-	public static void EnableColliders(PrefabDataHolder[] prefabs)
-        {
-            for (int i = 0; i < prefabs.Length; i++)
-            {                
-                prefabs[i].EnableColliders();
-            }
-        }
-		
-	public static void DisableColliders(PrefabDataHolder[] prefabs)
-        {
-            for (int i = 0; i < prefabs.Length; i++)
-            {                
-                prefabs[i].DisableColliders();
-            }
-        }
-	*/
-	
 	
 	
 private static class Coroutines
@@ -2361,42 +2319,67 @@ private static class Coroutines
     static List<Task> tasks = new List<Task>();
 	
 	
-	//this is the better of the two spawn prefabs, keep this one first
 	public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID)
 	{
+		// Check if the prefabs array is empty; if so, exit the coroutine early
 		if (prefabs.Length == 0)
 		{
 			yield break;
 		}
 
+		// Show the loading screen
 		LoadScreen.Instance.Show();
+
+		// Create prefab timer (for tracking elapsed time)
+		float timer = 0f;
+		float maxTimeBeforeYield = .75f; // Maximum time (in seconds) before yielding
 
 		int length = prefabs.Length;
 		int batchSize = 32; // Number of prefabs to process before yielding
+		
 
 		for (int i = 0; i < length; i++)
 		{
-			// Spawn the prefab
-			Spawn(Load(prefabs[i].id), prefabs[i], PrefabParent);
+			uint id = prefabs[i].id;
+			Spawn(Load(id), prefabs[i], PrefabParent);
+			
 
-			// Update progress
-			LoadScreen.Instance.SetMessage($"Prefab {i + 1} of {length}");
-			LoadScreen.Instance.Progress((1f * i) / (1f * length));
-
-			// Yield control every 'batchSize' iterations
+			// Yield if we've processed a batch or if the prefab is a monument, but not on index zero (+1)
 			if (i % batchSize == 0)
 			{
+							// Update progress on the loading screen
+			LoadScreen.Instance.SetMessage($"Warming Prefabs {i + 1} of {length}");
+			LoadScreen.Instance.Progress((1f * i) / (1f * length));
+
 				yield return null; // Yield to allow the engine to process other tasks
+			}			
+			else if (AssetManager.isMonument(id)){
+				LoadScreen.Instance.SetMessage($"Warming Monument {i + 1} of {length}");
+				LoadScreen.Instance.Progress((1f * i) / (1f * length));
+				yield return null;
 			}
+			
+			
 		}
+
 
 		// Ensure a final yield to process any remaining work
 		yield return null;
 
+		// Hide the loading screen
 		LoadScreen.Instance.Hide();
 	}
-
-
+	
+	// Helper coroutine for periodic yielding with a self-stopping mechanism
+	private static IEnumerator YieldTimer(float yieldInterval, Func<bool> shouldRun)
+	{
+		while (shouldRun()) // Continue running while the condition is true
+		{
+			yield return new WaitForSeconds(yieldInterval); // Wait for the specified interval
+			yield return null; // Yield to allow the engine to process other tasks
+		}
+	}
+	
 		public static IEnumerator DeletePrefabs(PrefabDataHolder[] prefabs, int progressID = 0)
 		{
 			var sw = new System.Diagnostics.Stopwatch();

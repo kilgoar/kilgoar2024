@@ -11,6 +11,7 @@ public class AppManager : MonoBehaviour
     public List<GameObject> windowPanels = new List<GameObject>();
 	public List<UIRecycleTree> RecycleTrees = new List<UIRecycleTree>();
 	public List<Button> CloseButtons = new List<Button>();
+	private List<InputField> allInputFields = new List<InputField>();
     public Toggle lockToggle;
 
     private Dictionary<Toggle, GameObject> windowDictionary = new Dictionary<Toggle, GameObject>();
@@ -92,7 +93,7 @@ public class AppManager : MonoBehaviour
             CloseButtons[i].onClick.AddListener(() => CloseWindow(index));
         }
 
-
+		CollectInputFields();
 		
 	}
 	
@@ -112,6 +113,31 @@ public class AppManager : MonoBehaviour
                 RecycleTrees[index].gameObject.SetActive(false);
             }
         }
+    }
+	
+	private void CollectInputFields()
+    {
+        foreach (var panel in windowPanels)
+        {
+            if (panel != null)
+            {
+                InputField[] inputFields = panel.GetComponentsInChildren<InputField>(true);
+                allInputFields.AddRange(inputFields);
+            }
+        }
+    }
+
+    // Method to check if any input field is active
+    public bool IsAnyInputFieldActive()
+    {
+        foreach (var field in allInputFields)
+        {
+            if (field != null && field.isFocused)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 	
 

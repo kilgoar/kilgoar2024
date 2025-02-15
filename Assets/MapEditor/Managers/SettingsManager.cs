@@ -61,7 +61,10 @@ public static class SettingsManager
 				Debug.Log("Saved current breakerFragments as autosaveFragments.json.");
 			}
 
-			if (!File.Exists(targetFragmentsPath) || new FileInfo(defaultFragmentsPath).Length > new FileInfo(targetFragmentsPath).Length)
+			FileInfo defaultFileInfo = new FileInfo(defaultFragmentsPath);
+			FileInfo targetFileInfo = new FileInfo(targetFragmentsPath);
+
+			if (!File.Exists(targetFragmentsPath) || defaultFileInfo.LastWriteTimeUtc > targetFileInfo.LastWriteTimeUtc)
 			{
 				File.Copy(defaultFragmentsPath, targetFragmentsPath, true);
 				Debug.Log("Updated breakerFragments.json with the default version.");
@@ -309,24 +312,55 @@ public static class SettingsManager
 	
 	public static void CheckFavorites(UIRecycleTree tree)
 	{
-
 		CheckNode(tree.rootNode);
 		tree.Reload();
 	}
 
 	private static void CheckNode(Node node)
 	{
-		string fullPath = node.fullPath; 
-		if(node.data != null){
-			fullPath =  (string)node.data;
+		string fullPath = node.fullPath;
+		if (node.data != null)
+		{
+			fullPath = (string)node.data;
 		}
 		
-		node.SetCheckedWithoutNotify(faves.favoriteCustoms.Contains(fullPath));
 
 
-		foreach (Node child in node.nodes)
+		if(node.fullPath!= "~Favorites"){
+
+
+			bool isFavorite = faves.favoriteCustoms.Contains(fullPath);
+			node.SetCheckedWithoutNotify(isFavorite);
+			// Set style based on whether the node has children
+			node.styleIndex = node.hasChildren ? 1 : 0;
+
+			// Handle removal of favorites only if it's under the Favorites directory
+			if (node.fullPath.StartsWith("~Favorites/", StringComparison.Ordinal) && !isFavorite)
+			{
+				Node faveRoot = node.parentNode;
+
+				if (faveRoot != null)
+				{
+					// Remove node from its parent before processing children to avoid concurrent modification
+					faveRoot.nodes.Remove(node);
+					return; // Exit early since this node was removed
+				}
+			}
+		
+		}
+
+		// Create a copy of the current node's children to avoid issues with collection modification
+		var children = new List<Node>(node.nodes);
+		foreach (Node child in children)
 		{
 			CheckNode(child);
+		}
+
+
+		// Ensure 'Favorites' root node is always checked and has style index 1, and is not processed with the other nodes
+		if (node.fullPath == "~Favorites")	{
+			node.SetCheckedWithoutNotify(true);
+			node.styleIndex = 1;
 		}
 	}
 	
@@ -336,8 +370,10 @@ public static class SettingsManager
 		Dictionary<string, Node> nodeMap = new Dictionary<string, Node>();
 
 		// Create a root node for "~Favorites" explicitly
-		Node favoritesRootNode = null;
-
+		Node favoritesRootNode = new Node("~Favorites");
+		tree.rootNode.nodes.AddWithoutNotify(favoritesRootNode);
+		favoritesRootNode.tree = tree;
+							
 		foreach (string path in paths)
 		{
 			// Check if the path matches the extension or starts with "~Favorites/"
@@ -361,14 +397,7 @@ public static class SettingsManager
 
 					if (isFavoritePath)
 					{
-						// Handle "~Favorites/" paths: Flatten them under "~Favorites" root
-						if (favoritesRootNode == null)
-						{
-							// Create the "~Favorites" root node if it doesn't exist
-							favoritesRootNode = new Node("~Favorites");
-							tree.rootNode.nodes.AddWithoutNotify(favoritesRootNode);
-							favoritesRootNode.tree = tree;
-						}
+
 
 						// Extract the filename (last part of the path)
 						string filename = System.IO.Path.GetFileName(path);

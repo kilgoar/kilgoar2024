@@ -11,11 +11,16 @@ using static WorldSerialization;
 
 public class ItemsWindow : MonoBehaviour
 {
+	public Text footer;
     public UIRecycleTree tree;
 	public InputField query;
-	public Button deleteChecked, checkAll, uncheckAll;
+	public Button deleteChecked, checkAll, uncheckAll, findInBreaker;
 	private int currentMatchIndex = 0; 
 	private List<Node> matchingNodes = new List<Node>();
+	public List<InputField> prefabDataFields = new List<InputField>();
+	
+	private PrefabDataHolder holder = new PrefabDataHolder();
+	private PrefabData selection = new PrefabData();
 	
 	public static ItemsWindow Instance { get; private set; }
 	
@@ -36,17 +41,40 @@ public class ItemsWindow : MonoBehaviour
 		InitializeComponents();
 	}
 
+	public void SetSelection(GameObject go){
+		try
+		{
+			if (go != null)
+			{
+				holder = go.GetComponent<PrefabDataHolder>();
+			}
+			else
+			{
+				holder = null; // Explicitly set to null if the cast fails
+			}
+
+			if (holder != null)
+			{
+				// If PrefabData component exists, use its values
+				selection = holder.prefabData; // Assuming 'selection' is already defined and initialized elsewhere
+			}
+		}
+		catch (MissingReferenceException e)
+		{
+			Debug.LogError("A MissingReferenceException occurred in set selection: " + e.Message);
+			// Clear all fields in case of an error
+			for (int i = 0; i < prefabDataFields.Count; i++)
+			{
+				prefabDataFields[i].text = string.Empty;
+			}
+			
+			//node.parentNode.nodes.Remove(node);
+		}
+	}
 
 	private void InitializeComponents()
-	{
-		// Ensure components are initialized
-		if (tree == null) tree = GetComponentInChildren<UIRecycleTree>();
-		if (query == null) query = GetComponentInChildren<InputField>();
-		if (deleteChecked == null) deleteChecked = GetComponentInChildren<Button>();
-		if (checkAll == null) checkAll = GetComponentInChildren<Button>();
-		if (uncheckAll == null) uncheckAll = GetComponentInChildren<Button>();
+	{	
 
-		// Add listeners if components are valid
 		if (tree != null)
 		{
 			tree.onNodeCheckedChanged.AddListener(OnChecked);
@@ -60,17 +88,244 @@ public class ItemsWindow : MonoBehaviour
 			query.onValueChanged.AddListener(OnQuery);
 		}
 
-		if (deleteChecked != null) deleteChecked.onClick.AddListener(DeleteCheckedNodes);
-		if (checkAll != null) checkAll.onClick.AddListener(CheckNodes);
-		if (uncheckAll != null) uncheckAll.onClick.AddListener(UncheckNodes);
+		deleteChecked.onClick.AddListener(DeleteCheckedNodes);
+		checkAll.onClick.AddListener(CheckNodes);
+		uncheckAll.onClick.AddListener(UncheckNodes);
+		findInBreaker.onClick.AddListener(FindBreakerWithPath);
+		CreateListeners(); //prefab data display
 	}
+	
+	public void FindBreakerWithPath(){
+		AppManager.Instance.ActivateWindow(5);
+		if(BreakerWindow.Instance!=null){
+			BreakerWindow.Instance.FocusByPath(prefabDataFields[9].text);
+		}
+	}
+	
+	public void DestroyListeners()
+	{
+		for (int i = 0; i < prefabDataFields.Count; i++)
+		{
+			prefabDataFields[i].onEndEdit.RemoveAllListeners();
+		}
+	}
+	
+	public void UpdateData(){
+		if(CameraManager.Instance._selectedObjects.Count != 0){
+			SetSelection(CameraManager.Instance._selectedObjects[CameraManager.Instance._selectedObjects.Count-1]);
+		}
+		else{
+			DefaultPrefabData();
+			return;
+		}
+		
+		if(holder!=null && holder.gameObject !=null){
+			holder.UpdatePrefabData();
+			RetrievePrefabData(holder.gameObject);
+		}
+		else{
+				
+			DefaultPrefabData();
+			
+			}
+	}
+
+	
+	public void SendPrefabData(){		
+		// Position
+		selection.position = new VectorData(
+			float.Parse(prefabDataFields[0].text),
+			float.Parse(prefabDataFields[1].text),
+			float.Parse(prefabDataFields[2].text));
+
+		// Rotation
+		selection.rotation = new VectorData(
+			float.Parse(prefabDataFields[3].text),
+			float.Parse(prefabDataFields[4].text),
+			float.Parse(prefabDataFields[5].text));
+
+		// Scale
+		selection.scale = new VectorData(
+			float.Parse(prefabDataFields[6].text),
+			float.Parse(prefabDataFields[7].text),
+			float.Parse(prefabDataFields[8].text));
+
+		// Category
+		selection.category = prefabDataFields[9].text;
+
+		// ID
+		selection.id = uint.Parse(prefabDataFields[10].text);
+		holder.CastPrefabData();
+	}
+	
+	public void DefaultPrefabData(){
+		DestroyListeners();
+
+			
+			// Position
+			prefabDataFields[0].text = "";
+			prefabDataFields[1].text = "";
+			prefabDataFields[2].text = "";
+
+			// Rotation
+			prefabDataFields[3].text = "";
+			prefabDataFields[4].text = "";
+			prefabDataFields[5].text = "";
+
+			// Scale
+			prefabDataFields[6].text = "";
+			prefabDataFields[7].text = "";
+			prefabDataFields[8].text = "";
+
+			// Category
+			prefabDataFields[9].text = "";
+
+			// ID
+			prefabDataFields[10].text = "";
+
+		
+		
+	}
+	
+	public void RetrievePrefabData(GameObject obj)
+	{
+		DestroyListeners();
+		SetSelection(obj);
+		
+			if (selection!=null){
+				// Position
+				prefabDataFields[0].text = selection.position.x.ToString();
+				prefabDataFields[1].text = selection.position.y.ToString();
+				prefabDataFields[2].text = selection.position.z.ToString();
+
+				// Rotation
+				prefabDataFields[3].text = selection.rotation.x.ToString();
+				prefabDataFields[4].text = selection.rotation.y.ToString();
+				prefabDataFields[5].text = selection.rotation.z.ToString();
+
+				// Scale
+				prefabDataFields[6].text = selection.scale.x.ToString();
+				prefabDataFields[7].text = selection.scale.y.ToString();
+				prefabDataFields[8].text = selection.scale.z.ToString();
+
+				// Category
+				prefabDataFields[9].text = selection.category;
+
+				// ID
+				prefabDataFields[10].text = selection.id.ToString();
+			}
+			else
+			{
+				// If no PrefabData component found, use transform data
+				Transform transform = obj.transform;
+				if (transform != null)
+				{
+					// Position
+					prefabDataFields[0].text = transform.position.x.ToString();
+					prefabDataFields[1].text = transform.position.y.ToString();
+					prefabDataFields[2].text = transform.position.z.ToString();
+
+					// Rotation (convert from Quaternion to Euler angles)
+					Vector3 eulerAngles = transform.rotation.eulerAngles;
+					prefabDataFields[3].text = eulerAngles.x.ToString();
+					prefabDataFields[4].text = eulerAngles.y.ToString();
+					prefabDataFields[5].text = eulerAngles.z.ToString();
+
+					// Scale
+					prefabDataFields[6].text = transform.localScale.x.ToString();
+					prefabDataFields[7].text = transform.localScale.y.ToString();
+					prefabDataFields[8].text = transform.localScale.z.ToString();
+
+					// Clear category and ID since they're not available
+					prefabDataFields[9].text = string.Empty;
+					prefabDataFields[10].text = string.Empty;
+				}
+				else
+				{
+					// If we can't even get the transform, clear all fields
+					for (int i = 0; i < prefabDataFields.Count; i++)
+					{
+						prefabDataFields[i].text = string.Empty;
+					}
+
+				}
+			}
+		
+		
+		CreateListeners();
+	}
+	
+	public void CreateListeners()
+	{
+		// Listeners for VectorData (position, rotation, scale)
+		for (int i = 0; i < 9; i++)
+		{
+			int index = i; // Capture the loop variable for closure
+			prefabDataFields[i].onEndEdit.AddListener(text =>
+			{
+				if (float.TryParse(text, out float value))
+				{
+					int vectorIndex = index % 3;
+					switch (index / 3)
+					{
+						case 0: // Position
+							switch (vectorIndex)
+							{
+								case 0: selection.position.x = value; break;
+								case 1: selection.position.y = value; break;
+								case 2: selection.position.z = value; break;
+							}
+							break;
+						case 1: // Rotation
+							switch (vectorIndex)
+							{
+								case 0: selection.rotation.x = value; break;
+								case 1: selection.rotation.y = value; break;
+								case 2: selection.rotation.z = value; break;
+							}
+							break;
+						case 2: // Scale
+							switch (vectorIndex)
+							{
+								case 0: selection.scale.x = value; break;
+								case 1: selection.scale.y = value; break;
+								case 2: selection.scale.z = value; break;
+							}
+							break;
+					}
+				}
+				SendPrefabData();
+			});
+		}
+
+		// Listener for Category
+		prefabDataFields[9].onEndEdit.AddListener(text => 
+		{
+			selection.category = text;
+			SendPrefabData();
+		});
+
+		// Listener for ID
+		prefabDataFields[10].onEndEdit.AddListener(text =>
+		{
+			if (uint.TryParse(text, out uint id))
+			{
+				selection.id = id;
+			}
+			SendPrefabData();
+		});
+	}
+	
+
 	
 	void OnEnable()	{
 		PopulateList();
+		FocusItem(CameraManager.Instance._selectedObjects);
 	}
 	
-	public void OnChecked(Node parent){
-		parent.ChangeIsCheckedStateForAllChildren(parent.isChecked);
+	public void OnChecked(Node node){
+		//node.SetSelectedWithoutNotify(true);
+		OnSelect(node);
 	}
 	
 	public void FocusItem(Node node)
@@ -78,28 +333,34 @@ public class ItemsWindow : MonoBehaviour
 		if (node?.data == null) return; 
 
 		Vector3 targetPosition = Vector3.zero;
-		bool positionFound = false; 
+		GameObject go = (GameObject)node.data;
+		targetPosition = go.transform.position;
+		CameraManager.Instance.SetCamera(targetPosition);
 		
-		if (node.TryCastData<PrefabDataHolder>(out PrefabDataHolder prefab))
-		{
-			targetPosition = prefab.transform.position;
-			positionFound = true;
-		}
-		else if (node.TryCastData<Transform>(out Transform collection))
-		{
-			targetPosition = collection.position;
-			positionFound = true;
-		}
-
-		if (positionFound)
-		{
-			CameraManager.Instance.SetCamera(targetPosition);
-		}
+		node.SetCheckedWithoutNotify(true);
+		//tree.Rebuild();
 	}
 
 	public void FocusList(Node node)
 	{
 		tree.FocusOn(node);
+		//node.isSelected=true;
+		//node.SetCheckedWithoutNotify(true);
+		//tree.Rebuild();
+	}
+	
+	public void FocusItem(List<GameObject> selections){
+		int itemCount = selections.Count;
+		if(itemCount > 0){
+			Node lastNode = tree.FindFirstNodeByDataRecursive(selections[itemCount-1]);
+			tree.FocusOn(lastNode);
+			//lastNode.SetSelectedWithoutNotify(true);
+		}
+		else{
+			selection=null;
+			holder=null;
+		}
+
 	}
 	
 	public void PopulateList()
@@ -112,7 +373,7 @@ public class ItemsWindow : MonoBehaviour
 		{
 			BuildTreeRecursive(child, null, transformToNodeMap); // Build the tree recursively from each top-level child
 		}
-
+		CheckSelection();
 		tree.Rebuild(); // Update the tree view after all nodes are added
 	}
 
@@ -126,12 +387,12 @@ public class ItemsWindow : MonoBehaviour
 				if (current.GetComponent<PrefabDataHolder>() is PrefabDataHolder prefabData)
 				{
 					string prefabName = AssetManager.ToName(prefabData.prefabData.id);
-					currentNode = new Node(prefabName) { data = prefabData };
+					currentNode = new Node(prefabName) { data = current.gameObject };
 				}
 				break;
 
 			case "Collection":
-				currentNode = new Node(current.name) { data = current };
+				currentNode = new Node(current.name) { data = current.gameObject };
 				break;
 
 			default:
@@ -158,36 +419,119 @@ public class ItemsWindow : MonoBehaviour
 		}
 	}
 	
-	private void OnSelect(Node selection)
-	{
-				if (selection.TryCastData<PrefabDataHolder>(out PrefabDataHolder holder))				{
-					CameraManager.Instance.SelectPrefab(holder);
-					return;
-				}
-				
-				if (selection.TryCastData<Transform>(out Transform collection))				{
-					//PrefabManager.SetSelection(collection);
-				}
+	public void OnSelect(Node node){
+		GameObject goSelect = (GameObject)node.data;
+		
+			if(!Keyboard.current.leftShiftKey.isPressed){
+				CameraManager.Instance.Unselect();
+				UnselectAllInTree();
+			}
+			
+			if(Keyboard.current.leftAltKey.isPressed){
+				SelectChildren(node, true);
+				node.ExpandAll();
+			}
+		
+		node.SetCheckedWithoutNotify(true);	
+		CameraManager.Instance.SelectPrefabWithoutNotify(goSelect);
 	}
+	
+	void UnselectAllInTree(){
+		ToggleNodes(false);
+	}
+	
+	private void ToggleNodes(bool isChecked)	{
+		int count =0;
+		if (tree != null){
+
+			Stack<Node> stack = new Stack<Node>();
+			stack.Push(tree.rootNode);
+
+			while (stack.Count > 0)
+			{
+				Node currentNode = stack.Pop();
+			
+			for (int i = currentNode.nodes.Count - 1; i >= 0; i--)
+				{
+					Node childNode = currentNode.nodes[i];
+					childNode.SetCheckedWithoutNotify(isChecked);
+					count++;
+					stack.Push(childNode);					
+				}
+			}
+		}
+		tree.Rebuild();
+		footer.text= count + " prefabs selected";
+	}
+	
+	void SelectChildren(Node node, bool selected)
+	{
+		// Check if the node has children
+		if (node != null && node.nodes != null)
+		{
+			Stack<Node> stack = new Stack<Node>();
+			foreach (var child in node.nodes)
+			{
+				stack.Push(child);
+			}
+
+			while (stack.Count > 0)
+			{
+				Node currentNode = stack.Pop();
+				currentNode.SetCheckedWithoutNotify(selected); // Toggle to true for selection
+				CameraManager.Instance.SelectPrefabWithoutNotify((GameObject)node.data);
+
+				// Push all children of current node onto the stack
+				for (int i = currentNode.nodes.Count - 1; i >= 0; i--)
+				{
+					stack.Push(currentNode.nodes[i]);
+				}
+			}
+		}
+		tree.Rebuild();
+	}
+	
+
 	
 	private void OnQuery(string query)
 	{
 		if (!string.IsNullOrEmpty(query))
 		{
-			Debug.LogError("okay...");
 			matchingNodes = FindNodesByPartRecursive(tree.rootNode, query);
-			Debug.LogError("death");
 			if (matchingNodes.Count > 0)        {
 				Node firstMatch = matchingNodes[0];
 				firstMatch.isSelected = true;
 				tree.FocusOn(firstMatch);
 			}
-			Debug.LogError("gettin here");
 			return;
 		}
-		Debug.LogError("what's wrong here?1 ");
 		matchingNodes = FindNodesByPartRecursive(tree.rootNode, "");
-		Debug.LogError("guessin gthis is it");
+	}
+	
+	public void CheckSelection(){
+		if (tree != null)
+		{
+			Stack<Node> stack = new Stack<Node>();
+			stack.Push(tree.rootNode);
+
+			while (stack.Count > 0)
+			{
+				Node currentNode = stack.Pop();
+				if(CameraManager.Instance._selectedObjects.Contains((GameObject)currentNode.data)){
+					currentNode.SetCheckedWithoutNotify(true);
+				}
+				else{
+					currentNode.SetCheckedWithoutNotify(false);
+				}
+
+				// Push all child nodes onto the stack
+				for (int i = currentNode.nodes.Count - 1; i >= 0; i--)
+				{
+					Node childNode = currentNode.nodes[i];
+					stack.Push(childNode);
+				}
+			}
+		}
 	}
 	
 	public void UncheckAll(){
@@ -204,19 +548,11 @@ public class ItemsWindow : MonoBehaviour
 		ToggleNodes(true);
 	}
 	
-	private void ToggleNodes(bool isChecked)	{
-		if (tree != null){
-			
-			foreach (Node node in matchingNodes)		{
-				node.SetCheckedWithoutNotify(isChecked);
-			}
-			tree.Rebuild();
-		}
-	}
 
 	private void DeleteCheckedNodes()
 	{
 		DeleteCheckedNodesStack(tree.rootNode);
+		CameraManager.Instance._selectedObjects.Clear();
 		tree.Rebuild();
 		CameraManager.Instance.UpdateGizmoState();
 	}
@@ -259,25 +595,17 @@ public class ItemsWindow : MonoBehaviour
 			if (!currentNode.isChecked)
 				continue;
 
-			if (currentNode.data is PrefabDataHolder prefabDataHolder && prefabDataHolder.gameObject != null)
+			if (currentNode.data is GameObject go)
 			{
-				Destroy(prefabDataHolder.gameObject);
+				Destroy(go);
 				tree.nodes.RemoveWithoutNotify(currentNode);
-				continue;
-			}
-			
-			if (currentNode.data is Transform collection)
-			{
-				Destroy(collection.gameObject);
-				tree.nodes.RemoveWithoutNotify(currentNode);
-				
 			}
 		}
 	}
 
 	private List<Node> FindNodesByPartRecursive(Node currentNode, string query){
 	
-    List<Node> matches = new List<Node>();
+		List<Node> matches = new List<Node>();
 
 		if (currentNode.name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)    {
 			matches.Add(currentNode);

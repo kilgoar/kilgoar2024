@@ -22,6 +22,7 @@ public class BreakerWindow : MonoBehaviour
     public List<Button> buttons;
     public Toggle enableFragment;
     public Dropdown breakingList;
+	public Text footer, footer2;
 	
 	private Transform currentMonument;
 	private string monumentName;
@@ -61,23 +62,49 @@ public class BreakerWindow : MonoBehaviour
 		buttons[12].onClick.AddListener(CollapseAllInTree);
 
 		tree.onNodeSelected.AddListener(OnNodeSelect);
+		tree.onNodeCheckedChanged.AddListener(OnChecked);
 
         for (int i = 0; i < fields.Count; i++)        {
             int index = i; 
             fields[i].onValueChanged.AddListener((value) => FieldChanged(index, value));
         }
 		
-		enableFragment.onValueChanged.AddListener(_ =>DataChanged()); 
+		enableFragment.onValueChanged.AddListener(_ =>EnableChanged()); 
 		
     }
+	
+	public void OnChecked(Node node){
+		if(node.isChecked == true){
+			if(!Keyboard.current.leftShiftKey.isPressed){
+				UnselectAllInTree();
+				node.SetCheckedWithoutNotify(true);
+			}
+			if(Keyboard.current.leftAltKey.isPressed){
+				SelectChildren(node, true);
+				node.ExpandAll();
+				PopulateBreakingData();
+			}
+			return;
+		}
+		if(Keyboard.current.leftAltKey.isPressed){
+			SelectChildren(node, false);
+		}
+	}
 
 	public void OnNodeSelect(Node node){
-		//unless the keyboard is on left shift, uncheck all nodes
+		
+		node.SetCheckedWithoutNotify(true);
 
-		if(!Keyboard.current.leftShiftKey.isPressed){
-			UnselectAllInTree();
-		}
-		node.isChecked = true;
+			if(!Keyboard.current.leftShiftKey.isPressed){
+				UnselectAllInTree();
+				node.SetCheckedWithoutNotify(true);
+			}
+			if(Keyboard.current.leftAltKey.isPressed){
+				SelectChildren(node, true);
+				node.ExpandAll();
+				PopulateBreakingData();
+			}	
+
 		PopulateBreakingData();
 	}
 	
@@ -120,10 +147,13 @@ public class BreakerWindow : MonoBehaviour
 		
 		currentMonument = monument;
 		monumentName = System.IO.Path.GetFileNameWithoutExtension(rootName); 
+		Debug.LogError(rootName + " " + monumentName);
+		
 		RecurseTransform(monument, tree.rootNode, string.Empty, rootName);
 
 		tree.Rebuild();
 	}
+
 
 	void RecurseTransform(Transform currentTransform, Node parentNode, string currentPath, string rootName)
 	{
@@ -133,7 +163,7 @@ public class BreakerWindow : MonoBehaviour
 		string parentName = parentNode?.name ?? "";
 		
 		Colliders colliderScales = ItemToColliders(currentTransform);
-		PrefabData newPrefab  = ItemToPrefab(currentTransform, parentName, rootName);
+		PrefabData newPrefab  = ItemToPrefab(currentTransform, parentName, rootName, fullPath);
 
 		BreakingData fragment = new BreakingData
 		{
@@ -251,7 +281,17 @@ public class BreakerWindow : MonoBehaviour
 							fields[i].text = selection.name;
 							break;
 						case 19:
-							fields[i].text = selection.id.ToString();
+							fields[i].text = selection.prefabData.id.ToString();
+							break;
+						case 21:
+							try
+								{
+									fields[21].text = SettingsManager.fragmentIDs.fragmentNamelist[fields[20].text].ToString();
+								}
+								catch (KeyNotFoundException)
+								{
+									fields[21].text = "";
+								}
 							break;
 						default:
 							//fields[i].text = string.Empty; // Clear or set to a default value if unexpected index
@@ -276,12 +316,76 @@ public class BreakerWindow : MonoBehaviour
 				}
 
 			
-		enableFragment.onValueChanged.AddListener(_ =>DataChanged()); 
+		enableFragment.onValueChanged.AddListener(_ =>EnableChanged()); 
 		}
 	}
 
 
+	void EnableChanged(){
+		enableFragment.onValueChanged.RemoveAllListeners();		
+		ToggleCheckedIDs(enableFragment.isOn);
+		enableFragment.onValueChanged.AddListener(_ =>EnableChanged()); 
+	}
+	
+	public void FocusByPath(string path){
+		if (tree != null)
+		{
+			Stack<Node> stack = new Stack<Node>();
+			stack.Push(tree.rootNode);
 
+			while (stack.Count > 0)
+			{
+				Node currentNode = stack.Pop();
+				if(path.Equals(currentNode.fullPath)){
+					tree.FocusOn(currentNode);
+					currentNode.isSelected=true;
+					return;
+				}
+
+				// Push all child nodes onto the stack
+				for (int i = currentNode.nodes.Count - 1; i >= 0; i--)
+				{
+					Node childNode = currentNode.nodes[i];
+					stack.Push(childNode);
+				}
+			}
+		}
+		
+
+	}
+	
+	private void ToggleCheckedIDs(bool ignore){
+		if (tree != null)
+		{
+			Stack<Node> stack = new Stack<Node>();
+			stack.Push(tree.rootNode);
+
+			while (stack.Count > 0)
+			{
+				Node currentNode = stack.Pop();
+
+				// Process only checked nodes
+				if (currentNode.isChecked)
+				{
+					// Ensure node.data is valid and contains prefabData
+					if (currentNode.data != null)
+					{
+						BreakingData data = (BreakingData)currentNode.data;
+						data.ignore = ignore;
+						currentNode.data = data;
+						RefreshIcon(currentNode);
+					}
+				}
+
+				// Push all child nodes onto the stack
+				for (int i = currentNode.nodes.Count - 1; i >= 0; i--)
+				{
+					Node childNode = currentNode.nodes[i];
+					stack.Push(childNode);
+				}
+			}
+		}
+	}
 
     void DataChanged()
     {
@@ -324,7 +428,6 @@ public class BreakerWindow : MonoBehaviour
     {
 
 		if (index == 20){
-			Debug.LogError(fields[20].text);
 					try
 						{
 							fields[21].text = SettingsManager.fragmentIDs.fragmentNamelist[fields[20].text].ToString();
@@ -335,7 +438,6 @@ public class BreakerWindow : MonoBehaviour
 						}
 			return;
 		}
-       DataChanged();
     }
 
     // Button methods
@@ -350,7 +452,7 @@ public class BreakerWindow : MonoBehaviour
 		ToggleNodes(false);
 	}
 	
-	void SelectChildren(Node node)
+	void SelectChildren(Node node, bool selected)
 	{
 		// Check if the node has children
 		if (node != null && node.nodes != null)
@@ -364,7 +466,7 @@ public class BreakerWindow : MonoBehaviour
 			while (stack.Count > 0)
 			{
 				Node currentNode = stack.Pop();
-				currentNode.isChecked = true; // Toggle to true for selection
+				currentNode.SetCheckedWithoutNotify(selected); // Toggle to true for selection
 
 				// Push all children of current node onto the stack
 				for (int i = currentNode.nodes.Count - 1; i >= 0; i--)
@@ -373,78 +475,10 @@ public class BreakerWindow : MonoBehaviour
 				}
 			}
 		}
+		tree.Rebuild();
 	}
 	
 
-	//take this code snippet and repurpose it
-	//create a ColliderView object that is a child of PrefabManager.PrefabParent
-	//traverse all the colliders in the node stack and collect them in a list
-	//now repurpose the code below
-						/*
-					//create visualizations for the game objects
-					GameObject colliderView = null;
-					Material transparentMaterial = Resources.Load<Material>("Materials/transparency");
-					if (transparentMaterial == null)
-					{
-						Debug.LogError("Transparent material not found in Resources.");
-					}
-					else
-					{
-						if (collider is CapsuleCollider capsuleCollider)
-						{
-							colliderView = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-							colliderView.transform.localScale = new Vector3(capsuleCollider.radius * 2, capsuleCollider.height, capsuleCollider.radius * 2);
-						}
-						else if (collider is SphereCollider sphereCollider)
-						{
-							colliderView = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-							colliderView.transform.localScale = Vector3.one * sphereCollider.radius * 2;
-						}
-						else if (collider is BoxCollider boxCollider)
-						{
-							colliderView = GameObject.CreatePrimitive(PrimitiveType.Cube);
-							colliderView.transform.localScale = boxCollider.size;
-						}
-
-						if (colliderView != null)
-						{
-							// First, we'll set up the local transform of colliderView relative to the collider
-							colliderView.transform.position = collider.bounds.center; // Set initial position
-							colliderView.transform.rotation = collider.transform.rotation; // Set initial rotation
-							
-							// Calculate the scale from collider to go
-							Vector3 scaleFromColliderToGo = Vector3.one;
-							Transform current = collider.transform;
-							while (current != go.transform && current != null)
-							{
-								scaleFromColliderToGo = Vector3.Scale(scaleFromColliderToGo, current.localScale);
-								current = current.parent;
-							}
-
-							// Apply scale considering the hierarchy
-							colliderView.transform.localScale = Vector3.Scale(colliderView.transform.localScale, scaleFromColliderToGo);
-
-							//they are at origin because they are refusing to parent to go, as it is also a prefab. could i somehow attach these renderers to a component that manages them, will the prefab accept that
-							
-							colliderView.transform.SetParent(PrefabParent, false); // Use 'true' to keep world position
-
-							// Adjust position and rotation to match collider's local space in go's coordinate system
-							colliderView.transform.localPosition = go.transform.InverseTransformPoint(collider.bounds.center);
-							colliderView.transform.localRotation = Quaternion.Inverse(go.transform.rotation) * collider.transform.rotation;
-
-							// Change the material of the primitive
-							MeshRenderer renderer = colliderView.GetComponent<MeshRenderer>();
-							if (renderer != null)
-							{
-								renderer.material = transparentMaterial;
-							}
-
-							colliderView.name = $"{collider.gameObject.name}_ColliderView";
-						}
-						
-					}
-
-					*/
 	
 	private void ToggleNodes(bool isChecked)	{
 		if (tree != null){
@@ -459,12 +493,17 @@ public class BreakerWindow : MonoBehaviour
 			for (int i = currentNode.nodes.Count - 1; i >= 0; i--)
 				{
 					Node childNode = currentNode.nodes[i];
-					childNode.isChecked = isChecked;
+					childNode.SetCheckedWithoutNotify(isChecked);
 					
 					stack.Push(childNode);					
 				}
 			}
 		}
+		tree.Rebuild();
+	}
+	
+	private void RefreshIcon(Node node){
+		node.styleIndex = PrefabManager.GetFragmentStyle((BreakingData)node.data);
 	}
 	
 	private void RefreshIcons()	{
@@ -488,9 +527,8 @@ public class BreakerWindow : MonoBehaviour
 	}
 	
 	private void LoadID()	{
-		uint id = AssetManager.fragmentToID(selection.name, selection.parent, selection.monument);
-		ChangeCheckedIDs(id);
-		fields[19].text = id.ToString();
+		LoadCheckedIDs();
+		PopulateBreakingData();
 	}
 	
 	private void SendID()  {
@@ -498,7 +536,7 @@ public class BreakerWindow : MonoBehaviour
 	}
 	
 		//list based operations
-   void UpdateNodeID(Node node, uint id)
+   void SetNodeID(Node node, uint id)
     {
         if (node == null) return;
 		BreakingData breakData = (BreakingData)node.data;
@@ -512,6 +550,51 @@ public class BreakerWindow : MonoBehaviour
 		//update the node style
 		node.styleIndex = PrefabManager.GetFragmentStyle(breakData);
     }
+	
+			//list based operations
+   void UpdateNodeID(Node node)
+    {
+        if (node.data == null) return;
+		BreakingData breakData = (BreakingData)node.data;
+		uint id = AssetManager.fragmentToID(breakData.name, breakData.parent, breakData.monument);
+        breakData.prefabData.id = id;
+		breakData.id = id;		
+        // Push updated data back to the tree
+        node.data = breakData;
+		
+		//update the node style
+		node.styleIndex = PrefabManager.GetFragmentStyle(breakData);
+    }
+	
+	private void LoadCheckedIDs(){
+		if (tree != null)
+		{
+			Stack<Node> stack = new Stack<Node>();
+			stack.Push(tree.rootNode);
+
+			while (stack.Count > 0)
+			{
+				Node currentNode = stack.Pop();
+
+				// Process only checked nodes
+				if (currentNode.isChecked)
+				{
+					// Ensure node.data is valid and contains prefabData
+					if (currentNode.data != null)
+					{
+						UpdateNodeID(currentNode);
+					}
+				}
+
+				// Push all child nodes onto the stack
+				for (int i = currentNode.nodes.Count - 1; i >= 0; i--)
+				{
+					Node childNode = currentNode.nodes[i];
+					stack.Push(childNode);
+				}
+			}
+		}
+	}
 	
 	private void ChangeCheckedIDs(uint id){
 		if (tree != null)
@@ -530,7 +613,7 @@ public class BreakerWindow : MonoBehaviour
 					if (currentNode.data != null)
 					{
 
-						UpdateNodeID(currentNode, id);
+						SetNodeID(currentNode, id);
 					}
 				}
 
@@ -547,8 +630,7 @@ public class BreakerWindow : MonoBehaviour
 		
 	private void Build()
 	{
-		UnityEngine.Object.Destroy(currentMonument.gameObject);
-		currentMonument = null;
+
 		if (tree != null)
 		{
 			List<BreakingData> prefabList = new List<BreakingData>();
@@ -582,8 +664,10 @@ public class BreakerWindow : MonoBehaviour
 			if (prefabList.Count > 0)
 			{
 				PrefabManager.SpawnPrefabs(prefabList, PrefabManager.PrefabParent);
+				//PrefabManager.CastPrefabs();
 			}
 		}
+		footer2.text=PrefabManager.removeDuplicates(PrefabManager.CurrentMapPrefabs);
 	}
 	
 	void PopulateDropdown()
@@ -611,94 +695,18 @@ public class BreakerWindow : MonoBehaviour
 		RefreshIcons();
 	}
 	
-    void Save() => SaveTree(monumentName);
-		
-		//editor-based, previous code. it is only a mere example to show what we want to accomplish at runtime
-		/*    
-		// Dropdown breakingList replaces editorguilayout.popup
-		// it must be populated with the preset title string array  retrieved by get preset titles --create helper method for this
-		
-		
-		// for serialization i think the use of "breaker presets" is out and we should create a new way to serialize and deserialize a list of nodes from the UIRecycleTree and their data
-		// it has to be compressed, similar to the old way, because of file sizes
-		
-								presetIndex = EditorGUILayout.Popup("Name:", presetIndex, breakerList);
-							
-							
-							EditorGUILayout.BeginHorizontal();
-							if (GUILayout.Button("Save"))
-								{
-									Debug.LogError(breakerPreset.monument.monumentName);
-									SettingsManager.breaker = breakerPreset;
-									SettingsManager.SaveBreakerPreset(breakerPreset.monument.monumentName);
-									SettingsManager.LoadPresets();							
-									breakerList = SettingsManager.GetPresetTitles("Presets/Breaker/");
-								}
-							if (GUILayout.Button("Load"))
-								{
-									
-									
-									if(breakerList[presetIndex] != null)
-									{
-										breakerTree.LoadIcons(icons);
-										SettingsManager.LoadBreakerPreset(breakerList[presetIndex]);	
-										breakerPreset = SettingsManager.breaker;								
-										PrefabManager.loadFragments(breakerPreset.monument, breakerTree);									
-										breakerList = SettingsManager.GetPresetTitles("Presets/Breaker/");
-									}
-								}
-								public class BreakerSerialization
-{
-	public BreakerPreset breaker = new BreakerPreset();
+    void Save(){
+		if(tree.rootNode.name == null){
+			
+		monumentName = tree.rootNode.nodes[0].name;
+		if (monumentName.EndsWith("(Clone)"))		{
+			monumentName = monumentName.Substring(0, monumentName.Length - "(Clone)".Length).TrimEnd();
+		}
+		}
+		SaveTree(monumentName);
 	
-
-	public void Save(string fileName)
-    {
-        try
-        {
-            using (var fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None))
-            {
-                using (var binaryWriter = new BinaryWriter(fileStream))
-                {
-                    
-                    using (var compressionStream = new LZ4Stream(fileStream, LZ4StreamMode.Compress))
-                        Serializer.Serialize(compressionStream, breaker);
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e.Message);
-        }
-    }
+	}
 		
-    public BreakerPreset Load(string fileName)
-    {
-        try
-        {
-            using (var fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                using (var binaryReader = new BinaryReader(fileStream))
-                {
-                    
-                    using (var compressionStream = new LZ4Stream(fileStream, LZ4StreamMode.Decompress))
-					{
-						breaker = Serializer.Deserialize<BreakerPreset>(compressionStream);
-						return breaker;
-					}
-				
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e.Message);
-			return breaker;
-        }
-    }
-}
-		*/
-	
 	
 	void FillCapsuleCollider(WorldSerialization.VectorData scale){
 		selection.prefabData.scale = scale;
@@ -752,11 +760,14 @@ public class BreakerWindow : MonoBehaviour
 			Debug.LogError("Exception when accessing tree.rootNode: " + e.Message);
 			return;
 		}
+		
+		Debug.LogError(rootNode.nodes[0].fullPath);
 
 		SerializableTree serializableTree = new SerializableTree
 		{
 			root = SerializeNode(rootNode)
 		};
+		
 		// Step 2: Serialize and save the data to a file
 		string fileName = SettingsManager.AppDataPath() + $"Presets/Breaker/{filename}.dat";
 		try
@@ -842,7 +853,7 @@ public class BreakerWindow : MonoBehaviour
 		PopulateDropdown();
 	}
 
-	//this method is working properly	
+	
 	SerializableNode SerializeNode(Node node)
 	{
 
@@ -858,7 +869,6 @@ public class BreakerWindow : MonoBehaviour
 		else if (node.data is BreakingData breakingData)
 		{
 			data = breakingData; // Safe cast
-			Debug.LogError("data set successfully.");
 		}
 		else
 		{
@@ -866,9 +876,7 @@ public class BreakerWindow : MonoBehaviour
 			data = default(BreakingData); // Assign default value if cast fails
 		}
 
-		Debug.LogError("data set"); //not seeing this due to null reference
 		List<SerializableNode> children = new List<SerializableNode>(); // Initialize empty list
-		Debug.LogError("children list set");
 
 		// Construct SerializableNode using the extracted values
 		SerializableNode serializableNode = new SerializableNode
@@ -913,12 +921,10 @@ public class BreakerWindow : MonoBehaviour
 		BreakingData data = serializableNode.data;
 		int styleIndex=0;
 		
-		Debug.LogError("heeeeey");
 		if(data is BreakingData bd){
 			
 			styleIndex = PrefabManager.GetFragmentStyle(bd);
 		}
-		Debug.LogError("babbbbeeeyyyy");
 		// Create the Node object using the extracted values
 		Node node = new Node(name)
 		{

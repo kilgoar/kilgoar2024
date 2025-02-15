@@ -17,7 +17,7 @@ public class HierarchyWindow : MonoBehaviour
     public UIRecycleTree tree;
 	public InputField query;
 	public Text footer;
-	public Button geology, origin;
+	public Button geology, origin, sendIDToBreaker;
 	public GeologyItem item;
 	
 	public GameObject itemTemplate;
@@ -49,9 +49,15 @@ public class HierarchyWindow : MonoBehaviour
 		
 		geology.interactable = false;
         geology.onClick.AddListener(OnGeologyPressed);
-		origin.onClick.AddListener(OnPlaceOrigin);
-	
+		origin.onClick.AddListener(OnPlaceOrigin);	
+		sendIDToBreaker.onClick.AddListener(SendIDToBreaker);
     }
+
+	void SendIDToBreaker(){
+		if(BreakerWindow.Instance !=null){
+			BreakerWindow.Instance.fields[19].text = footer.text;
+		}
+	}
 
 	public void OnEnable()
 	{
@@ -175,12 +181,32 @@ public class HierarchyWindow : MonoBehaviour
 	}
 
 	private void OnCheck(Node selection){
+		if(selection.hasChildren){
+			selection.isSelected = true;
+			return;
+		}
+		
+		Node faveRoot = tree.rootNode.FindNodeByNameRecursive ("~Favorites");
 		SettingsManager.UpdateFavorite(selection);
+		
+		Node faveNode = new Node(selection.name);
+		faveNode.data=selection.fullPath;
+		
+		if(selection.isChecked){
+			faveNode.SetCheckedWithoutNotify(true);
+			faveRoot.nodes.Add(faveNode);
+		}
+		else{
+			faveRoot.nodes.Remove(selection);
+		}
+		
 		SettingsManager.CheckFavorites(tree);
 	}
 
 	private void OnSelect(Node selection){
+		
 		if (selection.hasChildren){
+			selection.isExpanded=true;
 			geology.interactable = false;
 			footer.text = "";
 			return;
@@ -192,12 +218,14 @@ public class HierarchyWindow : MonoBehaviour
 			return;
 		}
 		
+		//determine prefab path for determining ID
 		string path = selection.fullPath;
 		
 		if(selection.data!=null){
 			path=(string)selection.data;
 		}
-		uint ID =  AssetManager.ToID(selection.fullPath + ".prefab");
+		
+		uint ID =  AssetManager.ToID(path + ".prefab");
 		
 		
 		if (path[0] == '~')		{
@@ -220,6 +248,7 @@ public class HierarchyWindow : MonoBehaviour
         LoadTree();
     }
 	
+	
 	private void LoadTree(){	
 	
 		List<string> paths = new List<string>();
@@ -240,7 +269,6 @@ public class HierarchyWindow : MonoBehaviour
 		SettingsManager.CheckFavorites(tree);
 		
 
-		//this, but add "~Favorites/" to the beginning of the path
 	}
 
 

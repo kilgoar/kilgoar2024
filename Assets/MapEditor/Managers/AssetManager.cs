@@ -10,6 +10,8 @@ using UnityEditor;
 #endif
 using UnityEngine;
 using RustMapEditor.Variables;
+using System.Text.RegularExpressions;
+
 
 public static class AssetManager
 {
@@ -138,6 +140,10 @@ public static class AssetManager
 	public static Dictionary<string, UnityEngine.Object> AssetCache { get; private set; } = new Dictionary<string, UnityEngine.Object>();
 	public static Dictionary<string, GameObject> VolumesCache { get; private set; } = new Dictionary<string, GameObject>();
 	public static Dictionary<string, Texture2D> PreviewCache { get; private set; } = new Dictionary<string, Texture2D>();
+	
+	public static List<uint> MonumentList { get; private set; } = new List<uint>();
+	public static List<uint> ColliderBlocks { get; private set; } = new List<uint>();
+	
 
 	public static List<string> AssetPaths { get; private set; } = new List<string>();
 
@@ -218,14 +224,25 @@ public static class AssetManager
         if (AssetCache.ContainsKey(filePath))
             return AssetCache[filePath] as GameObject;
 
+		GameObject go;
+		//if it's a volume we return a default
+		if(filePath.Contains("volume")||filePath.Contains("radiation")){
+			if(filePath.Contains("sphere")){
+				return PrefabManager.DefaultSphereVolume;
+			}
+			return PrefabManager.DefaultCubeVolume;
+		}
+		
+        go = GetAsset<GameObject>(filePath);
+		
 
-        GameObject val = GetAsset<GameObject>(filePath);
-           if (val != null)
-            {
-				PrefabManager.Setup(val, filePath);
-				AssetCache.Add(filePath, val);
-				//PrefabManager.Callbacks.OnPrefabLoaded(val);
-				return val;
+		//configure, cache, and return
+		if (go != null)    {		
+		
+			PrefabManager.Setup(go, filePath);
+			AssetCache.Add(filePath, go);
+			return go;
+
             }
             Debug.LogWarning("Prefab not loaded from bundle: " + filePath);
             return PrefabManager.DefaultPrefab;
@@ -255,6 +272,10 @@ public static class AssetManager
 		return new Texture2D(60, 60);
 		#endif
     }
+
+	public static bool isMonument(uint id){
+		return MonumentList.Contains(id);
+	}
 
 	public static void SetVolumesCache()
     {
@@ -344,14 +365,14 @@ public static class AssetManager
         }
     }
 
-		public static string pathToName(string path)
+	public static string pathToName(string path)
 	{
 			path = path.Replace(@"\","/");
 			string[] pathFragment = path.Split('/');
 			string filename = pathFragment[pathFragment.Length-1];
-			filename = filename.Replace('_',' ');
-			string[] extension = filename.Split('.');
-			filename = extension[0];
+			//filename = filename.Replace('_',' ');
+			//string[] extension = filename.Split('.');
+			//filename = extension[0];
 			return filename;
 	}
 
@@ -366,60 +387,70 @@ public static class AssetManager
 		return i.ToString();
 	}
 	
-	//triangulate prefab identity from path information
 	public static uint fragmentToID(string fragment, string parent, string monument)
 	{
-		string[] parseFragment;
-		string newFragment;
+		string newFragment = Regex.Replace(fragment, @"\s?\(.*?\)$", "").ToLower();
+		string newParent = Regex.Replace(parent, @"\s?\(.*?\)$", "").ToLower();
 		uint parentID = 0;
 		uint ID = 0;
 		uint returnID = 0;
-		
 
-		if (SettingsManager.fragmentIDs.fragmentNamelist.TryGetValue("/" + parent + "/", out parentID))
-		{		}
-		else
-		{		}
-		
-		parseFragment = fragment.Split(' ');
-		newFragment = parseFragment[0].ToLower();
-		
-		if (monument == "Oilrig 1")
-		{
-			if (PrefabLookup.TryGetValue("plo#"+newFragment, out ID))
-			{ returnID=ID;	}
-			else
-			{	}
-		}
-		else if (monument == "Oilrig 2")
-		{
-			if (PrefabLookup.TryGetValue("pso#"+newFragment, out ID))
-			{	returnID=ID;	}
-			else
-			{		}
-		}
-		
-
-		if (PrefabLookup.TryGetValue(newFragment, out ID))
-		{	returnID = ID;	}
-		else
-		{	
-			newFragment = specialParse(newFragment, monument); 
-			if (PrefabLookup.TryGetValue(newFragment, out ID))
-			{	returnID = ID;	}
-		}
-		
-		
-		if (parentID!=0)
-		{	returnID = parentID;	}
-		
-		if (SettingsManager.fragmentIDs.fragmentNamelist.TryGetValue(fragment, out ID))
-			{	
-				return ID;		
+		try
+			{
+				ID = SettingsManager.fragmentIDs.fragmentNamelist[fragment];
+				return ID;
 			}
+		catch (KeyNotFoundException)
+			{
+			}
+
+
+		// Attempt to get parent ID from SettingsManager
+		if (SettingsManager.fragmentIDs.fragmentNamelist.TryGetValue("/" + newParent + "/", out parentID))
+		{
+			return parentID;
+		}
+		
+		// Final lookup for direct fragment match
+		if (SettingsManager.fragmentIDs.fragmentNamelist.TryGetValue(newFragment, out ID))
+		{
+			return ID;
+		}
+		
+		// Attempt to get ID from PrefabLookup
+		if (PrefabLookup.TryGetValue(newFragment, out ID))
+		{
+			returnID = ID;
+		}
 		else
-		{	return returnID;	}
+		{
+			newFragment = specialParse(newFragment, monument);
+			if (PrefabLookup.TryGetValue(newFragment, out ID))
+			{
+				returnID = ID;
+			}
+		}
+		
+		// Special case for Oilrig
+		if (monument == "assets/bundled/prefabs/autospawn/monument/offshore/oilrig_2.prefab")
+		{
+			if (PrefabLookup.TryGetValue("oilrig_small/" + newFragment, out ID))
+			{
+				returnID = ID;
+			}
+		}
+		
+		// If parent ID was found, return it
+		if (parentID != 0)
+		{
+			return returnID;
+		}
+		
+
+		
+		return returnID;
 	}
+
 
 	public static string specialParse(string str, string str2)
 	{
@@ -454,7 +485,7 @@ public static class AssetManager
 			}
 		else
 		{			
-			if (str2 == "arctic research base a")
+			if (str2 == "assets/bundled/prefabs/autospawn/monument/arctic_bases/arctic_research_base_a.prefab")
 			{
 				string[] parse4;
 				int trash = 0;
@@ -982,14 +1013,18 @@ public static class AssetManager
 					
 					if(Manifest.pooledStrings[i].str.EndsWith(".prefab"))
 					{
-						if(Manifest.pooledStrings[i].str.Contains("prefabs_large_oilrig"))
+
+						if(Manifest.pooledStrings[i].str.Contains("prefabs_small_oilrig"))
 						{
-							monumentTag = "plo#";
+							monumentTag = "oilrig_small/";
 						}
-						else if(Manifest.pooledStrings[i].str.Contains("prefabs_small_oilrig"))
+						
+						if(Manifest.pooledStrings[i].str.Contains("client")) //dangerous 
 						{
-							monumentTag = "pso#";
+							monumentTag = "EVENT SYSTEMS DISABLED ";
 						}
+						
+
 						
 						parse = Manifest.pooledStrings[i].str.Split('/');
 						name = parse[parse.Length -1];
@@ -1007,6 +1042,11 @@ public static class AssetManager
 					}
 					if (ToID(Manifest.pooledStrings[i].str) != 0)
 						AssetPaths.Add(Manifest.pooledStrings[i].str);
+
+					
+					if(Manifest.pooledStrings[i].str.Contains("autospawn/monument", StringComparison.Ordinal)){
+							MonumentList.Add(ToID(Manifest.pooledStrings[i].str));
+						}
 				}
 				
 				AssetDump();

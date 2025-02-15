@@ -1001,36 +1001,172 @@
             "id": 3775558681
         },
         {
-            "fragment": "TriggerWakeAIZ",
-            "id": 1111111111
+            "fragment": "props",
+            "id": 0
         },
         {
-            "fragment": "NoRespawnZone",
-            "id": 1111111111
+            "fragment": "/cracks_grass_e/",
+            "id": 0
         },
         {
-            "fragment": "NexusFerryAvoid",
-            "id": 1111111111
+            "fragment": "/cracks_grass_d/",
+            "id": 0
         },
         {
-            "fragment": "MusicZone",
-            "id": 1111111111
+            "fragment": "/cracks_grass_a/",
+            "id": 0
         },
         {
-            "fragment": "Fog Volume",
-            "id": 1111111111
+            "fragment": "/cracks_grass_b/",
+            "id": 0
         },
         {
-            "fragment": "TunnelTriggerWakeAIZ",
-            "id": 1111111111
+            "fragment": "/cracks_grass_c/",
+            "id": 0
         },
         {
-            "fragment": "Reverb",
-            "id": 1111111111
+            "fragment": "/cracks_grass_f/",
+            "id": 0
         },
         {
-            "fragment": "trigger",
-            "id": 1111111111
+            "fragment": "/cracks_grass_g/",
+            "id": 0
+        },
+        {
+            "fragment": "/cracks_grass_h/",
+            "id": 0
+        },
+        {
+            "fragment": "/cracks_grass_i/",
+            "id": 0
+        },
+        {
+            "fragment": "/cracks_grass_j/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_bush_a/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_a/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_corner_b/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_corner_a/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_corner_c/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_wall_600/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_wall_900/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_tree_a/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_tree_b/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_tree_e/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_tree_d/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_tree_c/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_tree_f/",
+            "id": 0
+        },
+        {
+            "fragment": "/patch_grass_tall_large/",
+            "id": 0
+        },
+        {
+            "fragment": "/patch_weeds_a/",
+            "id": 0
+        },
+        {
+            "fragment": "/patch_weeds_b/",
+            "id": 0
+        },
+        {
+            "fragment": "/patch_weeds_c/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_tree_g/",
+            "id": 0
+        },
+        {
+            "fragment": "/bush_dead/",
+            "id": 0
+        },
+        {
+            "fragment": "/shrub_ferns/",
+            "id": 0
+        },
+        {
+            "fragment": "/shrub_sparse/",
+            "id": 0
+        },
+        {
+            "fragment": "/shrub_dense/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_pipe_300x600/",
+            "id": 0
+        },
+        {
+            "fragment": "/bush_large_dense/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_fence_600/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_pipe_200x600/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_fall_a_snow/",
+            "id": 0
+        },
+        {
+            "fragment": "/creeping_plant_fall_a/",
+            "id": 0
+        },
+        {
+            "fragment": "/bush_medium_dense/",
+            "id": 0
+        },
+        {
+            "fragment": "/bush_sparse_temperate/",
+            "id": 0
+        },
+        {
+            "fragment": "plight.flare",
+            "id": 0
         }
     ]
 }

@@ -45,10 +45,12 @@ public class PrefabDataHolder : MonoBehaviour
     // Update prefab data including position, rotation, and scale
     public void UpdatePrefabData()
     {
+		
         prefabData.position = gameObject.transform.localPosition;
         prefabData.rotation = transform.rotation;
         prefabData.scale = transform.localScale;
         UpdateSectorMembership(); // Also update which sector this prefab belongs to
+		
     }
 
     // This method updates the sector membership of the prefab

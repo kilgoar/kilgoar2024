@@ -12,7 +12,6 @@ public class CoroutineManager : MonoBehaviour
     private static CoroutineManager _instance;
     private bool _isInitialized = false;
     private float nextCrumpetTime = 0f;
-    private List<GameObject> _selectedObjects = new List<GameObject>();
     private Camera cam;
     private Texture2D pointerTexture;
     private Texture2D paintBrushTexture;

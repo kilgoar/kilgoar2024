@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using System.IO;
 using System;
+using System.Diagnostics;
 public class PostBuildProcessor
 {
     [MenuItem("Rust Map Editor/Build")]
@@ -34,13 +35,57 @@ public class PostBuildProcessor
         SettingsManager.CopyDirectory("Custom", "E:/RustMapper/Custom");
         SettingsManager.CopyEditorSettings("E:/RustMapper/EditorSettings.json");
 		RemoveDirectory("E:/RustMapper/RustMapper_BurstDebugInformation_DoNotShip");
+		//SetRunAsAdministrator("E:/RustMapper/RustMapper.exe");
     }
 	
+	// yeah this doesn't work
+	/*
+	private static void SetRunAsAdministrator(string exePath)
+    {
+        try
+        {
+            string script = $@"
+            $bytes = [System.IO.File]::ReadAllBytes('{exePath}')
+            $peOffset = [System.BitConverter]::ToInt32($bytes[0x3C..0x3F], 0) + 4
+            $bytes[$peOffset] = [byte]0x20
+            [System.IO.File]::WriteAllBytes('{exePath}', $bytes)
+            ";
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using (Process process = Process.Start(psi))
+            {
+                process.WaitForExit();
+                if (process.ExitCode != 0)
+                {
+                    string error = process.StandardError.ReadToEnd();
+                    UnityEngine.Debug.LogError($"Failed to set run as admin for {exePath}. Error: {error}");
+                }
+                else
+                {
+                    UnityEngine.Debug.Log($"Successfully set {exePath} to run as administrator.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            UnityEngine.Debug.LogError($"Error setting run as admin: {ex.Message}");
+        }
+    }
+	*/
 	public static void RemoveDirectory(string directoryPath)
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
         {
-            Debug.LogError("Directory path is null or empty.");
+            UnityEngine.Debug.LogError("Directory path is null or empty.");
             return;
         }
 
@@ -58,16 +103,16 @@ public class PostBuildProcessor
 
                 // Finally, delete the directory itself
                 Directory.Delete(directoryPath, true);
-                Debug.Log($"Directory '{directoryPath}' and its contents have been deleted.");
+                UnityEngine.Debug.Log($"Directory '{directoryPath}' and its contents have been deleted.");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to delete directory '{directoryPath}'. Error: {ex.Message}");
+                UnityEngine.Debug.LogError($"Failed to delete directory '{directoryPath}'. Error: {ex.Message}");
             }
         }
         else
         {
-            Debug.LogWarning($"Directory '{directoryPath}' does not exist.");
+            UnityEngine.Debug.LogWarning($"Directory '{directoryPath}' does not exist.");
         }
     }
 	

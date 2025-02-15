@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _toggleIcons:
     noChildren:
-      sprite: {fileID: -981460359, guid: 97da269d70fc38544ac09238cec00687, type: 3}
-      color: {r: 1, g: 1, b: 1, a: 1}
+      sprite: {fileID: 0}
+      color: {r: 1, g: 1, b: 1, a: 0}
     collapsed:
       sprite: {fileID: 2062437151, guid: 97da269d70fc38544ac09238cec00687, type: 3}
       color: {r: 1, g: 1, b: 1, a: 1}
