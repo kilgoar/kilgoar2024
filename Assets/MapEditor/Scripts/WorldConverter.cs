@@ -43,7 +43,7 @@ public static class WorldConverter
     {		
         MapInfo terrains = new MapInfo();
 
-        int splatRes = Mathf.Clamp(Mathf.NextPowerOfTwo((int)(size * 0.50f)), 512, 2048);
+        int splatRes = Mathf.Clamp(Mathf.NextPowerOfTwo((int)(size * 0.50f)), 16, 2048);
 
         List<PathData> paths = new List<PathData>();
         List<PrefabData> prefabs = new List<PrefabData>();
@@ -53,11 +53,11 @@ public static class WorldConverter
         terrains.prefabData = prefabs.ToArray();
 		terrains.circuitData = circuits.ToArray();
 
-        terrains.terrainRes = Mathf.Clamp(Mathf.NextPowerOfTwo(size), 512, 4096) + 1;
+        terrains.terrainRes = Mathf.NextPowerOfTwo((int)(size * 0.50f)) + 1;
         terrains.size = new Vector3(size, 1000, size);
 
         terrains.land.heights = SetValues(new float[terrains.terrainRes, terrains.terrainRes], landHeight / 1000f, new Area(0, terrains.terrainRes, 0, terrains.terrainRes));
-        terrains.water.heights = SetValues(new float[terrains.terrainRes, terrains.terrainRes], 0f / 1000f, new Area(0, terrains.terrainRes, 0, terrains.terrainRes));
+        terrains.water.heights = SetValues(new float[terrains.terrainRes, terrains.terrainRes], 500f / 1000f, new Area(0, terrains.terrainRes, 0, terrains.terrainRes));
 
         terrains.splatRes = splatRes;
         terrains.splatMap = new float[splatRes, splatRes, 8];

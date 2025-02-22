@@ -104,6 +104,7 @@ public static class MapManager
     /// <param name="landLayerToPaint">The LayerType to rotate. (Ground, Biome, Alpha, Topology)</param>
     /// <param name="CW">True = 90°, False = 270°</param>
     /// <param name="topology">The Topology layer, if selected.</param>
+
     public static void RotateLayer(LayerType landLayerToPaint, bool CW, int topology = 0)
     {
         switch (landLayerToPaint)
@@ -122,6 +123,8 @@ public static class MapManager
     /// <summary>Rotates the selected topologies.</summary>
     /// <param name="topologyLayers">The Topology layers to rotate.</param>
     /// <param name="CW">True = 90°, False = 270°</param>
+	
+
     public static void RotateTopologyLayers(TerrainTopology.Enum topologyLayers, bool CW)
     {
         List<int> topologyElements = GetEnumSelection(topologyLayers);
@@ -252,6 +255,50 @@ public static class MapManager
         }
     }
 
+
+	[ConsoleCommand("Paints heights with gradients")]
+	public static void PaintHeightBlend(Layers layerData, float heightLow, float heightHigh, float minBlendLow, float maxBlendHigh, int t)
+	{
+		// Determine the layer type and index from the Layers object
+		LayerType layerType;
+		int layerIndex = -1;
+		if (layerData.Ground != 0)
+		{
+			layerType = LayerType.Ground;
+			layerIndex = TerrainSplat.TypeToIndex((int)layerData.Ground);
+		}
+		else if (layerData.Biome != 0)
+		{
+			layerType = LayerType.Biome;
+			layerIndex = TerrainBiome.TypeToIndex((int)layerData.Biome);
+		}
+		else
+		{
+			Debug.LogError("PaintHeightBlend only supports Ground and Biome layers.");
+			return;
+		}
+
+		// Validate height range
+		if (!(minBlendLow < heightLow && heightLow < heightHigh && heightHigh < maxBlendHigh))
+		{
+			Debug.LogError($"Invalid height range: minBlendLow ({minBlendLow}) must be < heightLow ({heightLow}) < heightHigh ({heightHigh}) < maxBlendHigh ({maxBlendHigh}).");
+			return;
+		}
+
+		// Execute the painting
+		SetLayerData(
+			SetRangeBlend(
+				GetSplatMap(layerType),
+				HeightToSplat(GetHeights()),
+				t,
+				heightLow / 1000f,  // Normalize to 0-1
+				heightHigh / 1000f, // Normalize to 0-1
+				minBlendLow / 1000f,
+				maxBlendHigh / 1000f
+			),
+			layerType
+		);
+	}
     /// <summary>Paints the layer wherever the height conditions are met with a weighting determined by the range the height falls in.</summary>
     /// <param name="landLayerToPaint">The LayerType to paint. (Ground, Biome, Alpha, Topology)</param>
     /// <param name="heightLow">The minimum height to paint at 100% weight.</param>
@@ -266,7 +313,7 @@ public static class MapManager
             case LayerType.Ground:
             case LayerType.Biome:
 
-                SetSplatMap(SetRangeBlend(GetSplatMap(landLayerToPaint), HeightToSplat(GetHeights()), t, heightLow, heightHigh, minBlendLow, maxBlendHigh), landLayerToPaint);
+                SetLayerData(SetRangeBlend(GetSplatMap(landLayerToPaint), HeightToSplat(GetHeights()), t, heightLow, heightHigh, minBlendLow, maxBlendHigh), landLayerToPaint);
 
                 break;
         }
@@ -566,6 +613,7 @@ public static class MapManager
     }
 	
 	#endif
+	[ConsoleCommand("export prefabdata into JSON")]
 	public static void SaveJson(string path)
     {
 		string name = path.Split('/').Last().Split('.')[0];
@@ -575,8 +623,73 @@ public static class MapManager
 		Callbacks.OnMapSaved(path);
     }
 	
-    /// <summary>Creates a new flat terrain.</summary>
-    /// <param name="size">The size of the terrain.</param>
+	[ConsoleCommand("Creates a new map synchronously")]
+	public static void NewMap(int size)
+	{
+		// Create MapInfo for a flat map
+		MapInfo mapInfo = EmptyMap(size, 503f, TerrainSplat.Enum.Grass, TerrainBiome.Enum.Temperate);
+
+		// Synchronous terrain setup
+		isLoading = true;
+
+		// Delete existing prefabs and paths
+		PrefabManager.DeletePrefabs(PrefabManager.CurrentMapPrefabs);
+		PathManager.DeletePaths(PathManager.CurrentMapPaths);
+
+		// Center scene objects
+		CentreSceneObjects(mapInfo);
+
+		// Set terrain data (simulating Coroutines.SetTerrains)
+		TerrainManager.Land.terrainData.heightmapResolution = mapInfo.terrainRes;
+		TerrainManager.Land.terrainData.size = mapInfo.size;
+		TerrainManager.Land.terrainData.alphamapResolution = mapInfo.splatRes;
+		TerrainManager.Land.terrainData.baseMapResolution = mapInfo.splatRes;
+		
+		TerrainManager.LandMask.terrainData.heightmapResolution = mapInfo.terrainRes;
+		TerrainManager.LandMask.terrainData.size = mapInfo.size;
+		TerrainManager.LandMask.terrainData.alphamapResolution = mapInfo.splatRes;
+		TerrainManager.LandMask.terrainData.baseMapResolution = mapInfo.splatRes;
+		
+		TerrainManager.Water.terrainData.heightmapResolution = mapInfo.terrainRes;
+		TerrainManager.Water.terrainData.alphamapResolution = mapInfo.splatRes;
+		TerrainManager.Water.terrainData.baseMapResolution = mapInfo.splatRes;
+		TerrainManager.Water.terrainData.size = mapInfo.size;
+
+		// Set heightmap with undo
+		RegisterHeightMapUndo(TerrainType.Land, $"New Map {size}");
+		TerrainManager.Land.terrainData.SetHeights(0, 0, mapInfo.land.heights);
+		TerrainManager.Water.terrainData.SetHeights(0, 0, mapInfo.water.heights);
+		TerrainManager.Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
+
+		// Set splatmaps
+		TerrainManager.SetSplatMap(mapInfo.splatMap, LayerType.Ground);
+		TerrainManager.SetSplatMap(mapInfo.biomeMap, LayerType.Biome);
+		TerrainManager.SetAlphaMap(mapInfo.alphaMap);
+
+		// Set topology data
+		TopologyData.Set(mapInfo.topology);
+		for (int i = 0; i < TerrainTopology.COUNT; i++)
+		{
+			TerrainManager.SetSplatMap(TopologyData.GetTopologyLayer(TerrainTopology.IndexToType(i)), LayerType.Topology, i);
+		}
+		
+		TerrainManager.ChangeLayer(LayerType.Ground);
+
+		// Spawn prefabs and paths
+		PrefabManager.SpawnPrefabs(mapInfo.prefabData, 0);
+		PathManager.SpawnPaths(mapInfo.pathData, 0);
+
+		// Complete setup
+		AreaManager.Reset();
+		ClearSplatMapUndo();
+		isLoading = false;
+
+		// Signal completion
+		Callbacks.OnMapLoaded("New Map");
+
+		Debug.Log($"New map of size {size} created successfully.");
+	}
+	
     public static void CreateMap(int size, TerrainSplat.Enum ground, TerrainBiome.Enum biome, float landHeight = 503f)
     {
 		#if UNITY_EDITOR
@@ -587,7 +700,7 @@ public static class MapManager
 		
     }
 	
-		public static void MergeREPrefab(MapInfo mapInfo, string loadPath = "")
+	public static void MergeREPrefab(MapInfo mapInfo, string loadPath = "")
     {	
 		#if UNITY_EDITOR
 		int progressID = Progress.Start("Load: " + loadPath.Split('/').Last(), "Preparing Map", Progress.Options.Sticky);

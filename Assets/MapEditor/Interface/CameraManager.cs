@@ -103,6 +103,22 @@ public class CameraManager : MonoBehaviour
         _workGizmoId = GizmoId.Move;
     }
 
+	public PrefabDataHolder[] SelectedDataHolders()
+	{
+		if (_selectedObjects == null || _selectedObjects.Count == 0)
+		{
+			return new PrefabDataHolder[0]; // Return empty array if no objects are selected
+		}
+
+		// Use LINQ to filter and collect all PrefabDataHolder components
+		var prefabDataHolders = _selectedObjects
+			.Where(obj => obj != null) // Ensure the GameObject exists
+			.SelectMany(obj => obj.GetComponents<PrefabDataHolder>()) // Get all PrefabDataHolder components from each GameObject
+			.ToArray();
+
+		return prefabDataHolders;
+	}
+
     private enum GizmoId    {
             Move = 1,
             Rotate,
@@ -200,6 +216,7 @@ public class CameraManager : MonoBehaviour
 			else if (Keyboard.current.eKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Rotate);
 			else if (Keyboard.current.rKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Scale);
 			else if (Keyboard.current.tKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Universal);
+			else if (Keyboard.current.xKey.wasPressedThisFrame) ToggleGizmoSpace();
 
 			if (Keyboard.current.shiftKey.isPressed && Keyboard.current.altKey.isPressed)
 			{
@@ -627,6 +644,33 @@ public class CameraManager : MonoBehaviour
         }
     }
 	
+	private void ToggleGizmoSpace()
+	{
+		// Check if any gizmo is null to avoid errors
+		if (_objectMoveGizmo == null || _objectRotationGizmo == null || 
+			_objectScaleGizmo == null || _objectUniversalGizmo == null) return;
+
+		// Get the current space from the move gizmo as a reference (assume they’re all synced)
+		bool isLocal = _objectMoveGizmo.TransformSpace == GizmoSpace.Local;
+		
+		// Toggle to the opposite space
+		GizmoSpace newSpace = isLocal ? GizmoSpace.Global : GizmoSpace.Local;
+
+		// Apply the new space to all gizmos
+		_objectMoveGizmo.SetTransformSpace(newSpace);
+		_objectRotationGizmo.SetTransformSpace(newSpace);
+		_objectScaleGizmo.SetTransformSpace(newSpace);
+		_objectUniversalGizmo.SetTransformSpace(newSpace);
+
+		// Refresh the active work gizmo’s position and rotation
+		if (_workGizmo != null && _workGizmo.Gizmo.IsEnabled)
+		{
+			_workGizmo.RefreshPositionAndRotation();
+		}
+
+		Debug.Log($"Gizmo space switched to {newSpace}");
+	}
+		
     public void UpdateGizmoState()
     {
         if (_selectedObjects.Count > 0)

@@ -10,6 +10,30 @@ using ProtoBuf;
 
 namespace RustMapEditor.Variables
 {
+	//console command attribute format
+	[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+	public sealed class ConsoleCommandAttribute : Attribute
+	{
+		public string Description { get; }
+
+		public ConsoleCommandAttribute(string description)
+		{
+			Description = description;
+		}
+	}
+	
+	//console variable attribute format
+	[AttributeUsage(AttributeTargets.Struct)]
+	public class ConsoleVariableAttribute : Attribute
+	{
+		public string Description { get; }
+
+		public ConsoleVariableAttribute(string description)
+		{
+			Description = description;
+		}
+	}
+	
 	
     public struct Conditions
     {
@@ -151,6 +175,8 @@ namespace RustMapEditor.Variables
 		public int x,y,width,height;
 	}
 	
+	
+	
 	public enum ColliderLayer
 	{
 		All = Physics.AllLayers,
@@ -168,6 +194,7 @@ namespace RustMapEditor.Variables
 		public GeologyPreset[] geoPresets;
 	}
 	
+	[ConsoleVariable("settings for randomTerracing")]
 	[Serializable]
 	public struct TerracingPreset
 	{
@@ -176,7 +203,7 @@ namespace RustMapEditor.Variables
 		public int zStart, gateBottom, gateTop, gates, descaleFactor, perlinDensity;
 	}
 	
-	
+	[ConsoleVariable("settings for perlinSimple and perlinRidiculous")]
 	[Serializable]
 	public struct PerlinPreset
 	{
@@ -184,6 +211,7 @@ namespace RustMapEditor.Variables
 		public bool simple;
 	}
 	
+	[ConsoleVariable("settings for perlinSplat")]
 	[Serializable]
 	public struct PerlinSplatPreset
 	{
@@ -193,6 +221,7 @@ namespace RustMapEditor.Variables
 		public bool invert, paintBiome;
 	}
 	
+	[ConsoleVariable("settings for figuredRippling")]
 	[Serializable]
 	public struct RipplePreset
 	{
@@ -200,6 +229,7 @@ namespace RustMapEditor.Variables
 		public float weight;
 	}
 	
+	[ConsoleVariable("settings for splatCrazing")]
 	[Serializable]
 	public struct CrazingPreset
 	{
@@ -216,6 +246,7 @@ namespace RustMapEditor.Variables
 		[ProtoMember(2)]public MonumentData monument;
 	}
 	
+	[ConsoleVariable("settings for ocean")]
 	[Serializable]
 	public struct OceanPreset
 	{

@@ -1,0 +1,11 @@
+echo map generator
+m.NewMap 2000
+g.fillLayer sand
+g.fillLayer arid
+g.ImportHeightmap yourheightmap.raw
+t.SqueezeHeightMap 0, 107
+t.NudgeHeightMap 520
+t.BorderTuck 528, 10, 1
+g.PaintSlope rock, 25,30,90,95
+g.PaintSlope beach, 0,0,4,4
+g.PaintBorder sand, 10

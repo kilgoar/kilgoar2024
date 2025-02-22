@@ -23,6 +23,343 @@ public static class GenerativeManager
 	public static int GeologySpawns;
 	private static Coroutine cliffCoroutine;
 
+	[ConsoleCommand("Paints the borders of a specified layer with a blending radius")]
+    public static void PaintBorder(Layers layerData, int radius)
+    {
+        // Validate radius
+        if (radius < 0 || radius >= TerrainManager.SplatMapRes / 2)
+        {
+            Debug.LogError($"Radius must be between 0 and {TerrainManager.SplatMapRes / 2 - 1} grid units. Received: {radius}");
+            return;
+        }
+
+        // Determine the layer type and index from the Layers object
+        LayerType layerType;
+        int layerIndex = -1;
+        if (layerData.Ground != 0)
+        {
+            layerType = LayerType.Ground;
+            layerIndex = TerrainSplat.TypeToIndex((int)layerData.Ground);
+        }
+        else if (layerData.Biome != 0)
+        {
+            layerType = LayerType.Biome;
+            layerIndex = TerrainBiome.TypeToIndex((int)layerData.Biome);
+        }
+        else if (layerData.Topologies != 0)
+        {
+            layerType = LayerType.Topology;
+            layerIndex = TerrainTopology.TypeToIndex((int)layerData.Topologies);
+        }
+        else
+        {
+            Debug.LogError("No valid layer specified in Layers object.");
+            return;
+        }
+
+        // Get the current layer data
+        float[,,] layerMap = TerrainManager.GetLayerData(layerType, layerIndex);
+        int res = layerMap.GetLength(0);
+        int layerCount = TerrainManager.LayerCount(layerType); // 8 for Ground, 4 for Biome, 2 for Topology
+
+        // Register undo before modifying
+        TerrainManager.RegisterSplatMapUndo($"Paint Border Layer {layerType} Index {layerIndex}, Radius {radius}");
+
+        // Paint the borders with blending over the radius
+        for (int x = 0; x < res; x++)
+        {
+            for (int z = 0; z < res; z++)
+            {
+                // Calculate distance from the nearest edge
+                int distToLeft = x;
+                int distToRight = res - 1 - x;
+                int distToBottom = z;
+                int distToTop = res - 1 - z;
+                int minDist = Mathf.Min(distToLeft, distToRight, distToBottom, distToTop);
+
+                // If within radius, apply blending
+                if (minDist <= radius)
+                {
+                    // Blend factor: 1 at edge (minDist = 0), 0 at radius (minDist = radius)
+                    float strength = Mathf.InverseLerp(radius, 0, minDist);
+
+                    // Calculate total strength of other layers
+                    float totalOtherStrength = 0f;
+                    for (int k = 0; k < layerCount; k++)
+                    {
+                        if (k != layerIndex)
+                        {
+                            totalOtherStrength += layerMap[x, z, k];
+                        }
+                    }
+
+                    // Apply strength to the target layer and adjust others
+                    float remainingStrength = 1f - strength;
+                    for (int k = 0; k < layerCount; k++)
+                    {
+                        if (k == layerIndex)
+                        {
+                            layerMap[x, z, k] = strength; // Target layer gets the blended strength
+                        }
+                        else if (totalOtherStrength > 0)
+                        {
+                            // Distribute remaining strength proportionally among other layers
+                            layerMap[x, z, k] = (layerMap[x, z, k] / totalOtherStrength) * remainingStrength;
+                        }
+                        else
+                        {
+                            // If no other strength existed, set evenly or to 0
+                            layerMap[x, z, k] = (layerCount > 1) ? (remainingStrength / (layerCount - 1)) : 0f;
+                        }
+                    }
+                }
+                // Interior beyond radius remains unchanged
+            }
+        }
+
+        // Apply the updated layer back to TerrainManager
+        TerrainManager.SetLayerData(layerMap, layerType, layerIndex);
+
+        // Notify listeners of the update
+        TerrainManager.Callbacks.InvokeLayerUpdated(layerType, layerIndex);
+    }
+
+	[ConsoleCommand("fills curvature with gradient")]
+	public static void paintCurvature(Layers layerData, float minBlend = -0.1f, float min = 0f, float max = 0.1f, float maxBlend = 0.2f)
+	{
+		// Validate curvature range
+		if (!(minBlend < min && min < max && max < maxBlend))
+		{
+			Debug.LogError($"Invalid curvature range: minBlend ({minBlend}) must be < min ({min}) < max ({max}) < maxBlend ({maxBlend}).");
+			return;
+		}
+
+		// Determine the layer type and index from the Layers object
+		LayerType layerType;
+		int layerIndex = -1;
+		if (layerData.Ground != 0)
+		{
+			layerType = LayerType.Ground;
+			layerIndex = TerrainSplat.TypeToIndex((int)layerData.Ground);
+		}
+		else if (layerData.Biome != 0)
+		{
+			layerType = LayerType.Biome;
+			layerIndex = TerrainBiome.TypeToIndex((int)layerData.Biome);
+		}
+		else if (layerData.Topologies != 0)
+		{
+			layerType = LayerType.Topology;
+			layerIndex = TerrainTopology.TypeToIndex((int)layerData.Topologies);
+		}
+		else
+		{
+			Debug.LogError("No valid layer specified in Layers object.");
+			return;
+		}
+
+		// Get the current layer data
+		float[,,] layerMap = TerrainManager.GetLayerData(layerType, layerIndex);
+		int res = layerMap.GetLength(0);
+		int layerCount = TerrainManager.LayerCount(layerType); // 8 for Ground, 4 for Biome, 2 for Topology
+
+		// Get the curvature data from TerrainManager
+		float[,] curvature = TerrainManager.GetCurves();
+
+		// Paint the layer with gradient blending based on curvature
+		for (int i = 0; i < res; i++)
+		{
+			for (int j = 0; j < res; j++)
+			{
+				float curve = curvature[i, j];
+				float strength;
+
+				// Calculate blending strength based on curvature
+				if (curve < minBlend)
+				{
+					strength = 0f; // Below minBlend: fully inactive
+				}
+				else if (curve < min)
+				{
+					// Gradient from minBlend (0) to min (1)
+					strength = Mathf.InverseLerp(minBlend, min, curve);
+				}
+				else if (curve <= max)
+				{
+					strength = 1f; // Between min and max: fully active
+				}
+				else if (curve < maxBlend)
+				{
+					// Gradient from max (1) to maxBlend (0)
+					strength = Mathf.InverseLerp(maxBlend, max, curve);
+				}
+				else
+				{
+					strength = 0f; // Above maxBlend: fully inactive
+				}
+
+				// Apply strength to the target layer and adjust others
+				float totalOtherStrength = 0f;
+				for (int k = 0; k < layerCount; k++)
+				{
+					if (k != layerIndex)
+					{
+						totalOtherStrength += layerMap[i, j, k];
+					}
+				}
+
+				// Normalize the non-target layers' strength to (1 - strength)
+				float remainingStrength = 1f - strength;
+				for (int k = 0; k < layerCount; k++)
+				{
+					if (k == layerIndex)
+					{
+						layerMap[i, j, k] = strength; // Target layer gets the calculated strength
+					}
+					else if (totalOtherStrength > 0)
+					{
+						// Distribute remaining strength proportionally among other layers
+						layerMap[i, j, k] = (layerMap[i, j, k] / totalOtherStrength) * remainingStrength;
+					}
+					else
+					{
+						// If no other strength existed, set evenly or to 0
+						layerMap[i, j, k] = (layerCount > 1) ? (remainingStrength / (layerCount - 1)) : 0f;
+					}
+				}
+			}
+		}
+
+		// Apply the updated layer back to TerrainManager
+		TerrainManager.SetLayerData(layerMap, layerType, layerIndex);
+	}
+
+
+[ConsoleCommand("Paint slopes with gradients")]
+public static void PaintSlope(Layers layerData, float minBlend = 20f, float min = 30f, float max = 60f, float maxBlend = 70f)
+{
+    // Validate slope range
+    if (!(minBlend <= min && min < max && max <= maxBlend))
+    {
+        Debug.LogError($"Invalid slope range: minBlend ({minBlend}) must be < min ({min}) < max ({max}) < maxBlend ({maxBlend}).");
+        return;
+    }
+
+    // Determine the layer type and index from the Layers object
+    LayerType layerType;
+    int layerIndex = -1;
+    if (layerData.Ground != 0)
+    {
+        layerType = LayerType.Ground;
+        layerIndex = TerrainSplat.TypeToIndex((int)layerData.Ground);
+    }
+    else if (layerData.Biome != 0)
+    {
+        layerType = LayerType.Biome;
+        layerIndex = TerrainBiome.TypeToIndex((int)layerData.Biome);
+    }
+    else if (layerData.Topologies != 0)
+    {
+        layerType = LayerType.Topology;
+        layerIndex = TerrainTopology.TypeToIndex((int)layerData.Topologies);
+    }
+    else
+    {
+        Debug.LogError("No valid layer specified in Layers object.");
+        return;
+    }
+
+    // Get the current layer data
+    float[,,] layerMap = TerrainManager.GetLayerData(layerType, layerIndex);
+    int splatRes = layerMap.GetLength(0); // Splatmap resolution
+    int layerCount = TerrainManager.LayerCount(layerType); // 8 for Ground, 4 for Biome, 2 for Topology
+
+    // Get the slope data from TerrainManager, adjusted for splatmap resolution
+    float[,] slopes = TerrainManager.GetSlopes();
+    int heightRes = TerrainManager.HeightMapRes;
+    float splatRatio = TerrainManager.SplatRatio; // e.g., 2 if 2049 heightmap vs. 1024 splatmap
+
+    // Register undo before modifying
+    TerrainManager.RegisterSplatMapUndo($"Paint Slope Blend {layerType} Index {layerIndex}, {minBlend}-{min}-{max}-{maxBlend}");
+
+    // Paint the layer with gradient blending
+    for (int i = 0; i < splatRes; i++)
+    {
+        for (int j = 0; j < splatRes; j++)
+        {
+            // Map splat coordinates to heightmap space
+            int heightX = Mathf.FloorToInt(i * splatRatio);
+            int heightY = Mathf.FloorToInt(j * splatRatio);
+            heightX = Mathf.Clamp(heightX, 0, heightRes - 1);
+            heightY = Mathf.Clamp(heightY, 0, heightRes - 1);
+
+            float slope = slopes[heightX, heightY]; // Use heightmap slope at corresponding splat position
+            float strength;
+
+            // Calculate blending strength based on slope
+            if (slope < minBlend)
+            {
+                strength = 0f; // Below minBlend: fully inactive
+            }
+            else if (slope < min)
+            {
+                // Gradient from minBlend (0) to min (1)
+                strength = Mathf.InverseLerp(minBlend, min, slope);
+            }
+            else if (slope <= max)
+            {
+                strength = 1f; // Between min and max: fully active
+            }
+            else if (slope < maxBlend)
+            {
+                // Gradient from max (1) to maxBlend (0)
+                strength = Mathf.InverseLerp(maxBlend, max, slope);
+            }
+            else
+            {
+                strength = 0f; // Above maxBlend: fully inactive
+            }
+
+            // Apply strength to the target layer and adjust others
+            float totalOtherStrength = 0f;
+            for (int k = 0; k < layerCount; k++)
+            {
+                if (k != layerIndex)
+                {
+                    totalOtherStrength += layerMap[i, j, k];
+                }
+            }
+
+            float remainingStrength = 1f - strength;
+            for (int k = 0; k < layerCount; k++)
+            {
+                if (k == layerIndex)
+                {
+                    layerMap[i, j, k] = strength; // Target layer gets the calculated strength
+                }
+                else if (totalOtherStrength > 0)
+                {
+                    // Distribute remaining strength proportionally among other layers
+                    layerMap[i, j, k] = (layerMap[i, j, k] / totalOtherStrength) * remainingStrength;
+                }
+                else
+                {
+                    // If no other strength existed, set evenly or to 0
+                    layerMap[i, j, k] = (layerCount > 1) ? (remainingStrength / (layerCount - 1)) : 0f;
+                }
+            }
+        }
+    }
+
+    // Apply the updated layer back to TerrainManager
+    TerrainManager.SetLayerData(layerMap, layerType, layerIndex);
+
+    // Notify listeners of the update
+    TerrainManager.Callbacks.InvokeLayerUpdated(layerType, layerIndex);
+}
+
+
+	[ConsoleCommand("oceans")]
 	public static void oceans(OceanPreset ocean)
 	{
 		
@@ -108,10 +445,99 @@ public static class GenerativeManager
 			//EditorUtility.ClearProgressBar();
 			land.terrainData.SetHeights(0, 0, puckeredMap);
 	}
+
+	[ConsoleCommand("Import .raw heightmap and resample")]
+	public static void ImportHeightmap(string path)
+	{
+		// Construct the full file path
+		string fullPath = Path.Combine(SettingsManager.AppDataPath(), "Presets/Scripts", path);
+		if (!File.Exists(fullPath))
+		{
+			Debug.LogError($"Heightmap file not found: {fullPath}");
+			return;
+		}
+
+		// Read the raw bytes
+		byte[] bytes = File.ReadAllBytes(fullPath);
+
+		// Calculate resolution (assuming square heightmap, 16-bit values)
+		int totalValues = bytes.Length / 2; // 2 bytes per value
+		int sourceRes = (int)Mathf.Sqrt(totalValues);
+		if (sourceRes * sourceRes * 2 != bytes.Length)
+		{
+			Debug.LogError($"Invalid .raw file size: {bytes.Length} bytes does not match a square 16-bit heightmap.");
+			return;
+		}
+
+		// Get target terrain resolution
+		int targetRes = Land.terrainData.heightmapResolution;
+
+		// Convert bytes to source heightmap
+		float[,] sourceHeightMap = new float[sourceRes, sourceRes];
+		for (int y = 0; y < sourceRes; y++)
+		{
+			for (int x = 0; x < sourceRes; x++)
+			{
+				int index = (y * sourceRes + x) * 2;
+				ushort value = (ushort)(bytes[index] | (bytes[index + 1] << 8)); // Little-endian 16-bit
+				sourceHeightMap[x, y] = value / 65535f; // Normalize to 0-1
+			}
+		}
+
+		// Resample if resolution doesn't match
+		float[,] heightMap;
+		if (sourceRes != targetRes)
+		{
+			Debug.Log($"Resampling heightmap from {sourceRes}x{sourceRes} to {targetRes}x{targetRes}");
+			heightMap = ResampleHeightmap(sourceHeightMap, sourceRes, targetRes);
+		}
+		else
+		{
+			heightMap = sourceHeightMap;
+		}
+
+		// Apply to terrain
+		Land.terrainData.SetHeights(0, 0, heightMap);
+		Callbacks.InvokeHeightMapUpdated(TerrainType.Land); // Notify listeners
+	}
+
+	// Bilinear resampling of heightmap
+	private static float[,] ResampleHeightmap(float[,] source, int sourceRes, int targetRes)
+	{
+		float[,] target = new float[targetRes, targetRes];
+		float scaleX = (float)(sourceRes - 1) / (targetRes - 1);
+		float scaleY = (float)(sourceRes - 1) / (targetRes - 1);
+
+		for (int y = 0; y < targetRes; y++)
+		{
+			for (int x = 0; x < targetRes; x++)
+			{
+				// Map target coordinates to source space
+				float srcX = x * scaleX;
+				float srcY = y * scaleY;
+
+				// Get integer and fractional parts
+				int x0 = Mathf.FloorToInt(srcX);
+				int y0 = Mathf.FloorToInt(srcY);
+				int x1 = Mathf.Min(x0 + 1, sourceRes - 1);
+				int y1 = Mathf.Min(y0 + 1, sourceRes - 1);
+				float fx = srcX - x0;
+				float fy = srcY - y0;
+
+				// Bilinear interpolation
+				float h00 = source[x0, y0];
+				float h10 = source[x1, y0];
+				float h01 = source[x0, y1];
+				float h11 = source[x1, y1];
+				float h = h00 * (1 - fx) * (1 - fy) + h10 * fx * (1 - fy) + h01 * (1 - fx) * fy + h11 * fx * fy;
+				target[x, y] = h;
+			}
+		}
+		return target;
+	}
 	
 	public static float[,] loadHeightmap(string path)
 	{
-		
 		
 		byte[] sample = File.ReadAllBytes(path);
 		Texture2D sampleTexture = new Texture2D(2,2);
@@ -134,6 +560,7 @@ public static class GenerativeManager
 		return heightMap;
 	}
 	
+	[ConsoleCommand("diamond square heightmap")]
 	public static void diamondSquareNoise(int roughness, int height, int weight)
 	{
 			Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
@@ -229,6 +656,7 @@ public static class GenerativeManager
 	
 	}	
 	
+	[ConsoleCommand("generate ridiculous heightmap")]
 	public static void perlinRidiculous(PerlinPreset perlin)
 	{
 			int l = perlin.layers;
@@ -294,6 +722,7 @@ public static class GenerativeManager
 	
 	}	
 	
+	[ConsoleCommand("generate perlin heightmap")]
 	public static void perlinSimple(PerlinPreset perlin)
 	{
 			int l = perlin.layers;
@@ -354,6 +783,7 @@ public static class GenerativeManager
 	
 	}	
 	
+	
 	public static Vector2 minmaxHeightmap()
 	{
 		Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
@@ -371,6 +801,7 @@ public static class GenerativeManager
 			return minmax;
 	}
 	
+	[ConsoleCommand("terracing heightmap")]
 	public static void randomTerracing(TerracingPreset terracing)
 	{
 			bool flatten = terracing.flatten;
@@ -462,6 +893,7 @@ public static class GenerativeManager
 		land.terrainData.SetHeights(0, 0, baseMap);
 	}
 	
+	[ConsoleCommand("textures terrain")]
 	public static void rippledFiguring(RipplePreset ripple)
 	{
 			
@@ -498,6 +930,7 @@ public static class GenerativeManager
 						
 	}
 	
+	[ConsoleCommand("inverts heightmap")]
 	public static void FlipHeightmap()
 	{
 		Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
@@ -512,6 +945,7 @@ public static class GenerativeManager
 		land.terrainData.SetHeights(0, 0, baseMap);
 	}
 	
+	[ConsoleCommand("renders splat clouds")]
 	public static void perlinSplat(PerlinSplatPreset perlinSplat)
 	{
 		int s = perlinSplat.scale;
@@ -571,17 +1005,17 @@ public static class GenerativeManager
         }
 		//EditorUtility.ClearProgressBar();
 		//dont forget this shit again
-		TerrainManager.SetSplatMap(newGround, TerrainManager.CurrentLayerType, 0);
+		TerrainManager.SetLayerData(newGround, TerrainManager.CurrentLayerType, 0);
 		//TerrainManager.SetLayer(TerrainManager.CurrentLayerType, 0);
 	}
 	
 	
-	
-	public static void terrainToTopology(Layers layer, Layers sourceLayer, float threshhold)
+	[ConsoleCommand("copy terrain to topology")]
+	public static void terrainToTopology(Layers topology, Layers splatLayer, float threshhold)
 	{
-		float[,,] splatMap = TerrainManager.GetSplatMap(LayerType.Topology, TerrainTopology.TypeToIndex((int)layer.Topologies));
+		float[,,] splatMap = TerrainManager.GetSplatMap(LayerType.Topology, TerrainTopology.TypeToIndex((int)topology.Topologies));
 		float[,,] targetGround = TerrainManager.Ground;
-		int t = TerrainSplat.TypeToIndex((int)sourceLayer.Ground);
+		int t = TerrainSplat.TypeToIndex((int)splatLayer.Ground);
 		
 		int res = targetGround.GetLength(0);
 		for (int i = 0; i < res; i++)
@@ -597,23 +1031,33 @@ public static class GenerativeManager
             }
         }
 		//EditorUtility.ClearProgressBar();
-		TerrainManager.SetSplatMap(splatMap, LayerType.Topology,  TerrainTopology.TypeToIndex((int)layer.Topologies));
+		TerrainManager.SetLayerData(splatMap, LayerType.Topology,  TerrainTopology.TypeToIndex((int)topology.Topologies));
         //TerrainManager.SetLayer(LayerType.Topology,  TerrainTopology.TypeToIndex((int)layer.Topologies));
 	}	
 	
-	public static void copyTopologyLayer(Layers layer, Layers sourceLayer)
-	{
-		float[,,] splatMap = TerrainManager.GetSplatMap(LayerType.Topology, TerrainTopology.TypeToIndex((int)sourceLayer.Topologies));
-		TerrainManager.SetSplatMap(splatMap, LayerType.Topology, TerrainTopology.TypeToIndex((int)layer.Topologies));
-        //TerrainManager.SetLayer(LayerType.Topology, TerrainTopology.TypeToIndex((int)layer.Topologies));
+    [ConsoleCommand("Copy topologies")]
+    public static void copyTopologyLayer(Layers source, Layers destination)
+    {
+        int sourceIndex = TerrainTopology.TypeToIndex((int)source.Topologies);
+        int destIndex = TerrainTopology.TypeToIndex((int)destination.Topologies);
+        float[,,] sourceArray = TerrainManager.GetLayerData(LayerType.Topology, sourceIndex);
+        
+        // Validate source array size
+        if (sourceArray.GetLength(2) != 2)
+        {
+            Debug.LogError($"Source topology array has incorrect layer count: {sourceArray.GetLength(2)}. Expected 2 for topology.");
+            return;
+        }
 
-	}
+        TerrainManager.SetLayerData(sourceArray, LayerType.Topology, destIndex);
+    }
 	
+	[ConsoleCommand("topology lake fill")]
 	public static void lakeTopologyFill(Layers layer)
 	{
 		Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
 		float[,] heightMap = land.terrainData.GetHeights(0, 0, land.terrainData.heightmapResolution, land.terrainData.heightmapResolution);
-		float[,,] topoMap = TerrainManager.GetSplatMap(LayerType.Topology, TerrainTopology.TypeToIndex((int)layer.Topologies));
+		float[,,] topoMap = TerrainManager.GetLayerData(LayerType.Topology, TerrainTopology.TypeToIndex((int)layer.Topologies));
 		int res = topoMap.GetLength(0);
 		int dim = heightMap.GetLength(0);
 		float ratio  = 1f*dim/res;
@@ -644,7 +1088,8 @@ public static class GenerativeManager
 		lake.Y = 3;
 
 		lakeMap = topoDeleteFill(lake, lakeMap);
-		TerrainManager.SetSplatMap(lakeMap, LayerType.Topology,  TerrainTopology.TypeToIndex((int)layer.Topologies));
+		TerrainManager.SetLayerData(lakeMap, LayerType.Topology,  TerrainTopology.TypeToIndex((int)layer.Topologies));
+		
         //TerrainManager.SetLayer(LayerType.Topology,  TerrainTopology.TypeToIndex((int)layer.Topologies));
 
 	}
@@ -767,6 +1212,7 @@ public static class GenerativeManager
 		
 	}
 	
+	[ConsoleCommand("topology ocean fill")]
 	public static void oceanTopologyFill(Layers layer)
 	{
 		Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
@@ -883,11 +1329,12 @@ public static class GenerativeManager
 		return topoMap;
 	}
 	
-	
+	[ConsoleCommand("outline topology")]
 	public static void paintTopologyOutline(Layers layer, Layers sourceLayer, int w)
 	{
 		
-		float[,,] sourceMap = TerrainManager.GetSplatMap(LayerType.Topology, TerrainTopology.TypeToIndex((int)sourceLayer.Topologies));	
+		
+		float[,,] sourceMap = TerrainManager.GetLayerData(LayerType.Topology, TerrainTopology.TypeToIndex((int)sourceLayer.Topologies));	
 		int res = sourceMap.GetLength(0);
 		float[,,] splatMap = new float[res,res,2];
 		float[,,] scratchMap = new float[res,res,2];
@@ -984,30 +1431,87 @@ public static class GenerativeManager
 			}
 		}
 		
-        TerrainManager.SetSplatMap(splatMap, LayerType.Topology,  TerrainTopology.TypeToIndex((int)layer.Topologies));
+        TerrainManager.SetLayerData(splatMap, LayerType.Topology,  TerrainTopology.TypeToIndex((int)layer.Topologies));
         //TerrainManager.SetLayer(LayerType.Topology,  TerrainTopology.TypeToIndex((int)layer.Topologies));
 	}
 
-	public static void fillTopology(int topology)
+	public static void fillTopology(Layers topology)
 	{
-		float[,,] sourceMap = TerrainManager.GetSplatMap(LayerType.Topology, topology);	
+		// Extract the topology index from the Layers object
+		int topologyIndex = TerrainTopology.TypeToIndex((int)topology.Topologies);
+
+		// Get the current topology layer data
+		float[,,] sourceMap = TerrainManager.GetLayerData(LayerType.Topology, topologyIndex);
 		int res = sourceMap.GetLength(0);
-		for (int i = 0; i < sourceMap.GetLength(0); i++)
+
+		// Fill the layer: set active channel (0) to 1 and inactive channel (1) to 0
+		for (int i = 0; i < res; i++)
+		{
+			for (int j = 0; j < res; j++)
 			{
-				for (int j = 0; j < sourceMap.GetLength(1); j++)
+				sourceMap[i, j, 0] = 1f; // Fully active
+				sourceMap[i, j, 1] = 0f; // Fully inactive
+			}
+		}
+
+		// Apply the filled layer back to TerrainManager
+		TerrainManager.SetLayerData(sourceMap, LayerType.Topology, topologyIndex);
+	}
+	
+	[ConsoleCommand("Fills layer")]
+	public static void fillLayer(Layers layerData)
+	{
+		// Determine the layer type and index from the Layers object
+		LayerType layerType;
+		int layerIndex = -1;
+		if (layerData.Ground != 0)
+		{
+			layerType = LayerType.Ground;
+			layerIndex = TerrainSplat.TypeToIndex((int)layerData.Ground);
+		}
+		else if (layerData.Biome != 0)
+		{
+			layerType = LayerType.Biome;
+			layerIndex = TerrainBiome.TypeToIndex((int)layerData.Biome);
+		}
+		else if (layerData.Topologies != 0)
+		{
+			layerType = LayerType.Topology;
+			layerIndex = TerrainTopology.TypeToIndex((int)layerData.Topologies);
+		}
+		else
+		{
+			Debug.LogError("No valid layer specified in Layers object.");
+			return;
+		}
+
+		// Get the current layer data
+		float[,,] layerMap = TerrainManager.GetLayerData(layerType, layerIndex);
+		int res = layerMap.GetLength(0);
+		int layerCount = TerrainManager.LayerCount(layerType); // 8 for Ground, 4 for Biome, 2 for Topology
+
+		// Fill the layer: set the specified layer index to fully active, others to inactive
+		for (int i = 0; i < res; i++)
+		{
+			for (int j = 0; j < res; j++)
+			{
+				for (int k = 0; k < layerCount; k++)
 				{
-					sourceMap[i,j,0] = float.MaxValue;
-					sourceMap[i,j,1] = float.MinValue;
+					layerMap[i, j, k] = (k == layerIndex) ? 1f : 0f; // Target layer active, others inactive
 				}
 			}
-		TerrainManager.SetSplatMap(sourceMap, LayerType.Topology,  topology);
-        //TerrainManager.SetLayer(LayerType.Topology,  topology);
+		}
+
+		// Apply the filled layer back to TerrainManager
+		//use SetLayerData from now on
+		TerrainManager.SetLayerData(layerMap, layerType, layerIndex);
 	}
 
+	[ConsoleCommand("erase overlapping topology")]
 	public static void notTopologyLayer(Layers layer, Layers sourceLayer)
 	{
-		float[,,] sourceMap = TerrainManager.GetSplatMap(LayerType.Topology, TerrainTopology.TypeToIndex((int)sourceLayer.Topologies));
-		float[,,] splatMap = TerrainManager.GetSplatMap(LayerType.Topology, TerrainTopology.TypeToIndex((int)layer.Topologies));
+		float[,,] sourceMap = TerrainManager.GetLayerData(LayerType.Topology, TerrainTopology.TypeToIndex((int)sourceLayer.Topologies));
+		float[,,] splatMap = TerrainManager.GetLayerData(LayerType.Topology, TerrainTopology.TypeToIndex((int)layer.Topologies));
 		int res = sourceMap.GetLength(0);
 		
 		for (int m = 0; m < res; m++)
@@ -1023,11 +1527,12 @@ public static class GenerativeManager
 			}
 		}
 		
-        TerrainManager.SetSplatMap(splatMap, LayerType.Topology, TerrainTopology.TypeToIndex((int)layer.Topologies));
+        TerrainManager.SetLayerData(splatMap, LayerType.Topology, TerrainTopology.TypeToIndex((int)layer.Topologies));
         //TerrainManager.SetLayer(LayerType.Topology, TerrainTopology.TypeToIndex((int)layer.Topologies));
 		
 	}
 
+	[ConsoleCommand("randomwalk splat")]
 	public static void splatCrazing(CrazingPreset crazing)
 	{
 		int z = crazing.zones;
@@ -1077,9 +1582,11 @@ public static class GenerativeManager
             }
         }
 		//EditorUtility.ClearProgressBar();
-		TerrainManager.SetSplatMap(newGround, TerrainManager.CurrentLayerType, 0);
+		TerrainManager.SetLayerData(newGround, TerrainManager.CurrentLayerType, 0);
 		//TerrainManager.SetLayer(TerrainManager.CurrentLayerType, 0);
 	}
+	
+	[ConsoleCommand("dither fill biome layer")]
 	public static void DitherFillBiome(int t)
 	{
 		
@@ -1095,14 +1602,14 @@ public static class GenerativeManager
 				newGround[x, y, 2] = 0;
 				newGround[x, y, 3] = 0;
 				
-				if(Mathf.PerlinNoise(x*1f/5f,y*1f/5f) > .666f)
+				if(Mathf.PerlinNoise(x*1f/5f*t,y*1f/5f*t) > .666f)
 				{
 					newGround[x, y, 0] = 0;
 					newGround[x, y, 1] = 1;
 					newGround[x, y, 2] = 0;
 					newGround[x, y, 3] = 0;
 				}
-				else if(Mathf.PerlinNoise(x*1f/5f,y*1f/5f) > .444f)
+				else if(Mathf.PerlinNoise(x*1f/5f*t,y*1f/5f*t) > .444f)
 				{
 					newGround[x, y, 0] = 0;
 					newGround[x, y, 1] = 0;
@@ -1113,10 +1620,11 @@ public static class GenerativeManager
 			}
 		}
 		
-		TerrainManager.SetSplatMap(newGround, TerrainManager.CurrentLayerType, 0);
+		TerrainManager.SetLayerData(newGround, TerrainManager.CurrentLayerType, 0);
 		//TerrainManager.SetLayer(TerrainManager.CurrentLayerType, 0);
 	}
 	
+	[ConsoleCommand("dither fill splat layer")]
 	public static void splatDitherFill(int t)
 	{
 		
@@ -1142,7 +1650,7 @@ public static class GenerativeManager
 			}
 		}
 		
-		TerrainManager.SetSplatMap(newGround, TerrainManager.CurrentLayerType, 0);
+		TerrainManager.SetLayerData(newGround, TerrainManager.CurrentLayerType, 0);
 		//TerrainManager.SetLayer(TerrainManager.CurrentLayerType, 0);
 	}
 
@@ -1293,6 +1801,7 @@ public static class GenerativeManager
 		
 	}
 	
+	[ConsoleCommand("create 300 randomly generated buildings")]
 	public static void rustBuildings()
 	{
 		int buildings = 300;
@@ -1316,7 +1825,7 @@ public static class GenerativeManager
 	
 	public static void createRustBuilding(int x, int y, int width, int breadth, int tallest)
 	{
-		uint industrialglassnt = 1048750230;
+		uint industrialglassnt = 2600790831;
 		uint yellow = 2337881356;
 		uint sewerCorner = 2032918088;
 		int glassScale = 6;

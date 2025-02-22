@@ -1670,7 +1670,7 @@ TextureImporter:
         width: 40
         height: 40
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1691,7 +1691,7 @@ TextureImporter:
         width: 40
         height: 40
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1699,6 +1699,48 @@ TextureImporter:
       bones: []
       spriteID: 99a0abafc014d554ba41aea659be06c6
       internalID: 1947781011
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: about
+      rect:
+        serializedVersion: 2
+        x: 539
+        y: 753
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9443af9f1414a654bad25853698f4c87
+      internalID: -1875348459
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aboutGreen
+      rect:
+        serializedVersion: 2
+        x: 482
+        y: 753
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c25b18c83f12741419c56bc91a5dea2b
+      internalID: 108671691
       vertices: []
       indices: 
       edges: []
@@ -1737,6 +1779,8 @@ TextureImporter:
       TransformPlaneGreen: -1269379925
       TransformPlaneRed: -204680525
       UnlockEnabled: -404917473
+      about: -1875348459
+      aboutGreen: 108671691
       addPrefab: -1929624688
       addPrefabGreen: -2121188648
       binoculars: -211829242

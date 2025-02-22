@@ -1982,6 +1982,7 @@ public static class PrefabManager
 								}
 	}
 	
+	[ConsoleCommand("create monument marker prefab")]
 	public static void addMonumentMarker(string mark)
 	{
 		Vector3 location = new Vector3(0,0,0);
@@ -2090,6 +2091,7 @@ public static class PrefabManager
 		return id;
 	}
 	
+	[ConsoleCommand("scramble vehicle prefabs")]
 	public static void VehicleScrambler(PrefabDataHolder[] prefabs)
 	{
 		Vector3 position, rotation, scale;
@@ -2180,6 +2182,7 @@ public static class PrefabManager
 		}
 	}
 
+	[ConsoleCommand("delete prefabs in arid biome")]
 	public static void deletePrefabsOffArid(PrefabDataHolder[] prefabs)
 	{
 		int count = 0;
@@ -2209,6 +2212,7 @@ public static class PrefabManager
 		Debug.LogError(count + " prefabs removed");
 	}
 
+	[ConsoleCommand("delete prefabs matching IDs")]
 	public static void deletePrefabIDs(PrefabDataHolder[] prefabs, uint ID)
 	{
 		int count = 0;
@@ -2272,7 +2276,7 @@ public static class PrefabManager
 		Debug.LogError(count + " prefabs removed");
 	}
 	
-
+	[ConsoleCommand("delete all prefabs")]
 	public static void deleteAllPrefabs(PrefabDataHolder[] prefabs)
 	{
 		int count = 0;

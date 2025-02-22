@@ -46,6 +46,77 @@ public static class SettingsManager
 		LoadSettings();
     }
 	
+	public static List<string> GetScriptFiles()
+	{
+		string scriptsPath = Path.Combine(AppDataPath(), "Presets", "Scripts");
+		List<string> scriptFiles = new List<string>();
+
+		try
+		{
+			if (!Directory.Exists(scriptsPath))
+			{
+				Debug.LogWarning($"Scripts directory not found at: {scriptsPath}");
+				return scriptFiles;
+			}
+
+			foreach (string file in Directory.EnumerateFiles(scriptsPath, "*.rmml", SearchOption.TopDirectoryOnly))
+			{
+				scriptFiles.Add(Path.GetFileName(file)); // Just the filename, not the full path
+			}
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			Debug.LogWarning($"Access denied to scripts directory: {ex.Message}");
+		}
+		catch (IOException ex)
+		{
+			Debug.LogWarning($"IO error accessing scripts directory: {ex.Message}");
+		}
+
+		return scriptFiles;
+	}
+	
+	public static List<string> GetScriptCommands(string scriptName)
+	{
+		List<string> commands = new List<string>();
+		string scriptPath = Path.Combine(AppDataPath(), "Presets", "Scripts", scriptName);
+
+		try
+		{
+			if (!File.Exists(scriptPath))
+			{
+				Debug.LogWarning($"Script file not found at: {scriptPath}");
+				return commands;
+			}
+
+			// Read all lines from the file
+			string[] lines = File.ReadAllLines(scriptPath);
+			foreach (string line in lines)
+			{
+				string trimmedLine = line.Trim();
+				// Skip empty lines or comments (assuming '#' or '//' as comment starters)
+				if (!string.IsNullOrEmpty(trimmedLine) && !trimmedLine.StartsWith("#") && !trimmedLine.StartsWith("//"))
+				{
+					commands.Add(trimmedLine);
+				}
+			}
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			Debug.LogWarning($"Access denied to script file {scriptName}: {ex.Message}");
+		}
+		catch (IOException ex)
+		{
+			Debug.LogWarning($"IO error reading script file {scriptName}: {ex.Message}");
+		}
+		catch (Exception ex)
+		{
+			Debug.LogWarning($"Unexpected error reading script file {scriptName}: {ex.Message}");
+		}
+
+		return commands;
+	}
+	
 	private static void UpdateBreakerFragmentsIfNewer()
 	{
 		string defaultFragmentsPath = "Presets/breakerFragments.json";

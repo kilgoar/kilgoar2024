@@ -2300,8 +2300,8 @@ namespace RustMapEditor.UI
 			}
             else if ((int)landLayer > 1)
             {
-				if (Elements.ToolbarButton(ToolTips.paintLayer))
-					GenerativeManager.fillTopology(topology);
+				//if (Elements.ToolbarButton(ToolTips.paintLayer))
+					//GenerativeManager.fillTopology(topology);
                 if (Elements.ToolbarButton(ToolTips.clearLayer))
                     MapManager.ClearLayer(landLayer, topology);
                 if (Elements.ToolbarButton(ToolTips.invertLayer))

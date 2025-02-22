@@ -9,6 +9,7 @@ using UnityEditor;
 using System.Collections;
 using System.Threading.Tasks;
 using RustMapEditor.Maths;
+using RustMapEditor.Variables;
 using static WorldConverter;
 using static AreaManager;
 
@@ -141,6 +142,28 @@ public static class TerrainManager
         }
     }
 
+	// Add this method within the TerrainManager class, under the #region HeightMap -> #region Methods section
+	[ConsoleCommand("Raise or lower terrain")]
+	public static void AdjustHeight(int heightAdjustment)
+	{
+		// Validate input range
+		if (heightAdjustment < -1000 || heightAdjustment > 1000)
+		{
+			Debug.LogError($"Height adjustment must be between -1000 and 1000 meters. Received: {heightAdjustment}");
+			return;
+		}
+
+		// Normalize the adjustment to Unity's heightmap scale (0-1)
+		float normalizedAdjustment = heightAdjustment / 1000f;
+
+		// Register undo and apply the offset
+		RegisterHeightMapUndo(TerrainType.Land, $"Adjust Height by {heightAdjustment}m");
+		Land.terrainData.SetHeights(0, 0, RustMapEditor.Maths.Array.Offset(GetHeightMap(), normalizedAdjustment, true));
+
+		// Notify listeners of the update
+		Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
+	}
+
     public static bool[,] GetAlphaMap()
     {
         if (AlphaDirty)
@@ -150,6 +173,220 @@ public static class TerrainManager
         }
         return Alpha;
     }
+	
+	[ConsoleCommand("paints borders")]
+    public static void PaintBorderLayer(Layers layerData, int radius)
+    {
+        // Validate radius
+        if (radius < 0 || radius >= TerrainManager.SplatMapRes / 2)
+        {
+            Debug.LogError($"Radius must be between 0 and {TerrainManager.SplatMapRes / 2 - 1} grid units. Received: {radius}");
+            return;
+        }
+
+        // Determine the layer type and index from the Layers object
+        LayerType layerType;
+        int layerIndex = -1;
+        if (layerData.Ground != 0)
+        {
+            layerType = LayerType.Ground;
+            layerIndex = TerrainSplat.TypeToIndex((int)layerData.Ground);
+        }
+        else if (layerData.Biome != 0)
+        {
+            layerType = LayerType.Biome;
+            layerIndex = TerrainBiome.TypeToIndex((int)layerData.Biome);
+        }
+        else if (layerData.Topologies != 0)
+        {
+            layerType = LayerType.Topology;
+            layerIndex = TerrainTopology.TypeToIndex((int)layerData.Topologies);
+        }
+        else
+        {
+            Debug.LogError("No valid layer specified in Layers object.");
+            return;
+        }
+
+        // Get the current layer data
+        float[,,] layerMap = TerrainManager.GetLayerData(layerType, layerIndex);
+        int res = layerMap.GetLength(0);
+        int layerCount = TerrainManager.LayerCount(layerType); // 8 for Ground, 4 for Biome, 2 for Topology
+
+        // Register undo before modifying
+        TerrainManager.RegisterSplatMapUndo($"Paint Border Layer {layerType} Index {layerIndex}, Radius {radius}");
+
+        // Paint the borders with blending over the radius
+        for (int x = 0; x < res; x++)
+        {
+            for (int z = 0; z < res; z++)
+            {
+                // Calculate distance from the nearest edge
+                int distToLeft = x;
+                int distToRight = res - 1 - x;
+                int distToBottom = z;
+                int distToTop = res - 1 - z;
+                int minDist = Mathf.Min(distToLeft, distToRight, distToBottom, distToTop);
+
+                // If within radius, apply blending
+                if (minDist <= radius)
+                {
+                    // Blend factor: 1 at edge (minDist = 0), 0 at radius (minDist = radius)
+                    float strength = Mathf.InverseLerp(radius, 0, minDist);
+
+                    // Calculate total strength of other layers
+                    float totalOtherStrength = 0f;
+                    for (int k = 0; k < layerCount; k++)
+                    {
+                        if (k != layerIndex)
+                        {
+                            totalOtherStrength += layerMap[x, z, k];
+                        }
+                    }
+
+                    // Apply strength to the target layer and adjust others
+                    float remainingStrength = 1f - strength;
+                    for (int k = 0; k < layerCount; k++)
+                    {
+                        if (k == layerIndex)
+                        {
+                            layerMap[x, z, k] = strength; // Target layer gets the blended strength
+                        }
+                        else if (totalOtherStrength > 0)
+                        {
+                            // Distribute remaining strength proportionally among other layers
+                            layerMap[x, z, k] = (layerMap[x, z, k] / totalOtherStrength) * remainingStrength;
+                        }
+                        else
+                        {
+                            // If no other strength existed, set evenly or to 0
+                            layerMap[x, z, k] = (layerCount > 1) ? (remainingStrength / (layerCount - 1)) : 0f;
+                        }
+                    }
+                }
+                // Interior beyond radius remains unchanged
+            }
+        }
+
+        // Apply the updated layer back to TerrainManager
+        TerrainManager.SetLayerData(layerMap, layerType, layerIndex);
+
+        // Notify listeners of the update
+        TerrainManager.Callbacks.InvokeLayerUpdated(layerType, layerIndex);
+    }
+[ConsoleCommand("flattens map borders")]
+public static void BorderTuck(int targetHeight, int radius, int padding)
+{
+    // Validate inputs
+    if (targetHeight < 0 || targetHeight > 1000)
+    {
+        Debug.LogError($"Target height must be between 0 and 1000 meters. Received: {targetHeight}");
+        return;
+    }
+    if (radius < 0 || radius >= HeightMapRes / 2)
+    {
+        Debug.LogError($"Radius must be between 0 and {HeightMapRes / 2 - 1} grid units. Received: {radius}");
+        return;
+    }
+    if (padding < 0 || padding >= HeightMapRes / 2)
+    {
+        Debug.LogError($"Padding must be between 0 and {HeightMapRes / 2 - 1} grid units. Received: {padding}");
+        return;
+    }
+
+    // Normalize target height to Unity's heightmap scale (0-1)
+    float normalizedHeight = targetHeight / 1000f;
+
+    // Get the current heightmap
+    float[,] heightMap = GetHeightMap(TerrainType.Land);
+    int res = HeightMapRes;
+
+    // Create a copy of the original heightmap for blending
+    float[,] originalHeightMap = (float[,])heightMap.Clone();
+
+    // Register undo before modifying
+    RegisterHeightMapUndo(TerrainType.Land, $"Border Tuck to {targetHeight}m, Radius {radius}, Padding {padding}");
+
+    // Apply padding and S-shaped blending
+    for (int x = 0; x < res; x++)
+    {
+        for (int z = 0; z < res; z++)
+        {
+            // Calculate distances to edges
+            float distToLeft = x;
+            float distToRight = res - 1 - x;
+            float distToBottom = z;
+            float distToTop = res - 1 - z;
+
+            // Minimum distance to any edge (for straight edges)
+            float minEdgeDist = Mathf.Min(distToLeft, distToRight, distToBottom, distToTop);
+
+            // Check if within padding area
+            if (minEdgeDist < padding)
+            {
+                heightMap[x, z] = normalizedHeight; // Set outer padding to target height
+                continue; // Skip blending for padding area
+            }
+
+            // Adjust edge distance for blending inside padding
+            float adjustedEdgeDist = minEdgeDist - padding;
+
+            // Check if in a corner quadrant and calculate distance to inward-offset center
+            bool isInCornerQuadrant = false;
+            float cornerDist = 0f;
+            if (x < radius + padding && z < radius + padding) // Bottom-left corner, center at (radius + padding, radius + padding)
+            {
+                cornerDist = Mathf.Sqrt((x - (radius + padding)) * (x - (radius + padding)) + (z - (radius + padding)) * (z - (radius + padding)));
+                isInCornerQuadrant = true;
+            }
+            else if (x > res - 1 - (radius + padding) && z < radius + padding) // Bottom-right corner, center at (res-1-(radius + padding), radius + padding)
+            {
+                cornerDist = Mathf.Sqrt((x - (res - 1 - (radius + padding))) * (x - (res - 1 - (radius + padding))) + (z - (radius + padding)) * (z - (radius + padding)));
+                isInCornerQuadrant = true;
+            }
+            else if (x < radius + padding && z > res - 1 - (radius + padding)) // Top-left corner, center at (radius + padding, res-1-(radius + padding))
+            {
+                cornerDist = Mathf.Sqrt((x - (radius + padding)) * (x - (radius + padding)) + (z - (res - 1 - (radius + padding))) * (z - (res - 1 - (radius + padding))));
+                isInCornerQuadrant = true;
+            }
+            else if (x > res - 1 - (radius + padding) && z > res - 1 - (radius + padding)) // Top-right corner, center at (res-1-(radius + padding), res-1-(radius + padding))
+            {
+                cornerDist = Mathf.Sqrt((x - (res - 1 - (radius + padding))) * (x - (res - 1 - (radius + padding))) + (z - (res - 1 - (radius + padding))) * (z - (res - 1 - (radius + padding))));
+                isInCornerQuadrant = true;
+            }
+
+            // Apply blending inside padded area
+            if (isInCornerQuadrant)
+            {
+                if (cornerDist <= radius) // Within corner radius from adjusted center
+                {
+                    // Inverted for corners: 0 at center, 1 at corner
+                    float t = Mathf.Clamp01(cornerDist / radius);
+                    float blendFactor = Mathf.SmoothStep(0f, 1f, t); // Heights decrease toward corner
+                    heightMap[x, z] = Mathf.Lerp(originalHeightMap[x, z], normalizedHeight, blendFactor);
+                }
+                else if (minEdgeDist < radius + padding) // Inside corner quadrant but outside radius
+                {
+                    heightMap[x, z] = normalizedHeight;
+                }
+            }
+            else if (adjustedEdgeDist <= radius) // Along edges, inside padding
+            {
+                // Non-inverted for edges: 1 at inner padding edge, 0 at radius boundary
+                float t = Mathf.Clamp01(1f - (adjustedEdgeDist / radius));
+                float blendFactor = Mathf.SmoothStep(0f, 1f, t); // Heights decrease toward padding edge
+                heightMap[x, z] = Mathf.Lerp(originalHeightMap[x, z], normalizedHeight, blendFactor);
+            }
+            // Interior beyond radius + padding remains unchanged
+        }
+    }
+
+    // Apply the modified heightmap
+    Land.terrainData.SetHeights(0, 0, heightMap);
+
+    // Notify listeners of the update
+    Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
+}
 	
 	public static bool[,] GetAlphaMap(int x, int y, int width, int height)
 	{
@@ -489,7 +726,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 		}
 
 		// Set the modified heights back to the terrain data
-		terrainData.SetHeights(startX, startY, heightMap);
+		terrainData.SetHeightsDelayLOD(startX, startY, heightMap);
 	}
 	
 	public static void ShowLandMask()
@@ -506,7 +743,101 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 
 	}
 	
+	public static float[,,] GetLayerData(LayerType layer, int topology = -1)
+    {
+        switch (layer)
+        {
+            case LayerType.Ground:
+
+                return Ground;
+            case LayerType.Biome:
+
+                return Biome;
+            case LayerType.Topology:
+                if (topology < 0 || topology >= TerrainTopology.COUNT)
+                {
+                    Debug.LogError($"GetSplatMap({layer}, {topology}) topology parameter out of bounds. Should be between 0 - {TerrainTopology.COUNT - 1}");
+                    return null;
+                }
+
+                return Topology[topology];
+            default:
+                Debug.LogError($"GetSplatMap({layer}) cannot return type float[,,].");
+                return null;
+        }
+    }
 	
+		
+	public static void SetLayerData(float[,,] array, LayerType layer, int topology = -1)
+	{
+		if (array == null)
+		{
+			Debug.LogWarning($"SetLayerArray(array) is null.");
+			return;
+		}
+
+		if (layer == LayerType.Alpha)
+		{
+			Debug.LogWarning($"SetLayerArray(float[,,], {layer}) is not a valid layer to set. Use SetAlphaMap(bool[,]) to set {layer}.");
+			return;
+		}
+
+		// Check for array dimensions not matching expected size
+		if (array.GetLength(0) != SplatMapRes || array.GetLength(1) != SplatMapRes || array.GetLength(2) != LayerCount(layer))
+		{
+			Debug.LogError($"SetLayerArray(array[{array.GetLength(0)}, {array.GetLength(1)}, {array.GetLength(2)}]) dimensions invalid, should be " +
+				$"array[{SplatMapRes}, {SplatMapRes}, {LayerCount(layer)}].");
+			return;
+		}
+
+		// Update the internal data
+		switch (layer)
+		{
+			case LayerType.Ground:
+				Ground = array;
+				RegisterSplatMapUndo($"Set {layer} Layer Array");
+				TerrainManager.ChangeLayer(LayerType.Ground, 0);
+				Land.terrainData.SetAlphamaps(0, 0, array);
+				LayerDirty = false;
+				break;
+			case LayerType.Biome:
+				Biome = array;
+				RegisterSplatMapUndo($"Set {layer} Layer Array");
+				TerrainManager.ChangeLayer(LayerType.Biome, 0);
+				Land.terrainData.SetAlphamaps(0, 0, array);
+				LayerDirty = false;
+				break;
+			case LayerType.Topology:
+			Debug.LogError("boom boom mancini");
+				if (topology < 0 || topology >= TerrainTopology.COUNT)
+				{
+					Debug.LogError($"SetLayerArray({layer}, {topology}) topology parameter out of bounds. Should be between 0 - {TerrainTopology.COUNT - 1}");
+					return;
+				}
+				Topology[topology] = array;
+				// Convert float[,,] to bool[,] for TopologyData
+				bool[,] bitmap = ConvertSplatToBitmap(array);
+				TopologyData.SetTopology(TerrainTopology.IndexToType(topology), 0, 0, SplatMapRes, SplatMapRes, bitmap);
+				break;
+		}
+
+		// Notify listeners of the update
+		//Callbacks.InvokeLayerUpdated(layer, topology);
+	}
+
+// Helper method to convert float[,,] to bool[,] for topology
+private static bool[,] ConvertSplatToBitmap(float[,,] splatMap)
+{
+    bool[,] bitmap = new bool[splatMap.GetLength(0), splatMap.GetLength(1)];
+    for (int x = 0; x < splatMap.GetLength(0); x++)
+    {
+        for (int y = 0; y < splatMap.GetLength(1); y++)
+        {
+            bitmap[x, y] = splatMap[x, y, 0] > 0.5f; // Texture 0 is active, threshold at 0.5
+        }
+    }
+    return bitmap;
+}
 	/// <summary>Sets SplatMap of the selected LayerType.</summary>
 
     /// <param name="layer">The layer to set the data to.</param>
@@ -900,6 +1231,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
     /// <summary> Normalises the HeightMap between two heights.</summary>
     /// <param name="normaliseLow">The lowest height the HeightMap should be.</param>
     /// <param name="normaliseHigh">The highest height the HeightMap should be.</param>
+
     public static void NormaliseHeightMap(float normaliseLow, float normaliseHigh, TerrainType terrain = TerrainType.Land, Area dmns = null)
     {
         normaliseLow /= 1000f; normaliseHigh /= 1000f; // Normalises user input to a value between 0 - 1f.
@@ -910,11 +1242,73 @@ public static bool[,] UpscaleBitmap(bool[,] source)
         else
             Water.terrainData.SetHeights(0, 0, RustMapEditor.Maths.Array.Normalise(GetHeightMap(TerrainType.Water), normaliseLow, normaliseHigh, dmns));
     }
+	
+	[ConsoleCommand("Squeezes the heightmap to range")]
+	public static void SqueezeHeightMap(float normaliseLow, float normaliseHigh)
+	{
+		normaliseLow /= 1000f;  // Normalize user input from meters to 0-1
+		normaliseHigh /= 1000f; // Normalize user input from meters to 0-1
+
+		// Validate input range
+		if (normaliseLow >= normaliseHigh)
+		{
+			Debug.LogError($"Invalid range: normaliseLow ({normaliseLow * 1000f}m) must be less than normaliseHigh ({normaliseHigh * 1000f}m).");
+			return;
+		}
+
+		// Get current heightmap
+		float[,] heights = GetHeightMap(TerrainType.Land);
+		int res = HeightMapRes; // Heightmap resolution
+
+		// Get current min/max heights
+		float minHeight = float.MaxValue;
+		float maxHeight = float.MinValue;
+		for (int y = 0; y < res; y++)
+		{
+			for (int x = 0; x < res; x++)
+			{
+				float height = heights[x, y];
+				if (height < minHeight) minHeight = height;
+				if (height > maxHeight) maxHeight = height;
+			}
+		}
+
+		// Avoid division by zero if flat
+		if (Mathf.Approximately(minHeight, maxHeight))
+		{
+			Debug.LogWarning("Heightmap is flat; setting all heights to normaliseLow.");
+			for (int y = 0; y < res; y++)
+				for (int x = 0; x < res; x++)
+					heights[x, y] = normaliseLow;
+		}
+		else
+		{
+			// Remap heights to new range
+			float range = maxHeight - minHeight;
+			for (int y = 0; y < res; y++)
+			{
+				for (int x = 0; x < res; x++)
+				{
+					float normalized = (heights[x, y] - minHeight) / range; // 0-1 based on original range
+					heights[x, y] = Mathf.Lerp(normaliseLow, normaliseHigh, normalized); // Remap to new range
+				}
+			}
+		}
+
+		// Apply to Land terrain with undo
+		RegisterHeightMapUndo(TerrainType.Land, $"Squeeze HeightMap {normaliseLow * 1000f}m-{normaliseHigh * 1000f}m");
+		Land.terrainData.SetHeights(0, 0, heights);
+		Callbacks.InvokeHeightMapUpdated(TerrainType.Land); // Notify listeners
+
+		// SplatRatio doesn’t require direct adjustment here since we’re operating on heightmap resolution
+		// Ensure splatmaps remain consistent if needed
+	}
 
     /// <summary>Increases or decreases the HeightMap by the offset.</summary>
     /// <param name="offset">The amount to offset by. Negative values offset down.</param>
     /// <param name="clampOffset">Check if offsetting the HeightMap would exceed the min-max values.</param>
-    public static void OffsetHeightMap(float offset, bool clampOffset, TerrainType terrain = TerrainType.Land, Area dmns = null)
+
+	public static void OffsetHeightMap(float offset, bool clampOffset, TerrainType terrain = TerrainType.Land, Area dmns = null)
     {
         offset /= 1000f; // Normalises user input to a value between 0 - 1f.
         RegisterHeightMapUndo(terrain, "Offset HeightMap");
@@ -924,10 +1318,37 @@ public static bool[,] UpscaleBitmap(bool[,] source)
         else
             Water.terrainData.SetHeights(0, 0, RustMapEditor.Maths.Array.Offset(GetHeightMap(TerrainType.Water), offset, clampOffset, dmns));
     }
+	
+	
+	
+	[ConsoleCommand("Moves heightmap vertically")]
+	public static void NudgeHeightMap(float offset)
+	{
+		offset /= 1000f; // Normalises user input to a value between 0 - 1f.
 
+		// Get current heightmap
+		float[,] heights = GetHeightMap(TerrainType.Land);
+		int res = HeightMapRes;
+
+		// Offset all heights
+		float[,] offsetHeights = new float[res, res];
+		for (int y = 0; y < res; y++)
+		{
+			for (int x = 0; x < res; x++)
+			{
+				offsetHeights[x, y] = Mathf.Clamp01(heights[x, y] + offset); // Apply offset and clamp to 0-1
+			}
+		}
+
+		// Apply to terrain with undo
+		RegisterHeightMapUndo(TerrainType.Land, "Offset HeightMap");
+		Land.terrainData.SetHeights(0, 0, offsetHeights);
+		Callbacks.InvokeHeightMapUpdated(TerrainType.Land); // Notify listeners
+	}
     /// <summary>Sets the HeightMap level to the minimum if it's below.</summary>
     /// <param name="minimumHeight">The minimum height to set.</param>
     /// <param name="maximumHeight">The maximum height to set.</param>
+	[ConsoleCommand("flattens heightmap outside of bounds")]
     public static void ClampHeightMap(float minimumHeight, float maximumHeight, TerrainType terrain = TerrainType.Land, Area dmns = null)
     {
         minimumHeight /= 1000f; maximumHeight /= 1000f; // Normalises user input to a value between 0 - 1f.
@@ -942,6 +1363,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
     /// <summary>Terraces the HeightMap.</summary>
     /// <param name="featureSize">The height of each terrace.</param>
     /// <param name="interiorCornerWeight">The weight of the terrace effect.</param>
+	[ConsoleCommand("uniform terracing")]
     public static void TerraceErodeHeightMap(float featureSize, float interiorCornerWeight)
     {
         RegisterHeightMapUndo(TerrainType.Land, "Erode HeightMap");
@@ -965,6 +1387,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
     /// <summary>Smooths the HeightMap.</summary>
     /// <param name="filterStrength">The strength of the smoothing.</param>
     /// <param name="blurDirection">The direction the smoothing should preference. Between -1f - 1f.</param>
+	[ConsoleCommand("heightmap smoothing")]
     public static void SmoothHeightMap(float filterStrength, float blurDirection)
     {
         RegisterHeightMapUndo(TerrainType.Land, "Smooth HeightMap");
