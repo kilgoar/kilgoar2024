@@ -73,15 +73,18 @@ public static class AssetManager
 	
 	public static bool ValidBundlePath(string bundleRoot)
 	{
-		bundleRoot= bundleRoot+ SettingsManager.BundlePathExt;
+		bundleRoot= bundleRoot+ SettingsManager.BundlePathExt;  // "\bundles\bundles"
+		Debug.LogError(bundleRoot);
+		
 		if (!Directory.Exists(SettingsManager.application.rustDirectory))		{
-			Debug.LogError("Directory does not exist: " + bundleRoot);
+				Debug.LogError("Directory does not exist: " + bundleRoot);
 			return false;
 		}
+		
 
-		if (!SettingsManager.application.rustDirectory.EndsWith("Rust") && 
-			!SettingsManager.application.rustDirectory.EndsWith("RustStaging"))		{
-			Debug.LogError("Not a valid Rust install directory: " + SettingsManager.application.rustDirectory);
+		if (!bundleRoot.ToLower().EndsWith("rust") && 
+			!bundleRoot.ToLower().EndsWith("ruststaging"))		{
+				Debug.LogError("Not a valid Rust install directory: " + bundleRoot);
 			return false;
 		}
 

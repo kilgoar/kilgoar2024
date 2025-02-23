@@ -8,6 +8,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UIRecycleTreeNamespace;
 
+
 public class WindowManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 {
 	Vector3 mouseMovement = new Vector3 (0f,0f,0f);
@@ -80,8 +81,8 @@ public class WindowManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         float scaleChange = eventData.delta.x * 0.004f + eventData.delta.y * -0.004f;
         Vector3 newScale = rectTransform.localScale + new Vector3(scaleChange, scaleChange, 0f);
         
-        newScale.x = Mathf.Clamp(newScale.x, 0.25f, 1f);
-        newScale.y = Mathf.Clamp(newScale.y, 0.25f, 1f);
+        newScale.x = Mathf.Clamp(newScale.x, 0.6f, 3f);
+        newScale.y = Mathf.Clamp(newScale.y, 0.6f, 3f);
         
         rectTransform.localScale = newScale;
 

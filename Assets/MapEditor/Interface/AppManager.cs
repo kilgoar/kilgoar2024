@@ -12,6 +12,7 @@ public class AppManager : MonoBehaviour
 	public List<UIRecycleTree> RecycleTrees = new List<UIRecycleTree>();
 	public List<Button> CloseButtons = new List<Button>();
 	private List<InputField> allInputFields = new List<InputField>();
+	public GameObject menuPanel;
     public Toggle lockToggle;
 
     private Dictionary<Toggle, GameObject> windowDictionary = new Dictionary<Toggle, GameObject>();
@@ -94,6 +95,7 @@ public class AppManager : MonoBehaviour
         }
 
 		CollectInputFields();
+		AppManager.Instance.ActivateWindow(7);
 		
 	}
 	
@@ -101,9 +103,30 @@ public class AppManager : MonoBehaviour
 		windowToggles[index].isOn = true;
 		windowPanels[index].SetActive(true);
 		RecycleTrees[index].gameObject.SetActive(true);
+				
+                RectTransform windowRect = windowPanels[index].GetComponent<RectTransform>();
+                Vector3 menuScale = menuPanel.GetComponent<RectTransform>().localScale;
+                Vector3 adjustedScale = menuScale - Vector3.one;
+				
+				adjustedScale.x = Mathf.Clamp(adjustedScale.x, .6f, 3f);
+				adjustedScale.y = Mathf.Clamp(adjustedScale.y, .6f, 3f);
+
+                if (windowRect != null)
+                {
+                    windowRect.localScale = adjustedScale;
+                }
+
+                if (index < RecycleTrees.Count && RecycleTrees[index] != null)
+                {
+                    RectTransform treeRect = RecycleTrees[index].GetComponent<RectTransform>();
+                    if (treeRect != null)
+                    {
+                        treeRect.localScale = adjustedScale;
+                    }
+                }
 	}
 	
-	private void CloseWindow(int index)
+	public void CloseWindow(int index)
     {
         if (index >= 0 && index < windowPanels.Count)        {
             windowPanels[index].SetActive(false);
@@ -140,29 +163,98 @@ public class AppManager : MonoBehaviour
         return false;
     }
 	
+	public void ScaleAllWindows(Vector3 scale)
+	{
+		// Clamp the scale values to the range 0.6f to 3f
+		Vector3 clampedScale = scale;
+		clampedScale.x = Mathf.Clamp(clampedScale.x, 0.6f, 3f);
+		clampedScale.y = Mathf.Clamp(clampedScale.y, 0.6f, 3f);
+
+		foreach (GameObject window in windowPanels)
+		{
+			if (window != null && window.activeInHierarchy) // Only scale active windows
+			{
+				RectTransform rect = window.GetComponent<RectTransform>();
+				if (rect != null)
+				{
+					rect.localScale = clampedScale;
+				}
+			}
+		}
+
+		// Optionally scale associated RecycleTrees if they're active
+		for (int i = 0; i < RecycleTrees.Count; i++)
+		{
+			if (i < windowPanels.Count && windowPanels[i].activeInHierarchy && RecycleTrees[i] != null)
+			{
+				RectTransform treeRect = RecycleTrees[i].GetComponent<RectTransform>();
+				if (treeRect != null)
+				{
+					treeRect.localScale = clampedScale;
+				}
+			}
+		}
+	}
 
 	private void OnWindowToggle(Toggle windowToggle, GameObject windowPanel)
 	{
 		bool windowState = windowToggle.isOn;
 		windowPanel.SetActive(windowState);
 		windowPanel.transform.SetAsLastSibling();
-		
+
 		int index = windowPanels.IndexOf(windowPanel);
+
+		// Apply menu's adjusted scale (menu scale - 1) to the window if activated
+		if (windowState && menuPanel != null)
+		{
+			RectTransform windowRect = windowPanel.GetComponent<RectTransform>();
+			Vector3 menuScale = menuPanel.GetComponent<RectTransform>().localScale;
+			Vector3 adjustedScale = menuScale - Vector3.one;
+
+			adjustedScale.x = Mathf.Clamp(adjustedScale.x, 0.6f, 3f);
+			adjustedScale.y = Mathf.Clamp(adjustedScale.y, 0.6f, 3f);
+
+			if (windowRect != null)
+			{
+				windowRect.localScale = adjustedScale;
+			}
+		}
+
+		// Handle RecycleTree if it exists
 		if (index >= 0 && index < RecycleTrees.Count && RecycleTrees[index] != null)
 		{
 			RecycleTrees[index].gameObject.SetActive(windowState);
 
-			if (windowState)		{				
+			if (windowState)
+			{
+				Debug.Log("okay"); // Adjusted from Debug.LogError to Debug.Log since it’s not an error
 				RecycleTrees[index].transform.SetAsLastSibling();
+
+				// Apply the adjusted scale to the tree
+				if (menuPanel != null)
+				{
+					RectTransform treeRect = RecycleTrees[index].GetComponent<RectTransform>();
+					Vector3 menuScale = menuPanel.GetComponent<RectTransform>().localScale;
+					Vector3 adjustedScale = menuScale - Vector3.one;
+
+					adjustedScale.x = Mathf.Clamp(adjustedScale.x, 0.6f, 3f);
+					adjustedScale.y = Mathf.Clamp(adjustedScale.y, 0.6f, 3f);
+
+					if (treeRect != null)
+					{
+						treeRect.localScale = adjustedScale;
+					}
+				}
 			}
-			
 		}
 
 		SettingsManager.SaveSettings();
 	}
-
-		public void LockWindows()    {
+	
+	public void LockWindows()    {
 			lockToggle.targetGraphic.enabled = !lockToggle.isOn;
 			SettingsManager.SaveSettings();
-		}
+	}
+
+
 	}

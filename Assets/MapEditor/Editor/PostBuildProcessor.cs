@@ -33,6 +33,7 @@ public class PostBuildProcessor
 		
         SettingsManager.CopyDirectory("Presets", "E:/RustMapper/Presets");
         SettingsManager.CopyDirectory("Custom", "E:/RustMapper/Custom");
+		//SettingsManager.CopyDirectory("Assets/Harmony", "E:/RustMapper/Harmony"); //harmony dlls
         SettingsManager.CopyEditorSettings("E:/RustMapper/EditorSettings.json");
 		RemoveDirectory("E:/RustMapper/RustMapper_BurstDebugInformation_DoNotShip");
 		//SetRunAsAdministrator("E:/RustMapper/RustMapper.exe");

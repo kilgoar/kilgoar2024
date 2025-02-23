@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
@@ -21,6 +22,52 @@ public class ConsoleWindow : MonoBehaviour
 	
 	private Dictionary<string, object> consoleVariables = new Dictionary<string, object>();
 
+	public static ConsoleWindow Instance { get; private set; }
+    
+    private void Awake()
+    {
+        if (Instance == null)        
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject); 
+        }
+        else        
+        {
+            Destroy(gameObject);
+        }
+    }
+	
+	 
+	
+	// New Startup method to run a startup script
+    public void Startup()
+    {
+        const string startupScriptName = "startup.rmml";
+        List<string> commands = SettingsManager.GetScriptCommands(startupScriptName);
+        
+        if (commands.Count > 0)
+        {
+            Post($"{startupScriptName}");
+            foreach (string cmd in commands)
+            {
+                string trimmedCmd = cmd.Trim().ToLower();
+                if (trimmedCmd.StartsWith("run"))
+                {
+                    Post($"> {cmd}");
+                    Post("Nested 'run' commands are not allowed in startup script.");
+                    continue;
+                }
+                ExecuteCommand(cmd);
+            }
+            Post($"Startup script {startupScriptName} completed.");
+        }
+        else
+        {
+            Post($"No startup script found ({startupScriptName})");
+        }
+		AppManager.Instance.CloseWindow(7);
+    }
+
     private void Start()
     {
 		//create objects necessary for using accessible methods
@@ -28,9 +75,9 @@ public class ConsoleWindow : MonoBehaviour
 		
         // Assign listener for InputField's submit event
         consoleInput.onEndEdit.AddListener(OnInputEndEdit);
-        
-        // Ensure the template is active for instantiation
         textTemplate.gameObject.SetActive(false);
+		Startup();		
+
     }
 
     private void OnInputEndEdit(string text)
@@ -38,6 +85,24 @@ public class ConsoleWindow : MonoBehaviour
         if (Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.numpadEnterKey.wasPressedThisFrame)
         {
             OnSubmit();
+        }
+    }
+	
+	public void PostMultiLine(string message)
+    {
+        if (string.IsNullOrEmpty(message))
+        {
+            Post(""); // Handle empty input with a single empty post
+            return;
+        }
+
+        // Split the message by line breaks (\n, \r\n, or \r) and filter out empty lines if desired
+        string[] lines = message.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+
+        foreach (string line in lines)
+        {
+            // Post each line separately; you can trim or skip empty lines if preferred
+            Post(line);
         }
     }
 
@@ -125,6 +190,13 @@ public class ConsoleWindow : MonoBehaviour
 				ActivateConsole();
 				return;
 			}
+			
+		if (parts[0].Trim().ToLower() == "loadmods")
+		{		
+			PostMultiLine(HarmonyLoader.LoadHarmonyMods(Path.Combine(SettingsManager.AppDataPath(), "HarmonyMods")));
+			ActivateConsole();
+			return;
+		}
 
 		// Handle 'dir' command for listing .rmml files
 		if (parts[0].Trim().ToLower() == "dir")

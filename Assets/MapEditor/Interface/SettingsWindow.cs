@@ -56,8 +56,10 @@ public class SettingsWindow : MonoBehaviour
 		styleToggle.isOn = settings.terrainTextureSet;
 		
         prefabRender.onValueChanged.AddListener(delegate { CameraChange(); });
-        directoryField.onValueChanged.AddListener(delegate { DirectoryChange(); });
-        assetLoadToggle.onValueChanged.AddListener(delegate { AssetLoader(); });
+        
+		directoryField.onEndEdit.AddListener(delegate { DirectoryChange(); });
+        
+		assetLoadToggle.onValueChanged.AddListener(delegate { AssetLoader(); });
         
 		styleToggle.onValueChanged.AddListener(delegate { StyleChange(); });
 		styleToggle.onValueChanged.AddListener(delegate { ToggleStyle(); });
@@ -72,6 +74,9 @@ public class SettingsWindow : MonoBehaviour
 	}
 	
 	private void OnLoadBundle(){
+		settings.rustDirectory = directoryField.text;
+		SettingsManager.application = settings;
+		SettingsManager.SaveSettings();
 		AssetManager.RuntimeInit();
 	}
 	
@@ -180,8 +185,7 @@ public class SettingsWindow : MonoBehaviour
 		CameraManager.Instance.SetRenderLimit();
 		SettingsManager.SaveSettings();
 	}
-	
-	
+		
 	void DirectoryChange(){
         settings.rustDirectory = directoryField.text;              
 		SettingsManager.application = settings;		
