@@ -73,8 +73,6 @@ public static class AssetManager
 	
 	public static bool ValidBundlePath(string bundleRoot)
 	{
-		bundleRoot= bundleRoot+ SettingsManager.BundlePathExt;  // "\bundles\bundles"
-		Debug.LogError(bundleRoot);
 		
 		if (!Directory.Exists(SettingsManager.application.rustDirectory))		{
 				Debug.LogError("Directory does not exist: " + bundleRoot);
@@ -88,6 +86,7 @@ public static class AssetManager
 			return false;
 		}
 
+		bundleRoot= Path.Combine(bundleRoot,"Bundles","Bundles");
 		var rootBundle = AssetBundle.LoadFromFile(bundleRoot);
 		if (rootBundle == null)		{
 			Debug.LogError("Couldn't load root AssetBundle - " + bundleRoot);

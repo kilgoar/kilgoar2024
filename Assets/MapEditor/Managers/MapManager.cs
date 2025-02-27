@@ -556,7 +556,7 @@ public static class MapManager
     #endregion
 
     /// <summary>Centres the Prefab and Path parent objects.</summary>
-	static void CentreSceneObjects(MapInfo mapInfo)
+	public static void CentreSceneObjects(MapInfo mapInfo)
 	{
 		Vector3 centerPosition = new Vector3(mapInfo.size.x / 2, 500, mapInfo.size.z / 2);
 
@@ -733,6 +733,14 @@ public static class MapManager
 		#endif
     }
 	
+	public static void SaveCollectionPrefab(string path, Transform collectionRoot)
+	{
+		#if UNITY_EDITOR
+		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.SaveCollectionPrefab(path, collectionRoot));
+		#else
+		CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.SaveCollectionPrefab(path, collectionRoot));
+		#endif
+	}
 
 
 	public static void LoadREPrefab(MapInfo mapInfo, string loadPath = "")
@@ -769,6 +777,15 @@ public static class MapManager
 
    private class Coroutines
 	{
+		
+	    public static IEnumerator SaveCollectionPrefab(string path, Transform collectionRoot)	{
+
+				// Convert the collection to a WorldSerialization with REPrefab data
+				WorldSerialization world = WorldConverter.CollectionToREPrefab(collectionRoot);
+				yield return null;
+				world.SaveREPrefab(path);
+			}
+		
 			public static IEnumerator LoadREPrefab(MapInfo mapInfo, string path = "")
 			{
 		#if UNITY_EDITOR

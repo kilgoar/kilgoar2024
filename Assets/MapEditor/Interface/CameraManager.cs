@@ -76,6 +76,7 @@ public class CameraManager : MonoBehaviour
         Configure();
 		MapManager.Callbacks.MapLoaded += OnMapLoaded;
 		InitializeGizmos();
+		SetupSnapListeners();
     }
 	
 	private void InitializeGizmos()
@@ -101,6 +102,8 @@ public class CameraManager : MonoBehaviour
         // Default to Move gizmo for selection
         _workGizmo = _objectMoveGizmo;
         _workGizmoId = GizmoId.Move;
+		
+		UpdateSnapSettings();
     }
 
 	public PrefabDataHolder[] SelectedDataHolders()
@@ -210,13 +213,28 @@ public class CameraManager : MonoBehaviour
 		
 		if(!AppManager.Instance.IsAnyInputFieldActive()){
 
-			float sprint = .5f; // Default speed
+			float sprint = .25f; // Default speed
 
 			if (Keyboard.current.yKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Move);
 			else if (Keyboard.current.eKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Rotate);
 			else if (Keyboard.current.rKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Scale);
 			else if (Keyboard.current.tKey.wasPressedThisFrame) SetWorkGizmoId(GizmoId.Universal);
 			else if (Keyboard.current.xKey.wasPressedThisFrame) ToggleGizmoSpace();
+
+			if (Keyboard.current.ctrlKey.isPressed)
+			{
+				if (Keyboard.current.dKey.wasPressedThisFrame)
+				{
+					DuplicateSelection();
+					return;
+				}
+				if (Keyboard.current.aKey.wasPressedThisFrame)
+				{
+					CreateParent();
+					return;
+				}
+				return;
+			}
 
 			if (Keyboard.current.shiftKey.isPressed && Keyboard.current.altKey.isPressed)
 			{
@@ -251,7 +269,7 @@ public class CameraManager : MonoBehaviour
 				globalMove += cam.transform.right * currentSpeed;
 			}
 
-			if (key.ctrlKey.isPressed) {
+			if (key.zKey.isPressed) {
 				globalMove -= cam.transform.up * currentSpeed;
 			}
 
@@ -312,6 +330,61 @@ public class CameraManager : MonoBehaviour
 			itemTree.Rebuild();
 			ItemsWindow.Instance.FocusItem(_selectedObjects);
 		}
+	}
+	
+	public void CreateParent()
+	{
+		// Create a new parent
+		GameObject newParent = new GameObject("Collection" + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10));
+		newParent.tag = "Collection";
+		newParent.transform.SetParent(PrefabManager.PrefabParent);
+		
+		// Position the parent at the average position of all selected objects
+		Vector3 averagePosition = Vector3.zero;
+		int validObjectCount = 0;
+		
+		foreach (GameObject go in _selectedObjects)
+		{
+			if (go != null)
+			{
+				averagePosition += go.transform.position;
+				validObjectCount++;
+			}
+		}
+		
+		if (validObjectCount > 0)
+		{
+			newParent.transform.position = averagePosition / validObjectCount;
+			
+			// Set all selected objects as children of the new parent
+			foreach (GameObject go in _selectedObjects)
+			{
+				if (go != null)
+				{
+					// GameObject sets to new parent
+					go.transform.SetParent(newParent.transform, true); // true keeps world position
+				}
+			}
+		}
+		UpdateItemsWindow();
+	}
+		
+	public void DuplicateSelection()
+	{
+		
+		foreach (GameObject go in _selectedObjects)
+		{
+			if (go != null)
+			{
+				// Create new object copying the original
+				GameObject newObject = Instantiate(go, go.transform.position, go.transform.rotation);
+				// Maintain the same parent as original
+				newObject.transform.parent = go.transform.parent;
+				Unselect (newObject); //unselect new objects
+			}
+		}
+		
+		
 	}
 	
 	public void DeleteSelection()
@@ -429,11 +502,14 @@ public class CameraManager : MonoBehaviour
 		{
 			GameObject hitObject;
 			
-			if(Keyboard.current.altKey.isPressed){
-				hitObject = FindParentWithTag(hitPrefab, "Collection");
-			}
-			else{		
+			if(Keyboard.current.ctrlKey.isPressed){
 				hitObject = FindParentWithTag(hitPrefab, "Prefab");
+			}
+			else{
+				hitObject = FindParentWithTag(hitPrefab, "Collection");
+				if(hitObject==null){
+					hitObject = FindParentWithTag(hitPrefab, "Prefab");
+				}
 			}
 			
 			if (hitObject != null)
@@ -641,6 +717,7 @@ public class CameraManager : MonoBehaviour
             _workGizmo.Gizmo.SetEnabled(true);
             _workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
             _workGizmo.RefreshPositionAndRotation();
+			UpdateSnapSettings();
         }
     }
 	
@@ -678,6 +755,7 @@ public class CameraManager : MonoBehaviour
             _workGizmo.Gizmo.SetEnabled(true);
             _workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
             _workGizmo.RefreshPositionAndRotation();
+			UpdateSnapSettings();
         }
         else
         {
@@ -739,5 +817,107 @@ public class CameraManager : MonoBehaviour
 		pitch = 90f;
 		yaw = 0f;
 	}
+	
+	private void SetupSnapListeners()
+    {
+        if (ItemsWindow.Instance != null && ItemsWindow.Instance.snapFields.Count >= 3)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                int index = i;
+                ItemsWindow.Instance.snapFields[i].onEndEdit.AddListener((text) => UpdateSnapSettings());
+            }
+        }
+    }
+
+ private void UpdateSnapSettings()
+{
+    if (ItemsWindow.Instance == null || ItemsWindow.Instance.snapFields.Count < 3) return;
+
+    float moveSnap = ParseSnapValue(ItemsWindow.Instance.snapFields[0].text);
+    float rotateSnap = ParseSnapValue(ItemsWindow.Instance.snapFields[1].text);
+    float scaleSnap = ParseSnapValue(ItemsWindow.Instance.snapFields[2].text);
+
+    // Move Gizmo (Position)
+    MoveGizmo moveGizmo = _objectMoveGizmo.Gizmo.GetFirstBehaviourOfType<MoveGizmo>();
+    if (moveGizmo != null)
+    {
+        bool enableMoveSnap = moveSnap > 0f;
+        moveGizmo.SetSnapEnabled(enableMoveSnap);
+        if (enableMoveSnap)
+        {
+            moveGizmo.Settings3D.SetXSnapStep(moveSnap);
+            moveGizmo.Settings3D.SetYSnapStep(moveSnap);
+            moveGizmo.Settings3D.SetZSnapStep(moveSnap);
+        }
+    }
+
+    RotationGizmo rotationGizmo = _objectRotationGizmo.Gizmo.GetFirstBehaviourOfType<RotationGizmo>();
+    if (rotationGizmo != null)
+    {
+        bool enableRotateSnap = rotateSnap > 0f;
+        rotationGizmo.SetSnapEnabled(enableRotateSnap);
+        if (enableRotateSnap)
+        {
+            // Set snap step for X, Y, Z axes
+            rotationGizmo.Settings3D.SetAxisSnapStep(0, rotateSnap); // X
+            rotationGizmo.Settings3D.SetAxisSnapStep(1, rotateSnap); // Y
+            rotationGizmo.Settings3D.SetAxisSnapStep(2, rotateSnap); // Z
+
+        }
+    }
+
+    // Scale Gizmo
+    ScaleGizmo scaleGizmo = _objectScaleGizmo.Gizmo.GetFirstBehaviourOfType<ScaleGizmo>();
+    if (scaleGizmo != null)
+    {
+        bool enableScaleSnap = scaleSnap > 0f;
+        scaleGizmo.SetSnapEnabled(enableScaleSnap);
+        if (enableScaleSnap)
+        {
+            scaleGizmo.Settings3D.SetXSnapStep(scaleSnap);
+            scaleGizmo.Settings3D.SetYSnapStep(scaleSnap);
+            scaleGizmo.Settings3D.SetZSnapStep(scaleSnap);
+        }
+    }
+
+    UniversalGizmo universalGizmo = _objectUniversalGizmo.Gizmo.GetFirstBehaviourOfType<UniversalGizmo>();
+    if (universalGizmo != null)
+    {
+        bool enableUniversalSnap = moveSnap > 0f || rotateSnap > 0f || scaleSnap > 0f;
+        universalGizmo.SetSnapEnabled(enableUniversalSnap);
+        
+        if (moveSnap > 0f)
+        {
+            universalGizmo.Settings3D.SetMvXSnapStep(moveSnap);
+            universalGizmo.Settings3D.SetMvYSnapStep(moveSnap);
+            universalGizmo.Settings3D.SetMvZSnapStep(moveSnap);
+        }
+        
+        if (rotateSnap > 0f)
+        {
+            universalGizmo.Settings3D.SetRtAxisSnapStep(0, rotateSnap); // X
+            universalGizmo.Settings3D.SetRtAxisSnapStep(1, rotateSnap); // Y
+            universalGizmo.Settings3D.SetRtAxisSnapStep(2, rotateSnap); // Z
+        }
+        
+        if (scaleSnap > 0f)
+        {
+            universalGizmo.Settings3D.SetScXSnapStep(scaleSnap);
+            universalGizmo.Settings3D.SetScYSnapStep(scaleSnap);
+            universalGizmo.Settings3D.SetScZSnapStep(scaleSnap);
+        }
+    }
+}
+    private float ParseSnapValue(string text)
+    {
+        if (string.IsNullOrEmpty(text) || !float.TryParse(text, out float value) || value <= 0f)
+        {
+            return 0f; // Return 0 to disable snapping
+        }
+        return value;
+    }
+
+	
 	
 }

@@ -33,7 +33,7 @@ public class AppManager : MonoBehaviour
     }
 	
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    private static void RuntimeInit()
+    public static void RuntimeInit()
     {
 		//GameObject loadingObject = GameObject.FindGameObjectWithTag("loading");
         //loadingObject.transform.SetAsLastSibling();
@@ -95,7 +95,7 @@ public class AppManager : MonoBehaviour
         }
 
 		CollectInputFields();
-		AppManager.Instance.ActivateWindow(7);
+		
 		
 	}
 	
@@ -138,7 +138,7 @@ public class AppManager : MonoBehaviour
         }
     }
 	
-	private void CollectInputFields()
+	public void CollectInputFields()
     {
         foreach (var panel in windowPanels)
         {
@@ -196,7 +196,7 @@ public class AppManager : MonoBehaviour
 		}
 	}
 
-	private void OnWindowToggle(Toggle windowToggle, GameObject windowPanel)
+	public void OnWindowToggle(Toggle windowToggle, GameObject windowPanel)
 	{
 		bool windowState = windowToggle.isOn;
 		windowPanel.SetActive(windowState);

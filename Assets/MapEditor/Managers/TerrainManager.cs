@@ -552,18 +552,6 @@ public static void BorderTuck(int targetHeight, int radius, int padding)
 		LandMask.terrainData.SetHeightsDelayLOD(0, 0, result);
 	}
 
-	private static float[,] SubtractFromHeightMap(float[,] heightMap, float offset)
-	{
-		float[,] result = new float[heightMap.GetLength(0), heightMap.GetLength(1)];
-		for (int x = 0; x < heightMap.GetLength(0); x++)
-		{
-			for (int z = 0; z < heightMap.GetLength(1); z++)
-			{
-				result[x, z] = heightMap[x, z] - offset;
-			}
-		}
-		return result;
-	}
 
 	public static void SetLandMask(float[,] array)
 	{
@@ -825,19 +813,19 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 		//Callbacks.InvokeLayerUpdated(layer, topology);
 	}
 
-// Helper method to convert float[,,] to bool[,] for topology
-private static bool[,] ConvertSplatToBitmap(float[,,] splatMap)
-{
-    bool[,] bitmap = new bool[splatMap.GetLength(0), splatMap.GetLength(1)];
-    for (int x = 0; x < splatMap.GetLength(0); x++)
-    {
-        for (int y = 0; y < splatMap.GetLength(1); y++)
-        {
-            bitmap[x, y] = splatMap[x, y, 0] > 0.5f; // Texture 0 is active, threshold at 0.5
-        }
-    }
-    return bitmap;
-}
+	// Helper method to convert float[,,] to bool[,] for topology
+	public static bool[,] ConvertSplatToBitmap(float[,,] splatMap)
+	{
+		bool[,] bitmap = new bool[splatMap.GetLength(0), splatMap.GetLength(1)];
+		for (int x = 0; x < splatMap.GetLength(0); x++)
+		{
+			for (int y = 0; y < splatMap.GetLength(1); y++)
+			{
+				bitmap[x, y] = splatMap[x, y, 0] > 0.5f; // Texture 0 is active, threshold at 0.5
+			}
+		}
+		return bitmap;
+	}
 	/// <summary>Sets SplatMap of the selected LayerType.</summary>
 
     /// <param name="layer">The layer to set the data to.</param>

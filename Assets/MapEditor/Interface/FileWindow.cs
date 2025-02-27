@@ -27,7 +27,6 @@ public class FileWindow : MonoBehaviour
 	private Dictionary<string,int> recentFiles = new Dictionary<string,int>();
 	
 	
-	private List<string> drivePaths = new List<string>();
 
 	public void Start()
 	{
@@ -35,7 +34,6 @@ public class FileWindow : MonoBehaviour
 		
 
 		PopulateLists();
-		PopulateDrives();
 		splatDrop.value = splatEnums.IndexOf(settings.newSplat);
 		biomeDrop.value = biomeEnums.IndexOf(settings.newBiome);
 		newSizeSlider.value = settings.newSize;
@@ -134,17 +132,33 @@ public class FileWindow : MonoBehaviour
 		}
 	}
 	
-	public string RemoveExtension(string path){
-			return System.IO.Path.Combine(
-			System.IO.Path.GetDirectoryName(path), 
-			System.IO.Path.GetFileNameWithoutExtension(path)
-		);
+	public string RemoveExtension(string path)
+	{
+		if (string.IsNullOrEmpty(path))
+		{
+			return string.Empty; // Or handle differently based on your needs
+		}
 
+		string directory = Path.GetDirectoryName(path);
+		string filename = Path.GetFileNameWithoutExtension(path);
+
+		if (string.IsNullOrEmpty(filename))
+		{
+			return string.Empty; // No filename to process
+		}
+
+		if (string.IsNullOrEmpty(directory))
+		{
+			return filename; // Root path or no directory, return filename only
+		}
+
+		return Path.Combine(directory, filename);
 	}
 	
 	public void OnSelect(Node node)
 	{
-		if(node.isSelected){
+		if (node.isSelected)
+		{
 			Expand(node);
 			footer.text = node.name;
 			filenameField.text = RemoveExtension(node.fullPath);
@@ -155,22 +169,34 @@ public class FileWindow : MonoBehaviour
 		filenameField.text = "";
 	}
 	
-	public void OnExpand(Node node)	{
-		if (node.isExpanded && node.childCount <2){
+	public void OnExpand(Node node)
+	{
+		if (node.isExpanded)
+		{
 			string folderPath = node.fullPath;
-			List<string> paths = SettingsManager.AddFilePaths(folderPath, "map");
-			drivePaths.AddRange(paths);
-			SettingsManager.AddPathsAsNodes(tree, drivePaths);
+			string fullPath = Path.GetFullPath(folderPath); // Ensure "D:\Users\"
+			if (!fullPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+				fullPath += Path.DirectorySeparatorChar; // "D:\Users\"
+			List<string> newPaths = SettingsManager.AddFilePaths(fullPath, "map");
+			if (newPaths.Count > 0)
+			{
+				SettingsManager.AddPathsAsNodes(tree, newPaths);
 			}
+			else
+			{
+			}
+		}
 	}
 
 	public void Expand(Node node)
 	{
 		string folderPath = node.fullPath;
-		List<string> paths = SettingsManager.AddFilePaths(folderPath, "map");
-		drivePaths.AddRange(paths);
-		SettingsManager.AddPathsAsNodes(tree, drivePaths);
-		node.isExpanded= true;
+		string fullPath = folderPath;
+		if (!fullPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+			fullPath += Path.DirectorySeparatorChar; 
+		List<string> paths = SettingsManager.AddFilePaths(fullPath, "map");
+		SettingsManager.AddPathsAsNodes(tree, paths); 
+		node.isExpanded = true;
 	}
 
 
@@ -179,7 +205,7 @@ public class FileWindow : MonoBehaviour
 		string selectedText = recentDrop.options[recentDrop.value].text; 		
 		string folderPath = Path.GetDirectoryName(selectedText);
 		string file = Path.GetFileNameWithoutExtension(selectedText);
-
+		Debug.LogError(selectedText);
 		FocusPath(selectedText);
 
 	}
@@ -224,30 +250,18 @@ public class FileWindow : MonoBehaviour
 	{
 		tree.Clear();
 		DriveInfo[] drives = DriveInfo.GetDrives();
-		drivePaths.Clear();
-		
+		List<string> driveRoots = new List<string>();
+
 		foreach (DriveInfo drive in drives)
+		{
+			if (drive.IsReady)
 			{
-				if (drive.IsReady)				{
-					string driveName = drive.Name;					
-					drivePaths.Add(driveName);
-				}
+				string root = drive.Name;
+				driveRoots.Add(root);
 			}
-		
-		
-		tree.Clear();
-
-		foreach (string drivePath in drivePaths){
-			string path = drivePath;
-			if (path.EndsWith("/") || path.EndsWith("\\"))
-			{
-				path = path.TrimEnd('/', '\\');
-			}
-
-			drivePaths = SettingsManager.AddFilePaths(path, "map");
-			SettingsManager.AddPathsAsNodes(tree, drivePaths);
-
 		}
+		SettingsManager.AddPathsAsNodes(tree, driveRoots);
+		SettingsManager.AddPathsAsNodes(tree, settings.recentFiles);
 	}
 
 	public void AddRecent(string path) {
@@ -301,25 +315,11 @@ public class FileWindow : MonoBehaviour
 			recentDrop.options.Add(new Dropdown.OptionData(file));
 		}
 
+		
 		recentDrop.RefreshShownValue();
 		
 	}
 
-	public void PopulateDrives()		{
-			drivePaths.Clear();
-
-			DriveInfo[] drives = DriveInfo.GetDrives();
-
-			foreach (DriveInfo drive in drives)
-			{
-				if (drive.IsReady)
-				{
-					string driveName = drive.Name;
-					drivePaths.Add(driveName);
-				}
-			}
-
-		}
 
 	public void StateChange()
 	{

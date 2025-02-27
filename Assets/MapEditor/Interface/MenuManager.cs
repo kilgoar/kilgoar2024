@@ -93,7 +93,7 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         transform.localPosition += new Vector3(eventData.delta.x, eventData.delta.y, 0f);
     }
 
-    private void ScaleMenu(PointerEventData eventData)
+    public void ScaleMenu(PointerEventData eventData)
     {
         // Invert scaling: down/left increases scale, up/right decreases scale
         float scaleChange = (eventData.delta.x * -0.004f) + (eventData.delta.y * -0.004f);
@@ -118,7 +118,7 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         }
     }
 
-    private void ShowConfirmationPanel()
+    public void ShowConfirmationPanel()
     {
         if (confirmationPanel != null)
         {
@@ -128,7 +128,7 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         }
     }
 
-    private void HideConfirmationPanel()
+    public void HideConfirmationPanel()
     {
         if (confirmationPanel != null)
         {
@@ -136,7 +136,7 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         }
     }
 
-    private void CloseApplication()
+    public void CloseApplication()
     {
         // Exit the application
         Application.Quit();

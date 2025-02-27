@@ -1,32 +1,27 @@
 using System;
 using System.IO;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Events;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 using RustMapEditor.Variables;
 using UIRecycleTreeNamespace;
 
 public class SettingsWindow : MonoBehaviour
 {
     FilePreset settings;
-	
-	public Slider prefabRender;
-	public InputField directoryField;
-	public Toggle styleToggle, assetLoadToggle;
-	public UIRecycleTree tree;
-	public Text footer;
-	
-	private List<string> drivePaths = new List<string>();
-	
-	public Button[] bundleButtons;
-	
-	public static SettingsWindow Instance { get; private set; }
-	
+    
+    public Slider prefabRender;
+    public InputField directoryField;
+    public Toggle styleToggle, assetLoadToggle;
+    public UIRecycleTree tree;
+    public Text footer;
+    
+    private List<string> drivePaths = new List<string>();
+    
+    public Button[] bundleButtons;
+    
+    public static SettingsWindow Instance { get; private set; }
+    
     private void Awake()
     {
         if (Instance == null)
@@ -40,190 +35,196 @@ public class SettingsWindow : MonoBehaviour
         }
     }
 
-	void OnEnable(){
-		UpdateButtonStates();
-	}
-	
-	void Start(){
-		LoadDriveList();
-		settings = SettingsManager.application;
-		
-		prefabRender.value = settings.prefabRenderDistance;
-		
-		directoryField.text = settings.rustDirectory;
-		
-		assetLoadToggle.isOn = settings.loadbundleonlaunch;
-		styleToggle.isOn = settings.terrainTextureSet;
-		
-        prefabRender.onValueChanged.AddListener(delegate { CameraChange(); });
+    void OnEnable()
+    {
+        Initialize();
+        UpdateButtonStates();
+    }
+
+    void Start()
+    {
+        InitializeListeners();
+    }
+
+    private void Initialize()
+    {
+        settings = SettingsManager.application;
         
-		directoryField.onEndEdit.AddListener(delegate { DirectoryChange(); });
-        
-		assetLoadToggle.onValueChanged.AddListener(delegate { AssetLoader(); });
-        
-		styleToggle.onValueChanged.AddListener(delegate { StyleChange(); });
-		styleToggle.onValueChanged.AddListener(delegate { ToggleStyle(); });
-		
-		tree.onNodeExpandStateChanged.AddListener(OnExpand);
-		tree.onSelectionChanged.AddListener(OnSelect);
-		
-		bundleButtons[0].onClick.AddListener(OnLoadBundle);
-		bundleButtons[1].onClick.AddListener(OnUnloadBundle);
-		
-		UpdateButtonStates();
-	}
-	
-	private void OnLoadBundle(){
-		settings.rustDirectory = directoryField.text;
-		SettingsManager.application = settings;
-		SettingsManager.SaveSettings();
-		AssetManager.RuntimeInit();
-	}
-	
-	private void OnUnloadBundle(){
-		Debug.LogError("unloading");
-		AssetManager.Dispose();
-	}
-	
-	public List<string> pathTests()
-		{
-			string fileGuess = "Program Files (x86)/Steam/steamapps/common/Rust";
-			List<string> validPaths = new List<string>();
+        prefabRender.value = settings.prefabRenderDistance;
+        directoryField.text = settings.rustDirectory;
+        assetLoadToggle.isOn = settings.loadbundleonlaunch;
+        styleToggle.isOn = settings.terrainTextureSet;
 
-			DriveInfo[] drives = DriveInfo.GetDrives();
+        LoadDriveList();
+    }
 
-			foreach (DriveInfo drive in drives)
-			{
-				string fullPath = Path.Combine(drive.RootDirectory.FullName, fileGuess);
+    private void InitializeListeners()
+    {
+        // Remove existing listeners to prevent duplicates
+        prefabRender.onValueChanged.RemoveAllListeners();
+        directoryField.onEndEdit.RemoveAllListeners();
+        assetLoadToggle.onValueChanged.RemoveAllListeners();
+        styleToggle.onValueChanged.RemoveAllListeners();
+        tree.onNodeExpandStateChanged.RemoveAllListeners();
+        tree.onSelectionChanged.RemoveAllListeners();
+        bundleButtons[0].onClick.RemoveAllListeners();
+        bundleButtons[1].onClick.RemoveAllListeners();
 
-				if (Directory.Exists(fullPath))
-				{
-					validPaths.Add(fullPath);
-				}
-			}
+        // Add listeners with correct syntax
+        prefabRender.onValueChanged.AddListener(CameraChange);
+        directoryField.onEndEdit.AddListener(DirectoryChange);
+        assetLoadToggle.onValueChanged.AddListener(AssetLoader);
+        styleToggle.onValueChanged.AddListener(StyleChange);
+        styleToggle.onValueChanged.AddListener(ToggleStyle);
+        tree.onNodeExpandStateChanged.AddListener(OnExpand);
+        tree.onSelectionChanged.AddListener(OnSelect);
+        bundleButtons[0].onClick.AddListener(OnLoadBundle);
+        bundleButtons[1].onClick.AddListener(OnUnloadBundle);
+    }
 
-			return validPaths;
-	}
+    private void OnLoadBundle()
+    {
+        settings.rustDirectory = directoryField.text;
+        SettingsManager.application = settings;
+        SettingsManager.SaveSettings();
+        AssetManager.RuntimeInit();
+    }
+    
+    private void OnUnloadBundle()
+    {
+        Debug.LogError("unloading");
+        AssetManager.Dispose();
+    }
+    
+    public List<string> PathTests()
+    {
+        string fileGuess = "Program Files (x86)/Steam/steamapps/common/Rust";
+        List<string> validPaths = new List<string>();
+        DriveInfo[] drives = DriveInfo.GetDrives();
 
-	
-	
-	
-	public void LoadDriveList()
-	{
-		tree.Clear();
-		DriveInfo[] drives = DriveInfo.GetDrives();
-		drivePaths.Clear();
-		
-		List<string> testedPaths = pathTests();
-		drivePaths.AddRange(testedPaths);
-		
-		foreach (DriveInfo drive in drives)
-			{
-				if (drive.IsReady)				{
-					string driveName = drive.Name;					
-					drivePaths.Add(driveName);
-				}
-			}
-		
-		foreach (string drivePath in drivePaths){
-			string path = drivePath;
-			if (path.EndsWith("/") || path.EndsWith("\\"))
-			{
-				path = path.TrimEnd('/', '\\');
-			}
+        foreach (DriveInfo drive in drives)
+        {
+            string fullPath = Path.Combine(drive.RootDirectory.FullName, fileGuess);
+            if (Directory.Exists(fullPath))
+            {
+                validPaths.Add(fullPath);
+            }
+        }
+        return validPaths;
+    }
 
-			drivePaths = SettingsManager.AddFilePaths(path, "bundles");
-			SettingsManager.AddPathsAsNodes(tree, drivePaths);
+    public void LoadDriveList()
+    {
+        tree.Clear();
+        drivePaths.Clear();
 
-		}
-	}
-	
-	void AssetLoader(){
-		settings.loadbundleonlaunch = assetLoadToggle.isOn;
-	}
-	
+        // Add known Rust paths first
+        List<string> testedPaths = PathTests();
+        drivePaths.AddRange(testedPaths);
+
+        // Add all drive roots
+        DriveInfo[] drives = DriveInfo.GetDrives();
+        foreach (DriveInfo drive in drives)
+        {
+            if (drive.IsReady)
+            {
+                drivePaths.Add(drive.Name);
+            }
+        }
+
+        SettingsManager.AddPathsAsNodes(tree, drivePaths);
+        tree.Rebuild(); // Force UI update
+    }
+
+    void AssetLoader(bool value) // Toggle requires a bool parameter
+    {
+        settings.loadbundleonlaunch = value;
+        SettingsManager.application = settings;
+        SettingsManager.SaveSettings();
+    }
+    
 	public void Expand(Node node)
 	{
 		string folderPath = node.fullPath;
-		List<string> paths = SettingsManager.AddFilePaths(folderPath, "map");
-		drivePaths.AddRange(paths);
-		SettingsManager.AddPathsAsNodes(tree, drivePaths);
-		node.isExpanded= true;
+		string fullPath = folderPath;
+		if (!fullPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+			fullPath += Path.DirectorySeparatorChar; 
+		List<string> paths = SettingsManager.AddFilePaths(fullPath, "map");
+		SettingsManager.AddPathsAsNodes(tree, paths); 
+		node.isExpanded = true;
 	}
 	
+	public void OnExpand(Node node)
+	{
+		if (node.isExpanded)
+		{
+			string folderPath = node.fullPath;
+			string fullPath = Path.GetFullPath(folderPath); 
+			if (!fullPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+				fullPath += Path.DirectorySeparatorChar; 
+			List<string> newPaths = SettingsManager.AddFilePaths(fullPath, "map");
+			if (newPaths.Count > 0)
+			{
+				SettingsManager.AddPathsAsNodes(tree, newPaths);
+			}
+			else
+			{
+			}
+		}
+	}
+    
 	public void OnSelect(Node node)
 	{
-		if(node.isSelected){
+		Debug.Log($"Selected: {node.fullPath} (isSelected: {node.isSelected})");
+		if (node.isSelected)
+		{
 			Expand(node);
-			if (AssetManager.ValidBundlePath(node.fullPath)){
-				directoryField.text = node.fullPath;
-			}
+			footer.text = node.name;
+			directoryField.text = node.fullPath;
 			return;
 		}
 		node.CollapseAll();
+		footer.text = "";
+		directoryField.text = "";
 	}
-	
-	public void OnExpand(Node node)	{
-		if (node.isExpanded && node.childCount <2){
-			string folderPath = node.fullPath;
-			List<string> paths = SettingsManager.AddFilePaths(folderPath, "map");
-			drivePaths.AddRange(paths);
-			SettingsManager.AddPathsAsNodes(tree, drivePaths);
-			}
-	}
-	
-	void StyleChange(){
-			settings.terrainTextureSet = styleToggle.isOn;
-			TerrainManager.SetTerrainReferences();
-			TerrainManager.SetTerrainLayers();
-			SettingsManager.SaveSettings();
-	}
-	
-	void CameraChange(){			
-		settings.prefabRenderDistance = prefabRender.value;
-		SettingsManager.application = settings;
-		CameraManager.Instance.SetRenderLimit();
-		SettingsManager.SaveSettings();
-	}
-		
-	void DirectoryChange(){
-        settings.rustDirectory = directoryField.text;              
-		SettingsManager.application = settings;		
-		UpdateButtonStates();
-		SettingsManager.SaveSettings();
-	}
-	
-	void ToggleStyle(){
-		TerrainManager.SetTerrainLayers();
-	}
-	
-	public void UpdateButtonStates()
+    
+    void StyleChange(bool value) // Toggle requires a bool parameter
     {
-
+        settings.terrainTextureSet = value;
+        TerrainManager.SetTerrainReferences();
+        TerrainManager.SetTerrainLayers();
+        SettingsManager.SaveSettings();
+    }
+    
+    void CameraChange(float value) // Slider requires a float parameter
+    {			
+        settings.prefabRenderDistance = value;
+        SettingsManager.application = settings;
+        CameraManager.Instance.SetRenderLimit();
+        SettingsManager.SaveSettings();
+    }
+        
+    void DirectoryChange(string value) // InputField requires a string parameter
+    {
+        settings.rustDirectory = value;              
+        SettingsManager.application = settings;		
+        UpdateButtonStates();
+        SettingsManager.SaveSettings();
+    }
+    
+    void ToggleStyle(bool value) // Toggle requires a bool parameter
+    {
+        TerrainManager.SetTerrainLayers();
+    }
+    
+    public void UpdateButtonStates()
+    {
         bool isValidBundle = AssetManager.ValidBundlePath(directoryField.text);
 
-        foreach (var button in bundleButtons)    {
-            button.interactable = isValidBundle;
-        }
-		
-		if(! isValidBundle)		{
-			footer.text = "No valid bundle found";
-		}
-		else
-		{
-			footer.text = "Valid bundle";
-		}
-		
-		if(AssetManager.IsInitialised){
-			footer.text = "Bundles Loaded";
-			bundleButtons[0].interactable = false;
-			bundleButtons[1].interactable = true;
-		}
-		else
-		{
-			bundleButtons[0].interactable = true;
-			bundleButtons[1].interactable = false;
-		}
+        
+        footer.text = AssetManager.IsInitialised ? "Bundles Loaded" : "Bundles not loaded";
+
+        bundleButtons[0].interactable = isValidBundle && !AssetManager.IsInitialised;
+        bundleButtons[1].interactable = AssetManager.IsInitialised;
     }
-	
 }

@@ -30,6 +30,13 @@ public class ConsoleWindow : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject); 
+						//create objects necessary for using accessible methods
+			InitializeConsoleVariables();
+			
+			// Assign listener for InputField's submit event
+			consoleInput.onEndEdit.AddListener(OnInputEndEdit);
+			textTemplate.gameObject.SetActive(false);
+			Startup();		
         }
         else        
         {
@@ -65,18 +72,11 @@ public class ConsoleWindow : MonoBehaviour
         {
             Post($"No startup script found ({startupScriptName})");
         }
-		AppManager.Instance.CloseWindow(7);
     }
 
     private void Start()
     {
-		//create objects necessary for using accessible methods
-		InitializeConsoleVariables();
-		
-        // Assign listener for InputField's submit event
-        consoleInput.onEndEdit.AddListener(OnInputEndEdit);
-        textTemplate.gameObject.SetActive(false);
-		Startup();		
+
 
     }
 

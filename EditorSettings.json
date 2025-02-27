@@ -18,6 +18,7 @@
         "newBiome": 2,
         "newSplat": 16,
         "recentFiles": [
+            "F:\\newfolder3\\wtfux.map",
             "F:\\newfolder3\\anasazi3k.v10.map",
             "F:\\newfolder3\\greece.3000.monuments.v2.map",
             "F:\\newfolder3\\highrisemonuments4.map",
@@ -283,7 +284,9 @@
             "assets/bundled/prefabs/fireball_small_arrow",
             "assets/bundled/prefabs/incendiary_fireball",
             "assets/bundled/prefabs/napalm",
-            "assets/bundled/prefabs/oilfireballsmall"
+            "assets/bundled/prefabs/oilfireballsmall",
+            "~Custom/polygons/parkourOctahedron",
+            "assets/bundled/prefabs/modding/cubes/concrete_cube"
         ]
     }
 }

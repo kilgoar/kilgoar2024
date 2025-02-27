@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -223,45 +224,34 @@ public static class SettingsManager
             Debug.LogWarning("EditorSettings.json not found at: " + sourceFile);
         }
     }
+
 	
 	public static List<string> AddFilePaths(string path, string extension)
 	{
 		List<string> pathsList = new List<string>();
+		string absolutePath = Path.GetFullPath(path); // Resolve fully
+
+		if (string.IsNullOrWhiteSpace(absolutePath) || !Directory.Exists(absolutePath))
+		{
+			Debug.LogWarning($"Invalid path: {absolutePath}");
+			return pathsList;
+		}
 
 		try
 		{
-			// Validate the path
-			if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
-			{
-				Debug.LogWarning("Invalid directory path: " + path);
-				return pathsList;
-			}
-
-			// Enumerate directories
-			foreach (string directory in Directory.EnumerateDirectories(path, "*", SearchOption.TopDirectoryOnly))
+			foreach (string directory in Directory.EnumerateDirectories(absolutePath, "*", SearchOption.TopDirectoryOnly))
 			{
 				pathsList.Add(Path.GetFullPath(directory) + Path.DirectorySeparatorChar);
 			}
-
-			// Enumerate files with specified extension
-			foreach (string file in Directory.EnumerateFiles(path, "*." + extension, SearchOption.TopDirectoryOnly))
+			foreach (string file in Directory.EnumerateFiles(absolutePath, "*." + extension, SearchOption.TopDirectoryOnly))
 			{
 				pathsList.Add(Path.GetFullPath(file));
 			}
 		}
-		catch (UnauthorizedAccessException ex)
+		catch (Exception ex)
 		{
-			Debug.LogWarning("Access denied to path: " + path + ". " + ex.Message);
+			Debug.LogWarning($"Error at {absolutePath}: {ex.Message}");
 		}
-		catch (PathTooLongException ex)
-		{
-			Debug.LogWarning("Path too long: " + path + ". " + ex.Message);
-		}
-		catch (IOException ex)
-		{
-			Debug.LogWarning("IO exception for path: " + path + ". " + ex.Message);
-		}
-
 		return pathsList;
 	}
 
@@ -296,6 +286,7 @@ public static class SettingsManager
 	
 	public static void AddPathsAsNodes(UIRecycleTree tree, List<string> paths)
 	{
+
 		Dictionary<string, Node> nodeMap = new Dictionary<string, Node>();
 
 		foreach (Node existingNode in tree.rootNode.nodes)
@@ -305,6 +296,7 @@ public static class SettingsManager
 
 		foreach (string path in paths)
 		{
+
 			string normalizedPath = path.Replace("\\", "/", StringComparison.Ordinal);
 			string[] parts = normalizedPath.Split('/');
 			Node currentNode = null;
@@ -313,6 +305,7 @@ public static class SettingsManager
 			{
 				string part = parts[i];
 				string fullPath = string.Join("/", parts, 0, i + 1);
+				
 
 				if (!nodeMap.TryGetValue(fullPath, out currentNode))
 				{
@@ -335,7 +328,8 @@ public static class SettingsManager
 				}
 			}
 		}
-		tree.Reload();
+		tree.Rebuild();
+
 	}
 
 	private static void PopulateNodeMap(Node node, Dictionary<string, Node> nodeMap, string parentPath)
@@ -384,7 +378,7 @@ public static class SettingsManager
 	public static void CheckFavorites(UIRecycleTree tree)
 	{
 		CheckNode(tree.rootNode);
-		tree.Reload();
+		tree.Rebuild();
 	}
 
 	private static void CheckNode(Node node)
@@ -529,7 +523,7 @@ public static class SettingsManager
 				}
 			}
 		}
-		tree.Reload();
+		tree.Rebuild();
 	}
 	
 

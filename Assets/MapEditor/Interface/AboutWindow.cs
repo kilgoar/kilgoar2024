@@ -31,12 +31,12 @@ public class AboutWindow : MonoBehaviour
         }
     }
 
-    void OpenPatreon()
+    public void OpenPatreon()
     {
         Application.OpenURL(patreonUrl);
     }
 
-    void OpenDiscord()
+    public void OpenDiscord()
     {
         Application.OpenURL(discordUrl);
     }

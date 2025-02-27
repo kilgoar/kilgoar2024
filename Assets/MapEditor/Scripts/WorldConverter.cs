@@ -175,6 +175,76 @@ public static class WorldConverter
         return terrains;
     }
 
+	public static WorldSerialization CollectionToREPrefab(Transform parent)
+	{
+		WorldSerialization world = new WorldSerialization();
+
+		try
+		{
+			if (parent == null)
+			{
+				Debug.LogError("Parent Transform is null; no prefabs can be processed.");
+				return world;
+			}
+
+			// Collect all PrefabDataHolder components in the hierarchy (flattening nesting)
+			List<PrefabDataHolder> prefabHolders = new List<PrefabDataHolder>();
+			CollectPrefabDataHolders(parent, prefabHolders);
+
+			// Process each PrefabDataHolder and convert to local space relative to the parent
+			foreach (PrefabDataHolder holder in prefabHolders)
+			{
+				if (holder.prefabData != null)
+				{
+					// Create a copy of the prefab data
+					PrefabData localPrefab = holder.prefabData;
+
+					// Get the world position and rotation from the holder's transform
+					Vector3 worldPosition = holder.transform.position;
+					Quaternion worldRotation = holder.transform.rotation;
+
+					// Convert to local space relative to the parent
+					localPrefab.position = parent.InverseTransformPoint(worldPosition);
+					localPrefab.rotation = Quaternion.Inverse(parent.rotation) * worldRotation;
+
+					// Add the adjusted prefab to the REPrefab data
+					world.rePrefab.prefabs.Add(localPrefab);
+				}
+			}
+
+			// Initialize empty collections for other REPrefab components
+			world.rePrefab.electric.circuitData = new List<CircuitData>();
+			world.rePrefab.npcs.bots = new List<NPCData>();
+			world.rePrefab.modifiers = new ModifierData();
+
+			return world;
+		}
+		catch (NullReferenceException err)
+		{
+			Debug.LogError("Error during prefab conversion: " + err.Message);
+			return world;
+		}
+	}
+
+	/// <summary>Recursively collects all PrefabDataHolder components from a Transform and its children.</summary>
+	/// <param name="current">Current Transform to inspect.</param>
+	/// <param name="holders">List to store collected PrefabDataHolder components.</param>
+	private static void CollectPrefabDataHolders(Transform current, List<PrefabDataHolder> holders)
+	{
+		// Check if the current object has a PrefabDataHolder
+		PrefabDataHolder holder = current.GetComponent<PrefabDataHolder>();
+		if (holder != null)
+		{
+			holders.Add(holder);
+		}
+
+		// Recursively process all children
+		foreach (Transform child in current)
+		{
+			CollectPrefabDataHolders(child, holders);
+		}
+	}
+
     /// <summary>Converts Unity terrains to WorldSerialization.</summary>
     public static WorldSerialization TerrainToWorld(Terrain land, Terrain water, (int prefab, int path, int terrain) ID = default) 
     {
@@ -316,8 +386,8 @@ public static class WorldConverter
 			{
 				if (p.prefabData != null)
 				{
-					p.UpdatePrefabData();
-					//p.AlwaysBreakPrefabs(); // Updates the prefabdata before saving.
+					//p.UpdatePrefabData();
+					p.AlwaysBreakPrefabs(); // Updates the prefabdata before saving.
 					world.rePrefab.prefabs.Add(p.prefabData);
 				}
 			}

@@ -132,9 +132,17 @@ public class CoroutineManager : MonoBehaviour
         if (Mouse.current.leftButton.wasPressedThisFrame && RTGizmosEngine.Get.HoveredGizmo == null)
         {
 			if (Keyboard.current.altKey.isPressed) {
+				
 				if (HierarchyWindow.Instance!=null && HierarchyWindow.Instance.gameObject.activeSelf){
+					
 					if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask)){
-						HierarchyWindow.Instance.PlacePrefab(hit.point); 
+						
+							HierarchyWindow.Instance.PlacePrefab(hit.point);
+						
+						if(ItemsWindow.Instance!=null){
+							
+							ItemsWindow.Instance.PopulateList();
+						}
 					}
 
 				}

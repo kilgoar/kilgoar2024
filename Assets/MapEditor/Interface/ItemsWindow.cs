@@ -14,13 +14,11 @@ public class ItemsWindow : MonoBehaviour
 	public Text footer;
     public UIRecycleTree tree;
 	public InputField query;
-	public Button deleteChecked, checkAll, uncheckAll, findInBreaker;
+	public Button deleteChecked, checkAll, uncheckAll, findInBreaker, saveCustom;
 	private int currentMatchIndex = 0; 
 	private List<Node> matchingNodes = new List<Node>();
 	public List<InputField> prefabDataFields = new List<InputField>();
-	
-	private PrefabDataHolder holder = new PrefabDataHolder();
-	private PrefabData selection = new PrefabData();
+	public List<InputField> snapFields = new List<InputField>();
 	
 	public static ItemsWindow Instance { get; private set; }
 	
@@ -41,37 +39,199 @@ public class ItemsWindow : MonoBehaviour
 		InitializeComponents();
 	}
 
-	public void SetSelection(GameObject go){
-		try
-		{
-			if (go != null)
-			{
-				holder = go.GetComponent<PrefabDataHolder>();
-			}
-			else
-			{
-				holder = null; // Explicitly set to null if the cast fails
-			}
+    public void SetSelection(GameObject go)
+    {
+        if (go == null)
+        {
+            DefaultPrefabData(); // Clear UI if no object
+            return;
+        }
 
-			if (holder != null)
-			{
-				// If PrefabData component exists, use its values
-				selection = holder.prefabData; // Assuming 'selection' is already defined and initialized elsewhere
-			}
-		}
-		catch (MissingReferenceException e)
-		{
-			Debug.LogError("A MissingReferenceException occurred in set selection: " + e.Message);
-			// Clear all fields in case of an error
-			for (int i = 0; i < prefabDataFields.Count; i++)
-			{
-				prefabDataFields[i].text = string.Empty;
-			}
+        RetrievePrefabData(go); // Just fetch and display data directly
+    }
+
+    public void UpdateData()
+    {
+        if (CameraManager.Instance._selectedObjects.Count > 0)
+        {
+            GameObject lastSelected = CameraManager.Instance._selectedObjects[^1]; // Last item via index accessor
+            SetSelection(lastSelected);
+        }
+        else
+        {
+            DefaultPrefabData();
+        }
+    }
+
+    public void RetrievePrefabData(GameObject go)
+    {
+        DestroyListeners();
+
+        PrefabDataHolder prefabHolder = go.GetComponent<PrefabDataHolder>();
+        bool isCollection = go.CompareTag("Collection");
+		saveCustom.interactable = false;
+		
+        if (prefabHolder != null && !isCollection) // Prefab with data
+        {
+            PrefabData data = prefabHolder.prefabData;
+            prefabHolder.UpdatePrefabData(); // Ensure data is fresh
+
+            prefabDataFields[0].text = data.position.x.ToString("F3");
+            prefabDataFields[1].text = data.position.y.ToString("F3");
+            prefabDataFields[2].text = data.position.z.ToString("F3");
+
+            prefabDataFields[3].text = data.rotation.x.ToString("F3");
+            prefabDataFields[4].text = data.rotation.y.ToString("F3");
+            prefabDataFields[5].text = data.rotation.z.ToString("F3");
+
+            prefabDataFields[6].text = data.scale.x.ToString("F3");
+            prefabDataFields[7].text = data.scale.y.ToString("F3");
+            prefabDataFields[8].text = data.scale.z.ToString("F3");
+
+            prefabDataFields[9].text = data.category;
+            prefabDataFields[10].text = data.id.ToString();
+        }
+        else // Collection or no prefab data, use transform
+        {
+            Transform transform = go.transform;
+            prefabDataFields[0].text = transform.position.x.ToString("F3");
+            prefabDataFields[1].text = transform.position.y.ToString("F3");
+            prefabDataFields[2].text = transform.position.z.ToString("F3");
+
+			Vector3 rotation = transform.eulerAngles;
+			prefabDataFields[3].text = rotation.x.ToString("F3");
+			prefabDataFields[4].text = rotation.y.ToString("F3");
+			prefabDataFields[5].text = rotation.z.ToString("F3");
 			
-			//node.parentNode.nodes.Remove(node);
+            prefabDataFields[6].text = transform.localScale.x.ToString("F3");
+            prefabDataFields[7].text = transform.localScale.y.ToString("F3");
+            prefabDataFields[8].text = transform.localScale.z.ToString("F3");
+
+            prefabDataFields[9].text = isCollection ? go.name : string.Empty;
+            prefabDataFields[10].text = isCollection ? string.Empty : go.name;
+			saveCustom.interactable = true;
+        }
+
+        CreateListeners(go); // Pass the GameObject to listeners
+    }
+
+	public void SendPrefabData(GameObject go)
+	{
+		// Parse transform data from fields
+		Vector3 position = new Vector3(
+			float.Parse(prefabDataFields[0].text),
+			float.Parse(prefabDataFields[1].text),
+			float.Parse(prefabDataFields[2].text));
+
+		Vector3 rotation = new Vector3(
+			float.Parse(prefabDataFields[3].text),
+			float.Parse(prefabDataFields[4].text),
+			float.Parse(prefabDataFields[5].text));
+
+		Vector3 scale = new Vector3(
+			float.Parse(prefabDataFields[6].text),
+			float.Parse(prefabDataFields[7].text),
+			float.Parse(prefabDataFields[8].text));
+
+
+		// Handle PrefabData if it exists (prefabs)
+		PrefabDataHolder holder = go.GetComponent<PrefabDataHolder>();
+		if (holder != null && !go.CompareTag("Collection"))
+		{
+			PrefabData data = holder.prefabData;
+			data.position = new VectorData(position.x, position.y, position.z);
+			data.rotation = new VectorData(rotation.x, rotation.y, rotation.z);
+			data.scale = new VectorData(scale.x, scale.y, scale.z);
+			data.category = go.name; // Sync category with name
+			data.id = uint.Parse(prefabDataFields[10].text);
+			holder.CastPrefabData(); // Sets transform for prefabs
 		}
+		else if (go.CompareTag("Collection"))
+		{
+			// For collections, set transform directly since no PrefabData
+			go.transform.position = position;
+			go.transform.rotation = Quaternion.Euler(rotation);
+			go.transform.localScale = scale;
+			
+			// Update name from category field
+			go.name = prefabDataFields[9].text;
+			    Node node = tree.FindFirstNodeByDataRecursive(go);
+			if (node != null)
+			{
+				node.name = go.name;
+			}
+		}
+
+
+
 	}
 
+    public void DefaultPrefabData()
+    {
+        DestroyListeners();
+        for (int i = 0; i < prefabDataFields.Count; i++)
+        {
+            prefabDataFields[i].text = string.Empty;
+        }
+    }
+
+    public void CreateListeners(GameObject go)
+    {
+        for (int i = 0; i < 9; i++)
+        {
+            int index = i;
+            prefabDataFields[i].onEndEdit.AddListener(text =>
+            {
+                if (float.TryParse(text, out float value))
+                {
+                    UpdatePrefabData(go, index, value);
+                }
+                SendPrefabData(go);
+            });
+        }
+
+        prefabDataFields[9].onEndEdit.AddListener(text => 
+        {
+                SendPrefabData(go);
+        });
+
+        prefabDataFields[10].onEndEdit.AddListener(text =>
+        {
+            if (uint.TryParse(text, out uint id) && go.GetComponent<PrefabDataHolder>() is PrefabDataHolder holder)
+            {
+                holder.prefabData.id = id;
+                SendPrefabData(go);
+            }
+        });
+    }
+
+    private void UpdatePrefabData(GameObject go, int index, float value)
+    {
+        PrefabDataHolder holder = go.GetComponent<PrefabDataHolder>();
+        if (holder == null) return;
+
+        PrefabData data = holder.prefabData;
+        int vectorIndex = index % 3;
+        switch (index / 3)
+        {
+            case 0: // Position
+                if (vectorIndex == 0) data.position.x = value;
+                else if (vectorIndex == 1) data.position.y = value;
+                else data.position.z = value;
+                break;
+            case 1: // Rotation
+                if (vectorIndex == 0) data.rotation.x = value;
+                else if (vectorIndex == 1) data.rotation.y = value;
+                else data.rotation.z = value;
+                break;
+            case 2: // Scale
+                if (vectorIndex == 0) data.scale.x = value;
+                else if (vectorIndex == 1) data.scale.y = value;
+                else data.scale.z = value;
+                break;
+        }
+    }
+	
 	private void InitializeComponents()
 	{	
 
@@ -92,7 +252,44 @@ public class ItemsWindow : MonoBehaviour
 		checkAll.onClick.AddListener(CheckNodes);
 		uncheckAll.onClick.AddListener(UncheckNodes);
 		findInBreaker.onClick.AddListener(FindBreakerWithPath);
-		CreateListeners(); //prefab data display
+		   
+
+		saveCustom.onClick.AddListener(() =>
+		{
+			if (CameraManager.Instance._selectedObjects.Count > 0)
+			{
+				SaveCollection(CameraManager.Instance._selectedObjects[^1]);
+			}
+			else
+			{
+				Debug.LogWarning("No object selected to save as a collection.");
+			}
+		});
+		
+	}
+	
+	public void SaveCollection(GameObject go)
+	{
+		// Check if the GameObject is valid
+		if (go == null)
+		{
+			Debug.LogWarning("No collection provided to save.");
+			return;
+		}
+
+		string savePath = System.IO.Path.Combine(SettingsManager.AppDataPath(), "custom", $"{go.name}.prefab");
+
+		// Ensure the 'custom' directory exists
+		string customDir = System.IO.Path.Combine(SettingsManager.AppDataPath(), "custom");
+		if (!System.IO.Directory.Exists(customDir))
+		{
+			System.IO.Directory.CreateDirectory(customDir);
+		}
+
+		// Save the collection using MapManager
+		MapManager.SaveCollectionPrefab(savePath, go.transform);
+
+		Debug.Log($"Collection saved to: {savePath}");
 	}
 	
 	public void FindBreakerWithPath(){
@@ -110,212 +307,7 @@ public class ItemsWindow : MonoBehaviour
 		}
 	}
 	
-	public void UpdateData(){
-		if(CameraManager.Instance._selectedObjects.Count != 0){
-			SetSelection(CameraManager.Instance._selectedObjects[CameraManager.Instance._selectedObjects.Count-1]);
-		}
-		else{
-			DefaultPrefabData();
-			return;
-		}
-		
-		if(holder!=null && holder.gameObject !=null){
-			holder.UpdatePrefabData();
-			RetrievePrefabData(holder.gameObject);
-		}
-		else{
-				
-			DefaultPrefabData();
-			
-			}
-	}
 
-	
-	public void SendPrefabData(){		
-		// Position
-		selection.position = new VectorData(
-			float.Parse(prefabDataFields[0].text),
-			float.Parse(prefabDataFields[1].text),
-			float.Parse(prefabDataFields[2].text));
-
-		// Rotation
-		selection.rotation = new VectorData(
-			float.Parse(prefabDataFields[3].text),
-			float.Parse(prefabDataFields[4].text),
-			float.Parse(prefabDataFields[5].text));
-
-		// Scale
-		selection.scale = new VectorData(
-			float.Parse(prefabDataFields[6].text),
-			float.Parse(prefabDataFields[7].text),
-			float.Parse(prefabDataFields[8].text));
-
-		// Category
-		selection.category = prefabDataFields[9].text;
-
-		// ID
-		selection.id = uint.Parse(prefabDataFields[10].text);
-		holder.CastPrefabData();
-	}
-	
-	public void DefaultPrefabData(){
-		DestroyListeners();
-
-			
-			// Position
-			prefabDataFields[0].text = "";
-			prefabDataFields[1].text = "";
-			prefabDataFields[2].text = "";
-
-			// Rotation
-			prefabDataFields[3].text = "";
-			prefabDataFields[4].text = "";
-			prefabDataFields[5].text = "";
-
-			// Scale
-			prefabDataFields[6].text = "";
-			prefabDataFields[7].text = "";
-			prefabDataFields[8].text = "";
-
-			// Category
-			prefabDataFields[9].text = "";
-
-			// ID
-			prefabDataFields[10].text = "";
-
-		
-		
-	}
-	
-	public void RetrievePrefabData(GameObject obj)
-	{
-		DestroyListeners();
-		SetSelection(obj);
-		
-			if (selection!=null){
-				// Position
-				prefabDataFields[0].text = selection.position.x.ToString();
-				prefabDataFields[1].text = selection.position.y.ToString();
-				prefabDataFields[2].text = selection.position.z.ToString();
-
-				// Rotation
-				prefabDataFields[3].text = selection.rotation.x.ToString();
-				prefabDataFields[4].text = selection.rotation.y.ToString();
-				prefabDataFields[5].text = selection.rotation.z.ToString();
-
-				// Scale
-				prefabDataFields[6].text = selection.scale.x.ToString();
-				prefabDataFields[7].text = selection.scale.y.ToString();
-				prefabDataFields[8].text = selection.scale.z.ToString();
-
-				// Category
-				prefabDataFields[9].text = selection.category;
-
-				// ID
-				prefabDataFields[10].text = selection.id.ToString();
-			}
-			else
-			{
-				// If no PrefabData component found, use transform data
-				Transform transform = obj.transform;
-				if (transform != null)
-				{
-					// Position
-					prefabDataFields[0].text = transform.position.x.ToString();
-					prefabDataFields[1].text = transform.position.y.ToString();
-					prefabDataFields[2].text = transform.position.z.ToString();
-
-					// Rotation (convert from Quaternion to Euler angles)
-					Vector3 eulerAngles = transform.rotation.eulerAngles;
-					prefabDataFields[3].text = eulerAngles.x.ToString();
-					prefabDataFields[4].text = eulerAngles.y.ToString();
-					prefabDataFields[5].text = eulerAngles.z.ToString();
-
-					// Scale
-					prefabDataFields[6].text = transform.localScale.x.ToString();
-					prefabDataFields[7].text = transform.localScale.y.ToString();
-					prefabDataFields[8].text = transform.localScale.z.ToString();
-
-					// Clear category and ID since they're not available
-					prefabDataFields[9].text = string.Empty;
-					prefabDataFields[10].text = string.Empty;
-				}
-				else
-				{
-					// If we can't even get the transform, clear all fields
-					for (int i = 0; i < prefabDataFields.Count; i++)
-					{
-						prefabDataFields[i].text = string.Empty;
-					}
-
-				}
-			}
-		
-		
-		CreateListeners();
-	}
-	
-	public void CreateListeners()
-	{
-		// Listeners for VectorData (position, rotation, scale)
-		for (int i = 0; i < 9; i++)
-		{
-			int index = i; // Capture the loop variable for closure
-			prefabDataFields[i].onEndEdit.AddListener(text =>
-			{
-				if (float.TryParse(text, out float value))
-				{
-					int vectorIndex = index % 3;
-					switch (index / 3)
-					{
-						case 0: // Position
-							switch (vectorIndex)
-							{
-								case 0: selection.position.x = value; break;
-								case 1: selection.position.y = value; break;
-								case 2: selection.position.z = value; break;
-							}
-							break;
-						case 1: // Rotation
-							switch (vectorIndex)
-							{
-								case 0: selection.rotation.x = value; break;
-								case 1: selection.rotation.y = value; break;
-								case 2: selection.rotation.z = value; break;
-							}
-							break;
-						case 2: // Scale
-							switch (vectorIndex)
-							{
-								case 0: selection.scale.x = value; break;
-								case 1: selection.scale.y = value; break;
-								case 2: selection.scale.z = value; break;
-							}
-							break;
-					}
-				}
-				SendPrefabData();
-			});
-		}
-
-		// Listener for Category
-		prefabDataFields[9].onEndEdit.AddListener(text => 
-		{
-			selection.category = text;
-			SendPrefabData();
-		});
-
-		// Listener for ID
-		prefabDataFields[10].onEndEdit.AddListener(text =>
-		{
-			if (uint.TryParse(text, out uint id))
-			{
-				selection.id = id;
-			}
-			SendPrefabData();
-		});
-	}
-	
 
 	
 	void OnEnable()	{
@@ -355,10 +347,6 @@ public class ItemsWindow : MonoBehaviour
 			Node lastNode = tree.FindFirstNodeByDataRecursive(selections[itemCount-1]);
 			tree.FocusOn(lastNode);
 			//lastNode.SetSelectedWithoutNotify(true);
-		}
-		else{
-			selection=null;
-			holder=null;
 		}
 
 	}

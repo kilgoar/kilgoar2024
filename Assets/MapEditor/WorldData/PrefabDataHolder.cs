@@ -105,7 +105,7 @@ public class PrefabDataHolder : MonoBehaviour
 */
     public void AlwaysBreakPrefabs()
     {
-        prefabData.position = gameObject.transform.position - PrefabManager.PrefabParent.position;
+        prefabData.position = gameObject.transform.localPosition;
         prefabData.rotation = gameObject.transform.rotation.eulerAngles;
         prefabData.scale = gameObject.transform.lossyScale;        
         prefabData.category = prefabData.category.Contains(":") ? "decor" : prefabData.category;
