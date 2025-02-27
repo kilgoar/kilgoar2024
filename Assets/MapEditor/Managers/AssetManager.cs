@@ -67,6 +67,7 @@ public static class AssetManager
 		}
 		else
 		{
+			AppManager.Instance.LoadWindowStates();
 			AppManager.Instance.ActivateWindow(1);
 		}
 	}
@@ -107,8 +108,7 @@ public static class AssetManager
 		LoadScreen.Instance.Hide();
 		var application = SettingsManager.application;
 		MapManager.CreateMap(application.newSize, application.newSplat, application.newBiome, application.newHeight * 1000f);
-		AppManager.Instance.ActivateWindow(0);
-		
+		AppManager.Instance.LoadWindowStates();
 	}
 	
 	public static class Callbacks

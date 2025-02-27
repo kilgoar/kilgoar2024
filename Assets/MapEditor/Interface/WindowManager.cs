@@ -71,6 +71,7 @@ public class WindowManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 			
 		transform.localPosition += new Vector3(eventData.delta.x, eventData.delta.y, 0f);
 		SyncTreeWithWindow();
+		SaveState();
 	}
     
 	
@@ -93,9 +94,16 @@ public class WindowManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         Vector2 offset = new Vector2((adjustedSize.x / 2) - 5f, (adjustedSize.y / -2) + 5f);
         rectTransform.localPosition = localPoint - offset;		
 		SyncTreeWithWindow();
+		SaveState();
 	}
 	
-	
+	private void SaveState()
+    {
+        if (AppManager.Instance != null)
+        {
+            AppManager.Instance.SaveWindowStates();
+        }
+    }
 	
 	private void SyncTreeWithWindow()
 	{
@@ -103,7 +111,8 @@ public class WindowManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 		{
 			treeRectTransform.position = windowRectTransform.position;
 			treeRectTransform.localScale = windowRectTransform.localScale;
-			Tree.transform.SetAsLastSibling();
+			int windowSiblingIndex = Window.transform.GetSiblingIndex();
+            Tree.transform.SetSiblingIndex(windowSiblingIndex + 1);
 		}
 	}
 

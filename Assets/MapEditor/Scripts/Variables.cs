@@ -34,6 +34,31 @@ namespace RustMapEditor.Variables
 		}
 	}
 	
+	[Serializable]
+	public struct WindowState
+	{
+		public bool isActive;           // Whether the window is active
+		public Vector3 position;        // RectTransform position
+		public Vector3 scale;           // RectTransform scale
+
+		public WindowState(bool isActive, Vector3 position, Vector3 scale)
+		{
+			this.isActive = isActive;
+			this.position = position;
+			this.scale = scale;
+		}
+	}
+
+	[Serializable]
+	public struct MenuState
+	{
+		public Vector3 scale;           // Menu's RectTransform scale
+
+		public MenuState(Vector3 scale)
+		{
+			this.scale = scale;
+		}
+	}
 	
     public struct Conditions
     {

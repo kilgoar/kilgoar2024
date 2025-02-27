@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using RustMapEditor.Variables;
@@ -14,6 +15,7 @@ public class AppManager : MonoBehaviour
 	private List<InputField> allInputFields = new List<InputField>();
 	public GameObject menuPanel;
     public Toggle lockToggle;
+	public string harmonyMessage;
 
     private Dictionary<Toggle, GameObject> windowDictionary = new Dictionary<Toggle, GameObject>();
 
@@ -35,9 +37,9 @@ public class AppManager : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     public static void RuntimeInit()
     {
-		//GameObject loadingObject = GameObject.FindGameObjectWithTag("loading");
-        //loadingObject.transform.SetAsLastSibling();
-        //loadingObject.SetActive(true);
+		Instance.harmonyMessage = HarmonyLoader.LoadHarmonyMods(Path.Combine(SettingsManager.AppDataPath(), "HarmonyMods"));
+		Instance.harmonyMessage += "\n" + HarmonyLoader.LoadHarmonyMods(System.AppDomain.CurrentDomain.BaseDirectory);
+		
 		LoadScreen.Instance.Show();
 		LoadScreen.Instance.transform.SetAsLastSibling();
 
@@ -53,7 +55,7 @@ public class AppManager : MonoBehaviour
             AssetManager.RuntimeInit();
 
         FilePreset application = SettingsManager.application;
-        
+
     }
 
 	private void Start()
@@ -76,6 +78,7 @@ public class AppManager : MonoBehaviour
 
 		lockToggle.onValueChanged.AddListener(delegate { LockWindows(); });
 
+		/*
 		foreach (var entry in windowDictionary)
 		{
 			entry.Key.isOn = false;
@@ -87,7 +90,8 @@ public class AppManager : MonoBehaviour
 				RecycleTrees[index].gameObject.SetActive(false);
 			}
 		}
-
+		*/
+		
         for (int i = 0; i < CloseButtons.Count; i++)
         {
             int index = i;
@@ -98,6 +102,64 @@ public class AppManager : MonoBehaviour
 		
 		
 	}
+	
+	public void SaveWindowStates()
+    {
+        WindowState[] states = new WindowState[windowPanels.Count];
+        for (int i = 0; i < windowPanels.Count; i++)
+        {
+            RectTransform rect = windowPanels[i].GetComponent<RectTransform>();
+            states[i] = new WindowState(
+                windowPanels[i].activeSelf,
+                rect.localPosition,
+                rect.localScale
+            );
+        }
+        SettingsManager.windowStates = states;
+        SettingsManager.SaveSettings();
+    }
+
+	public void LoadWindowStates()
+	{
+		if (SettingsManager.windowStates == null || SettingsManager.windowStates.Length != windowPanels.Count)
+		{
+			Debug.LogWarning("Window states not initialized or mismatch in count. Using defaults.");
+			return;
+		}
+
+		for (int i = 0; i < windowPanels.Count; i++)
+		{
+			RectTransform rect = windowPanels[i].GetComponent<RectTransform>();
+			WindowState state = SettingsManager.windowStates[i];
+			windowPanels[i].SetActive(state.isActive);
+			rect.localPosition = state.position;
+			rect.localScale = state.scale;
+			windowToggles[i].SetIsOnWithoutNotify(state.isActive);
+
+			// Sync and load the associated RecycleTree
+			if (i < RecycleTrees.Count && RecycleTrees[i] != null)
+			{
+				RecycleTrees[i].gameObject.SetActive(state.isActive);
+				RectTransform treeRect = RecycleTrees[i].GetComponent<RectTransform>();
+				if (treeRect != null)
+				{
+					treeRect.localScale = state.scale;
+					treeRect.position = rect.position; 
+				}
+				
+			}
+
+			// Set the window as the last sibling after loading its state and syncing its tree
+			windowPanels[i].transform.SetAsLastSibling();
+		}
+
+		// Ensure menu stays on top
+		if (menuPanel != null)
+		{
+			menuPanel.transform.SetAsLastSibling();
+		}
+	}
+
 	
 	public void ActivateWindow(int index){
 		windowToggles[index].isOn = true;
@@ -124,6 +186,7 @@ public class AppManager : MonoBehaviour
                         treeRect.localScale = adjustedScale;
                     }
                 }
+	
 	}
 	
 	public void CloseWindow(int index)
@@ -194,6 +257,7 @@ public class AppManager : MonoBehaviour
 				}
 			}
 		}
+		SaveWindowStates();
 	}
 
 	public void OnWindowToggle(Toggle windowToggle, GameObject windowPanel)
@@ -227,8 +291,8 @@ public class AppManager : MonoBehaviour
 
 			if (windowState)
 			{
-				Debug.Log("okay"); // Adjusted from Debug.LogError to Debug.Log since it’s not an error
-				RecycleTrees[index].transform.SetAsLastSibling();
+				int windowSiblingIndex = windowPanel.transform.GetSiblingIndex();
+				RecycleTrees[index].transform.SetSiblingIndex(windowSiblingIndex + 1);
 
 				// Apply the adjusted scale to the tree
 				if (menuPanel != null)
@@ -247,7 +311,11 @@ public class AppManager : MonoBehaviour
 				}
 			}
 		}
-
+		if (menuPanel != null)
+		{
+			menuPanel.transform.SetAsLastSibling();
+		}
+		SaveWindowStates();
 		SettingsManager.SaveSettings();
 	}
 	

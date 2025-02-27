@@ -560,7 +560,8 @@ public static class SettingsManager
 	public static BreakerPreset breaker {get; set;}
 	public static FragmentLookup fragmentIDs {get; set;}
 	public static BreakerSerialization breakerSerializer = new BreakerSerialization();
-
+    public static WindowState[] windowStates { get; set; }
+    public static MenuState menuState { get; set; }
 	
     /// <summary>Saves the current EditorSettings to a JSON file.</summary>
     public static void SaveSettings()    {
@@ -569,7 +570,7 @@ public static class SettingsManager
             (
                 RustDirectory, PrefabRenderDistance, PathRenderDistance, WaterTransparency, LoadBundleOnLaunch, TerrainTextureSet, 
 				style, crazing, perlinSplat, ripple, ocean, terracing, perlin, geology, replacer,
-				city, breaker, macroSources, application, faves
+				city, breaker, macroSources, application, faves, windowStates, menuState
             );
             write.Write(JsonUtility.ToJson(editorSettings, true));
 			
@@ -783,6 +784,8 @@ public static class SettingsManager
 			macroSources = editorSettings.macroSources;
 			application = editorSettings.application;
 			faves = editorSettings.faves;
+			windowStates = editorSettings.windowStates;
+            menuState = editorSettings.menuState;
         }
 		
 		LoadPresets();
@@ -863,13 +866,18 @@ public struct EditorSettings
 	public BreakerPreset breaker;
 	public bool macroSources;
 	public Favorites faves;
+	
+	public WindowState[] windowStates;
+    public MenuState menuState;         
 
     public EditorSettings
     (
         string rustDirectory = @"C:\Program Files (x86)\Steam\steamapps\common\Rust", float prefabRenderDistance = 700f, float pathRenderDistance = 200f, 
         float waterTransparency = 0.2f, bool loadbundleonlaunch = false, bool terrainTextureSet = false, bool style = true, CrazingPreset crazing = new CrazingPreset(), PerlinSplatPreset perlinSplat = new PerlinSplatPreset(),
 		RipplePreset ripple = new RipplePreset(), OceanPreset ocean = new OceanPreset(), TerracingPreset terracing = new TerracingPreset(), PerlinPreset perlin = new PerlinPreset(), GeologyPreset geology = new GeologyPreset(), 
-		ReplacerPreset replacer = new ReplacerPreset(), RustCityPreset city = new RustCityPreset(), BreakerPreset breaker = new BreakerPreset(), bool macroSources = true, FilePreset application = new FilePreset(), Favorites faves = new Favorites()
+		ReplacerPreset replacer = new ReplacerPreset(), RustCityPreset city = new RustCityPreset(), BreakerPreset breaker = new BreakerPreset(), bool macroSources = true, FilePreset application = new FilePreset(), Favorites faves = new Favorites(),        WindowState[] windowStates = null, 
+        MenuState menuState = new MenuState() 
+   
 	)
         {
             this.rustDirectory = rustDirectory;
@@ -893,5 +901,7 @@ public struct EditorSettings
 			this.macroSources = macroSources;
 			this.application = application;
 			this.faves = faves;
+			this.windowStates = windowStates;
+			this.menuState = menuState;
         }
 }

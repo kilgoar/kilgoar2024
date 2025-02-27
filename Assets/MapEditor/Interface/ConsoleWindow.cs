@@ -24,6 +24,8 @@ public class ConsoleWindow : MonoBehaviour
 
 	public static ConsoleWindow Instance { get; private set; }
     
+	
+	
     private void Awake()
     {
         if (Instance == null)        
@@ -49,6 +51,8 @@ public class ConsoleWindow : MonoBehaviour
 	// New Startup method to run a startup script
     public void Startup()
     {
+		PostMultiLine(AppManager.Instance.harmonyMessage);
+		
         const string startupScriptName = "startup.rmml";
         List<string> commands = SettingsManager.GetScriptCommands(startupScriptName);
         
@@ -72,6 +76,7 @@ public class ConsoleWindow : MonoBehaviour
         {
             Post($"No startup script found ({startupScriptName})");
         }
+
     }
 
     private void Start()
@@ -168,7 +173,7 @@ public class ConsoleWindow : MonoBehaviour
         }
     }
 	
-	private void ExecuteCommand(string command)
+	public void ExecuteCommand(string command)
     {
  		// Echo the command entered
 		Post("> " + command);

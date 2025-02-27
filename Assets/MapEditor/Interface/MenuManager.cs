@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using RustMapEditor.Variables;
 
 public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 {
@@ -54,7 +55,35 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         {
             confirmationPanel.SetActive(false);
         }
+		
+		LoadMenuState();
     }
+
+    private void SaveMenuState()
+    {
+        SettingsManager.menuState = new MenuState(menuRectTransform.localScale);
+        SettingsManager.SaveSettings();
+    }
+
+	private void LoadMenuState()
+	{
+		Vector3 loadedScale = SettingsManager.menuState.scale;
+
+		// If scale is zeroed out or invalid, default to 1.5
+		if (loadedScale == Vector3.zero || loadedScale.x <= 0 || loadedScale.y <= 0)
+		{
+			loadedScale = Vector3.one * 1.5f; // Default to 1.5
+		}
+
+		// Clamp the scale between 1 and 3
+		loadedScale.x = Mathf.Clamp(loadedScale.x, 1f, 3f);
+		loadedScale.y = Mathf.Clamp(loadedScale.y, 1f, 3f);
+		loadedScale.z = 1f; 
+
+		// Apply the clamped scale to the menu
+		menuRectTransform.localScale = loadedScale;
+
+	}
 
     public void OnPointerDown(PointerEventData eventData)
     {
@@ -116,6 +145,8 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         {
             AppManager.Instance.ScaleAllWindows(adjustedScale);
         }
+		
+		SaveMenuState();
     }
 
     public void ShowConfirmationPanel()
