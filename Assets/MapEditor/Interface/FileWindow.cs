@@ -42,7 +42,6 @@ public class FileWindow : MonoBehaviour
 
 		splatDrop.onValueChanged.AddListener(delegate { StateChange(); });
 		biomeDrop.onValueChanged.AddListener(delegate { StateChange(); });
-		//driveDrop.onValueChanged.AddListener(delegate { OnDriveChanged(); });
 		recentDrop.onValueChanged.AddListener(delegate { OnDropChanged(); });
 
 		newSizeSlider.onValueChanged.AddListener(delegate { StateChange(); });
@@ -171,21 +170,7 @@ public class FileWindow : MonoBehaviour
 	
 	public void OnExpand(Node node)
 	{
-		if (node.isExpanded)
-		{
-			string folderPath = node.fullPath;
-			string fullPath = Path.GetFullPath(folderPath); // Ensure "D:\Users\"
-			if (!fullPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
-				fullPath += Path.DirectorySeparatorChar; // "D:\Users\"
-			List<string> newPaths = SettingsManager.AddFilePaths(fullPath, "map");
-			if (newPaths.Count > 0)
-			{
-				SettingsManager.AddPathsAsNodes(tree, newPaths);
-			}
-			else
-			{
-			}
-		}
+		node.isSelected = true;
 	}
 
 	public void Expand(Node node)

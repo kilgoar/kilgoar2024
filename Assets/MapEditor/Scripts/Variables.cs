@@ -53,10 +53,12 @@ namespace RustMapEditor.Variables
 	public struct MenuState
 	{
 		public Vector3 scale;           // Menu's RectTransform scale
-
-		public MenuState(Vector3 scale)
+		public Vector3 position;
+	
+		public MenuState(Vector3 scale, Vector3 position)
 		{
 			this.scale = scale;
+			this.position = position;
 		}
 	}
 	
@@ -823,7 +825,7 @@ namespace RustMapEditor.Variables
 			public float waterTransparency;
 			public bool loadbundleonlaunch;
 			public bool terrainTextureSet;
-			
+			public int loadBatch;
 			public int newSize;
 			public float newHeight;
 			public TerrainBiome.Enum newBiome;

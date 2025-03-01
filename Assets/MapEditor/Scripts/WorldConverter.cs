@@ -3,7 +3,9 @@ using UnityEngine;
 
 using UnityEditor;
 
-
+using System.Security.Cryptography;
+using System.Text;
+using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using RustMapEditor.Variables;
@@ -11,6 +13,8 @@ using static RustMapEditor.Maths.Array;
 using static AreaManager;
 using static TerrainManager;
 using static WorldSerialization;
+using static ModManager;
+
 
 public static class WorldConverter
 {
@@ -135,6 +139,8 @@ public static class WorldConverter
     /// <param name="world">Serialization of the map file to parse.</param>
     public static MapInfo WorldToTerrain(WorldSerialization world)
     {
+		
+		
         MapInfo terrains = new MapInfo();
 			
         var terrainSize = new Vector3(world.world.size, 1000, world.world.size);
@@ -147,16 +153,35 @@ public static class WorldConverter
         var biomeMap = new TerrainMap<byte>(world.GetMap("biome").data, 4);
         var alphaMap = new TerrainMap<byte>(world.GetMap("alpha").data, 1);
 		
-
-		
         terrains.topology = topologyMap;
 
         terrains.pathData = world.world.paths.ToArray();
         terrains.prefabData = world.world.prefabs.ToArray();
-
         terrains.terrainRes = heightMap.res;
         terrains.splatRes = splatMap.res;
         terrains.size = terrainSize;
+		
+		// Clear existing modding data and populate from world
+		ModManager.ClearModdingData();
+		foreach (var name in ModManager.GetKnownDataNames())
+		{
+			if (name == "buildingblocks"){
+				WorldSerialization.MapData buildData = world.GetMap(name);
+				ModManager.AddOrUpdateModdingData(name, buildData.data);
+				continue;
+			}
+			
+			string hashedName = ModManager.MapDataName(world.world.prefabs.Count, name);
+			WorldSerialization.MapData mapData = world.GetMap(hashedName);
+			
+			if (mapData != null)
+			{
+				mapData.name = name; // Correct name 
+				ModManager.AddOrUpdateModdingData(name, mapData.data); 
+			}
+			
+			
+		}
 		
 		
         var heightTask = Task.Run(() => ShortMapToFloatArray(heightMap));
@@ -168,8 +193,8 @@ public static class WorldConverter
         terrains.land.heights = heightTask.Result;
         terrains.water.heights = waterTask.Result;
 
-			terrains.land.heights = ShortMapToFloatArray(heightMap);
-			terrains.water.heights = ShortMapToFloatArray(waterMap);
+			//terrains.land.heights = ShortMapToFloatArray(heightMap);
+			//terrains.water.heights = ShortMapToFloatArray(waterMap);
 		    terrains = ConvertMaps(terrains, splatMap, biomeMap, alphaMap);
 
         return terrains;
@@ -334,6 +359,28 @@ public static class WorldConverter
 		#if UNITY_EDITOR
         Progress.Report(ID.terrain, 0.99f, "Saved " + TerrainSize.x + " size map.");
 		#endif
+		
+		// Add modding data from ModManager
+		var moddingData = ModManager.GetModdingData();
+		if (moddingData != null && moddingData.Count > 0)
+		{
+			foreach (var md in moddingData)
+			{
+				if (md.name == "buildingblocks")
+				{
+					world.AddMap(md.name, md.data);
+				}
+				else
+				{
+					// Normal case: Hash the name
+					string hashedName = ModManager.MapDataName(world.world.prefabs.Count, md.name);
+					world.AddMap(hashedName, md.data);
+				}
+			}
+		}
+		else
+		{
+		}
 
         world.AddMap("terrain", landHeightBytes);
         world.AddMap("height", landHeightBytes);
@@ -344,6 +391,7 @@ public static class WorldConverter
         world.AddMap("topology", TopologyData.GetTerrainMap().ToByteArray());
         return world;
     }
+	
 	
 	public static MapInfo WorldToREPrefab(WorldSerialization world)
 	{

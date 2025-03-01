@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using RustMapEditor.Variables;
 using UnityEngine.EventSystems;
@@ -18,7 +19,7 @@ public class CameraManager : MonoBehaviour
 	public GameObject xPos, yPos, zPos;
 	public LayerMask worldToolLayer;
 	public Terrain landTerrain;
-	
+	public List<InputField> snapFields;
 	public Vector3 position;
 	
 
@@ -79,32 +80,53 @@ public class CameraManager : MonoBehaviour
 		SetupSnapListeners();
     }
 	
-	private void InitializeGizmos()
+public void InitializeGizmos()
+{
+    // Create gizmos
+    _objectMoveGizmo = RTGizmosEngine.Get.CreateObjectMoveGizmo();
+    _objectRotationGizmo = RTGizmosEngine.Get.CreateObjectRotationGizmo();
+    _objectScaleGizmo = RTGizmosEngine.Get.CreateObjectScaleGizmo();
+    _objectUniversalGizmo = RTGizmosEngine.Get.CreateObjectUniversalGizmo();
+
+    // Disable gizmos by default (visual enablement), but enable snapping
+    _objectMoveGizmo.Gizmo.SetEnabled(false);
+    MoveGizmo moveGizmo = _objectMoveGizmo.Gizmo.GetFirstBehaviourOfType<MoveGizmo>();
+    if (moveGizmo != null)
     {
-        // Create gizmos
-        _objectMoveGizmo = RTGizmosEngine.Get.CreateObjectMoveGizmo();
-        _objectRotationGizmo = RTGizmosEngine.Get.CreateObjectRotationGizmo();
-        _objectScaleGizmo = RTGizmosEngine.Get.CreateObjectScaleGizmo();
-        _objectUniversalGizmo = RTGizmosEngine.Get.CreateObjectUniversalGizmo();
-
-        // Disable gizmos by default
-        _objectMoveGizmo.Gizmo.SetEnabled(false);
-        _objectRotationGizmo.Gizmo.SetEnabled(false);
-        _objectScaleGizmo.Gizmo.SetEnabled(false);
-        _objectUniversalGizmo.Gizmo.SetEnabled(false);
-
-        // Set target objects for gizmos
-        _objectMoveGizmo.SetTargetObjects(_selectedObjects);
-        _objectRotationGizmo.SetTargetObjects(_selectedObjects);
-        _objectScaleGizmo.SetTargetObjects(_selectedObjects);
-        _objectUniversalGizmo.SetTargetObjects(_selectedObjects);
-
-        // Default to Move gizmo for selection
-        _workGizmo = _objectMoveGizmo;
-        _workGizmoId = GizmoId.Move;
-		
-		UpdateSnapSettings();
+        moveGizmo.SetSnapEnabled(true); // Enable snap by default
     }
+
+    _objectRotationGizmo.Gizmo.SetEnabled(false);
+    RotationGizmo rotationGizmo = _objectRotationGizmo.Gizmo.GetFirstBehaviourOfType<RotationGizmo>();
+    if (rotationGizmo != null)
+    {
+        rotationGizmo.SetSnapEnabled(true); // Enable snap by default
+    }
+
+    _objectScaleGizmo.Gizmo.SetEnabled(false);
+    ScaleGizmo scaleGizmo = _objectScaleGizmo.Gizmo.GetFirstBehaviourOfType<ScaleGizmo>();
+    if (scaleGizmo != null)
+    {
+        scaleGizmo.SetSnapEnabled(true); // Enable snap by default
+    }
+
+    _objectUniversalGizmo.Gizmo.SetEnabled(false);
+    UniversalGizmo universalGizmo = _objectUniversalGizmo.Gizmo.GetFirstBehaviourOfType<UniversalGizmo>();
+    if (universalGizmo != null)
+    {
+        universalGizmo.SetSnapEnabled(true); // Enable snap by default
+    }
+
+    // Set target objects for gizmos
+    _objectMoveGizmo.SetTargetObjects(_selectedObjects);
+    _objectRotationGizmo.SetTargetObjects(_selectedObjects);
+    _objectScaleGizmo.SetTargetObjects(_selectedObjects);
+    _objectUniversalGizmo.SetTargetObjects(_selectedObjects);
+
+    // Default to Move gizmo for selection
+    _workGizmo = _objectMoveGizmo;
+    _workGizmoId = GizmoId.Move;
+}
 
 	public PrefabDataHolder[] SelectedDataHolders()
 	{
@@ -122,12 +144,27 @@ public class CameraManager : MonoBehaviour
 		return prefabDataHolders;
 	}
 
-    private enum GizmoId    {
+    public enum GizmoId    {
             Move = 1,
             Rotate,
             Scale,
             Universal
     }
+
+	public void SetCameraPosition(Vector3 position)
+	{
+
+		cam.transform.position = position;
+		this.position = position; 
+
+		currentTime = Time.time;
+		if (currentTime - lastUpdateTime > updateFrequency)
+		{
+			AreaManager.UpdateSectors(position, settings.prefabRenderDistance);
+			lastUpdateTime = currentTime;
+		}
+
+	}
 
 	public void SetCamera(Vector3 targetPosition)
 	{
@@ -323,7 +360,7 @@ public class CameraManager : MonoBehaviour
 
 	}
 	
-	private void UpdateItemsWindow(){
+	public void UpdateItemsWindow(){
 		if(ItemsWindow.Instance != null){
 			ItemsWindow.Instance.PopulateList();
 			ItemsWindow.Instance.CheckSelection();
@@ -410,7 +447,7 @@ public class CameraManager : MonoBehaviour
 		UpdateGizmoState();
 	}
 	
-	private GameObject FindParentWithTag(GameObject hitObject, string tag){
+	public GameObject FindParentWithTag(GameObject hitObject, string tag){
 		while (hitObject != null && !hitObject.CompareTag(tag))
 		{
 			hitObject = hitObject.transform.parent?.gameObject;
@@ -595,7 +632,7 @@ public class CameraManager : MonoBehaviour
 		_objectUniversalGizmo.Gizmo.SetEnabled(false);
 	}
 
-	private List<Renderer> GetRenderers(GameObject gameObject)
+	public List<Renderer> GetRenderers(GameObject gameObject)
 	{
 		List<Renderer> renderers = new List<Renderer>();
 		List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(gameObject.GetComponentsInChildren<LODMasterMesh>());
@@ -617,7 +654,7 @@ public class CameraManager : MonoBehaviour
 		return renderers;
 	}
 	
-	void AddRenderersFromChildren(ref List<Renderer> renderers, GameObject obj)
+	public void AddRenderersFromChildren(ref List<Renderer> renderers, GameObject obj)
 	{
 		// Check if the GameObject itself has a Renderer component
 		Renderer renderer = obj.GetComponent<Renderer>();
@@ -717,7 +754,6 @@ public class CameraManager : MonoBehaviour
             _workGizmo.Gizmo.SetEnabled(true);
             _workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
             _workGizmo.RefreshPositionAndRotation();
-			UpdateSnapSettings();
         }
     }
 	
@@ -747,7 +783,8 @@ public class CameraManager : MonoBehaviour
 
 		Debug.Log($"Gizmo space switched to {newSpace}");
 	}
-		
+	
+	
     public void UpdateGizmoState()
     {
         if (_selectedObjects.Count > 0)
@@ -755,7 +792,6 @@ public class CameraManager : MonoBehaviour
             _workGizmo.Gizmo.SetEnabled(true);
             _workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
             _workGizmo.RefreshPositionAndRotation();
-			UpdateSnapSettings();
         }
         else
         {
@@ -790,8 +826,11 @@ public class CameraManager : MonoBehaviour
 		}
 	}
 	
-	void OnMapLoaded(string mapName=""){
-		//CenterCamera();
+	public void OnMapLoaded(string mapName=""){
+		if (ItemsWindow.Instance!=null){
+			ItemsWindow.Instance.PopulateList();
+		}
+
 	}
 	
 	public void CenterCamera()
@@ -820,94 +859,96 @@ public class CameraManager : MonoBehaviour
 	
 	private void SetupSnapListeners()
     {
-        if (ItemsWindow.Instance != null && ItemsWindow.Instance.snapFields.Count >= 3)
-        {
+
             for (int i = 0; i < 3; i++)
             {
                 int index = i;
-                ItemsWindow.Instance.snapFields[i].onEndEdit.AddListener((text) => UpdateSnapSettings());
+                snapFields[i].onEndEdit.AddListener((text) => UpdateSnapSettings());
             }
-        }
+
     }
 
- private void UpdateSnapSettings()
+private void UpdateSnapSettings()
 {
-    if (ItemsWindow.Instance == null || ItemsWindow.Instance.snapFields.Count < 3) return;
+	
+    if (_workGizmo == null) return;
 
-    float moveSnap = ParseSnapValue(ItemsWindow.Instance.snapFields[0].text);
-    float rotateSnap = ParseSnapValue(ItemsWindow.Instance.snapFields[1].text);
-    float scaleSnap = ParseSnapValue(ItemsWindow.Instance.snapFields[2].text);
 
-    // Move Gizmo (Position)
-    MoveGizmo moveGizmo = _objectMoveGizmo.Gizmo.GetFirstBehaviourOfType<MoveGizmo>();
-    if (moveGizmo != null)
+    float moveSnap = ParseSnapValue(snapFields[0].text);
+    float rotateSnap = ParseSnapValue(snapFields[1].text);
+    float scaleSnap = ParseSnapValue(snapFields[2].text);
+
+    // Apply settings directly to the current work gizmo based on its type
+    switch (_workGizmoId)
     {
-        bool enableMoveSnap = moveSnap > 0f;
-        moveGizmo.SetSnapEnabled(enableMoveSnap);
-        if (enableMoveSnap)
-        {
-            moveGizmo.Settings3D.SetXSnapStep(moveSnap);
-            moveGizmo.Settings3D.SetYSnapStep(moveSnap);
-            moveGizmo.Settings3D.SetZSnapStep(moveSnap);
-        }
-    }
+        case GizmoId.Move:
+            MoveGizmo moveGizmo = _workGizmo.Gizmo.GetFirstBehaviourOfType<MoveGizmo>();
+            if (moveGizmo != null)
+            {
+                moveGizmo.SetSnapEnabled(true);
 
-    RotationGizmo rotationGizmo = _objectRotationGizmo.Gizmo.GetFirstBehaviourOfType<RotationGizmo>();
-    if (rotationGizmo != null)
-    {
-        bool enableRotateSnap = rotateSnap > 0f;
-        rotationGizmo.SetSnapEnabled(enableRotateSnap);
-        if (enableRotateSnap)
-        {
-            // Set snap step for X, Y, Z axes
-            rotationGizmo.Settings3D.SetAxisSnapStep(0, rotateSnap); // X
-            rotationGizmo.Settings3D.SetAxisSnapStep(1, rotateSnap); // Y
-            rotationGizmo.Settings3D.SetAxisSnapStep(2, rotateSnap); // Z
+                    moveGizmo.Settings3D.SetXSnapStep(moveSnap);
+                    moveGizmo.Settings3D.SetYSnapStep(moveSnap);
+                    moveGizmo.Settings3D.SetZSnapStep(moveSnap);
 
-        }
-    }
 
-    // Scale Gizmo
-    ScaleGizmo scaleGizmo = _objectScaleGizmo.Gizmo.GetFirstBehaviourOfType<ScaleGizmo>();
-    if (scaleGizmo != null)
-    {
-        bool enableScaleSnap = scaleSnap > 0f;
-        scaleGizmo.SetSnapEnabled(enableScaleSnap);
-        if (enableScaleSnap)
-        {
-            scaleGizmo.Settings3D.SetXSnapStep(scaleSnap);
-            scaleGizmo.Settings3D.SetYSnapStep(scaleSnap);
-            scaleGizmo.Settings3D.SetZSnapStep(scaleSnap);
-        }
-    }
+            }
+            break;
 
-    UniversalGizmo universalGizmo = _objectUniversalGizmo.Gizmo.GetFirstBehaviourOfType<UniversalGizmo>();
-    if (universalGizmo != null)
-    {
-        bool enableUniversalSnap = moveSnap > 0f || rotateSnap > 0f || scaleSnap > 0f;
-        universalGizmo.SetSnapEnabled(enableUniversalSnap);
-        
-        if (moveSnap > 0f)
-        {
-            universalGizmo.Settings3D.SetMvXSnapStep(moveSnap);
-            universalGizmo.Settings3D.SetMvYSnapStep(moveSnap);
-            universalGizmo.Settings3D.SetMvZSnapStep(moveSnap);
-        }
-        
-        if (rotateSnap > 0f)
-        {
-            universalGizmo.Settings3D.SetRtAxisSnapStep(0, rotateSnap); // X
-            universalGizmo.Settings3D.SetRtAxisSnapStep(1, rotateSnap); // Y
-            universalGizmo.Settings3D.SetRtAxisSnapStep(2, rotateSnap); // Z
-        }
-        
-        if (scaleSnap > 0f)
-        {
-            universalGizmo.Settings3D.SetScXSnapStep(scaleSnap);
-            universalGizmo.Settings3D.SetScYSnapStep(scaleSnap);
-            universalGizmo.Settings3D.SetScZSnapStep(scaleSnap);
-        }
+        case GizmoId.Rotate:
+            RotationGizmo rotationGizmo = _workGizmo.Gizmo.GetFirstBehaviourOfType<RotationGizmo>();
+            if (rotationGizmo != null)
+            {
+                rotationGizmo.SetSnapEnabled(true);
+
+                    rotationGizmo.Settings3D.SetAxisSnapStep(0, rotateSnap);
+                    rotationGizmo.Settings3D.SetAxisSnapStep(1, rotateSnap);
+                    rotationGizmo.Settings3D.SetAxisSnapStep(2, rotateSnap);
+
+
+            }
+            break;
+
+        case GizmoId.Scale:
+            ScaleGizmo scaleGizmo = _workGizmo.Gizmo.GetFirstBehaviourOfType<ScaleGizmo>();
+            if (scaleGizmo != null)
+            {
+				scaleGizmo.SetSnapEnabled(true);
+
+
+                    scaleGizmo.Settings3D.SetXSnapStep(scaleSnap);
+                    scaleGizmo.Settings3D.SetYSnapStep(scaleSnap);
+                    scaleGizmo.Settings3D.SetZSnapStep(scaleSnap);
+
+
+            }
+            break;
+
+        case GizmoId.Universal:
+            UniversalGizmo universalGizmo = _workGizmo.Gizmo.GetFirstBehaviourOfType<UniversalGizmo>();
+            if (universalGizmo != null)
+            {
+
+                universalGizmo.SetSnapEnabled(true);
+				
+                    universalGizmo.Settings3D.SetMvXSnapStep(moveSnap);
+                    universalGizmo.Settings3D.SetMvYSnapStep(moveSnap);
+                    universalGizmo.Settings3D.SetMvZSnapStep(moveSnap);
+
+                    universalGizmo.Settings3D.SetRtAxisSnapStep(0, rotateSnap);
+                    universalGizmo.Settings3D.SetRtAxisSnapStep(1, rotateSnap);
+                    universalGizmo.Settings3D.SetRtAxisSnapStep(2, rotateSnap);
+
+                    universalGizmo.Settings3D.SetScXSnapStep(scaleSnap);
+                    universalGizmo.Settings3D.SetScYSnapStep(scaleSnap);
+                    universalGizmo.Settings3D.SetScZSnapStep(scaleSnap);
+
+            }
+            break;
     }
+	
+	UpdateGizmoState();
+
 }
     private float ParseSnapValue(string text)
     {

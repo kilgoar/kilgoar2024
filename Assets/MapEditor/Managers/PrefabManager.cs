@@ -2318,7 +2318,7 @@ public static class PrefabManager
         }
 	
 	
-private static class Coroutines
+public static class Coroutines
 	{
     static List<Task> tasks = new List<Task>();
 	
@@ -2339,8 +2339,25 @@ private static class Coroutines
 		float maxTimeBeforeYield = .75f; // Maximum time (in seconds) before yielding
 
 		int length = prefabs.Length;
-		int batchSize = 32; // Number of prefabs to process before yielding
 		
+		FilePreset application = SettingsManager.application;
+		int loadBatchValue = application.loadBatch;
+		int batchSize;
+		
+		if (loadBatchValue == 0)	{
+			batchSize = 64;					
+			SettingsManager.application = application;
+			application.loadBatch = batchSize;
+			SettingsManager.SaveSettings();
+		}
+		
+		else	{
+			batchSize = Mathf.Clamp(loadBatchValue, 8, 2048);
+			application.loadBatch = batchSize;
+			SettingsManager.application = application;
+			SettingsManager.SaveSettings();
+		}
+
 
 		for (int i = 0; i < length; i++)
 		{

@@ -156,26 +156,11 @@ public class SettingsWindow : MonoBehaviour
 	
 	public void OnExpand(Node node)
 	{
-		if (node.isExpanded)
-		{
-			string folderPath = node.fullPath;
-			string fullPath = Path.GetFullPath(folderPath); 
-			if (!fullPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
-				fullPath += Path.DirectorySeparatorChar; 
-			List<string> newPaths = SettingsManager.AddFilePaths(fullPath, "map");
-			if (newPaths.Count > 0)
-			{
-				SettingsManager.AddPathsAsNodes(tree, newPaths);
-			}
-			else
-			{
-			}
-		}
+		node.isSelected = true;
 	}
     
 	public void OnSelect(Node node)
 	{
-		Debug.Log($"Selected: {node.fullPath} (isSelected: {node.isSelected})");
 		if (node.isSelected)
 		{
 			Expand(node);

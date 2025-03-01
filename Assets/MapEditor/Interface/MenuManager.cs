@@ -16,6 +16,21 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
     private RectTransform menuRectTransform;
     private RectTransform confirmationRectTransform;
 
+    public static MenuManager Instance { get; private set; } // Singleton
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
     private void Start()
     {
         menuRectTransform = GetComponent<RectTransform>();
@@ -58,33 +73,51 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 		
 		LoadMenuState();
     }
-
-    private void SaveMenuState()
+	
+	public Vector3 GetMenuScale()
     {
-        SettingsManager.menuState = new MenuState(menuRectTransform.localScale);
-        SettingsManager.SaveSettings();
+        return menuRectTransform.localScale;
     }
 
-	private void LoadMenuState()
+    public void SaveMenuState()
+    {
+        SettingsManager.menuState = new MenuState(menuRectTransform.localScale, menuRectTransform.position);
+        SettingsManager.SaveSettings();
+    }
+	
+	public void LoadMenuState()
 	{
 		Vector3 loadedScale = SettingsManager.menuState.scale;
+		Vector3 loadedPosition = SettingsManager.menuState.position;
 
-		// If scale is zeroed out or invalid, default to 1.5
+    if (loadedPosition == Vector3.zero)
+    {
+        Vector3 parentOff = menuRectTransform.parent != null ? menuRectTransform.parent.position : Vector3.zero;
+        loadedPosition = new Vector3(parentOff.x*2, parentOff.y*2, 0);
+    }
+
 		if (loadedScale == Vector3.zero || loadedScale.x <= 0 || loadedScale.y <= 0)
 		{
-			loadedScale = Vector3.one * 1.5f; // Default to 1.5
+			loadedScale = Vector3.one * 1.5f;
 		}
 
-		// Clamp the scale between 1 and 3
 		loadedScale.x = Mathf.Clamp(loadedScale.x, 1f, 3f);
 		loadedScale.y = Mathf.Clamp(loadedScale.y, 1f, 3f);
-		loadedScale.z = 1f; 
+		loadedScale.z = 1f;
 
-		// Apply the clamped scale to the menu
+		// Adjust for parent offset to achieve desired WORLD position
+		Vector3 parentOffset = menuRectTransform.parent != null ? menuRectTransform.parent.position : Vector3.zero;
+		
+
+		// Apply scale and adjusted local position
 		menuRectTransform.localScale = loadedScale;
-
+		menuRectTransform.position = loadedPosition;
+        if (Compass.Instance != null)
+        {
+            Compass.Instance.SyncScaleWithMenu();
+        }
 	}
-
+	
     public void OnPointerDown(PointerEventData eventData)
     {
         if (!lockToggle.isOn)
@@ -120,6 +153,7 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         }
 
         transform.localPosition += new Vector3(eventData.delta.x, eventData.delta.y, 0f);
+		SaveMenuState();
     }
 
     public void ScaleMenu(PointerEventData eventData)
@@ -144,6 +178,11 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         if (AppManager.Instance != null)
         {
             AppManager.Instance.ScaleAllWindows(adjustedScale);
+        }
+		
+		if (Compass.Instance != null)
+        {
+            Compass.Instance.SyncScaleWithMenu();
         }
 		
 		SaveMenuState();
