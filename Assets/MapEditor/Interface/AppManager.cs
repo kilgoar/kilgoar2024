@@ -37,8 +37,10 @@ public class AppManager : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     public static void RuntimeInit()
     {
+		HarmonyLoader.DeleteLog();
 		Instance.harmonyMessage = HarmonyLoader.LoadHarmonyMods(Path.Combine(SettingsManager.AppDataPath(), "HarmonyMods"));
-		Instance.harmonyMessage += "\n" + HarmonyLoader.LoadHarmonyMods(System.AppDomain.CurrentDomain.BaseDirectory);
+		Instance.harmonyMessage += "\n" + HarmonyLoader.LoadHarmonyMods(Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "HarmonyMods"));
+		
 		
 		LoadScreen.Instance.Show();
 		LoadScreen.Instance.transform.SetAsLastSibling();
@@ -132,7 +134,7 @@ public class AppManager : MonoBehaviour
 			RectTransform rect = windowPanels[i].GetComponent<RectTransform>();
 			WindowState state = SettingsManager.windowStates[i];
 			windowPanels[i].SetActive(state.isActive);
-			rect.localPosition = state.position;
+			
 			rect.localScale = state.scale;
 			windowToggles[i].SetIsOnWithoutNotify(state.isActive);
 

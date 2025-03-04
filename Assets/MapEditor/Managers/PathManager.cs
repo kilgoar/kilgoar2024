@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿﻿using System.Collections;
 using System.Linq;
 using UnityEngine;
 using RustMapEditor.Variables;
@@ -16,6 +16,21 @@ public static class PathManager
     private static ERRoadNetwork _roadNetwork;
     private static int _roadIDCounter = 1;
 	private static Transform roadTransform;
+
+
+	//road type name keywords
+	//names are "Keyword X" where X is an integer enumerating the paths 
+	
+	//Powerline   (invisible)
+	//Road
+	//Width 12  ring road
+	//width 10  normal road
+	//width 4   trails (invisible)
+	
+	//River (invisible)
+	//Rail
+	
+
 
     #if UNITY_EDITOR
     public static void Init()
@@ -46,54 +61,54 @@ public static class PathManager
 
 	public static void SpawnPath(PathData pathData)
 	{
-		//a pathdataholder component containing pathData must be attached to each ERRoad object
-		
-		if (_roadNetwork == null)
+		if (_roadNetwork == null || pathData == null || pathData.nodes == null || pathData.nodes.Length == 0)
 		{
-			Debug.LogWarning("RoadNetwork is not initialized. Cannot create road.");
-			return;
-		}
-
-		if (pathData == null)
-		{
-			Debug.LogError("PathData is null. Cannot spawn path.");
-			return;
-		}
-
-		if (pathData.nodes == null)
-		{
-			Debug.LogError("PathData nodes are null. Cannot proceed with road creation.");
+			Debug.LogError("Invalid RoadNetwork or PathData.");
 			return;
 		}
 
 		Vector3 offset = PathParent.transform.position;
 		Vector3[] markers = pathData.nodes.Select(v => (Vector3)v + offset).ToArray();
-		
-		if (markers.Length == 0)
-		{
-			Debug.LogError("No markers provided for road creation.");
-			return;
-		}
-
-		string roadName = $"Road {_roadIDCounter++}";
+		string roadName = pathData.name;
 		ERRoad newRoad = _roadNetwork.CreateRoad(roadName, markers);
-		
+
 		if (newRoad != null)
 		{
 			newRoad.SetName(roadName);
-			if (pathData.width >= 0) // Assuming width should be non-negative
+			newRoad.SetWidth(pathData.width);
+			newRoad.SetMarkerControlType(0, pathData.spline ? ERMarkerControlType.Spline : ERMarkerControlType.StraightXZ);
+			newRoad.ClosedTrack(false); // All paths unclosed
+
+
+		ERRoadType[] roadTypes = _roadNetwork.GetRoadTypes();
+
+		if (roadName.StartsWith("River") || roadName.StartsWith("Powerline") || 
+			(roadName.StartsWith("Road") && pathData.width < 5))
+		{
+			// Set to transparent style (index 0)
+			if (roadTypes != null && roadTypes.Length > 0)
 			{
-				newRoad.SetWidth(pathData.width);
+				newRoad.SetRoadType(roadTypes[0]);
 			}
 			else
 			{
-				Debug.LogWarning($"Invalid width {pathData.width} for road '{roadName}'. Using default width.");
+				Debug.LogWarning("No road types available; cannot set transparent style (index 0).");
 			}
+		}
+		else
+		{
+			// Set to visible "good" style (index 1)
+			if (roadTypes != null && roadTypes.Length > 1)
+			{
+				newRoad.SetRoadType(roadTypes[1]);
+			}
+			else
+			{
+				Debug.LogWarning("Insufficient road types available; cannot set good style (index 1).");
+			}
+		}			
 
-			newRoad.SetMarkerControlType(0, pathData.spline ? ERMarkerControlType.Spline : ERMarkerControlType.StraightXZ);
-			newRoad.ClosedTrack(!pathData.start && !pathData.end);            
 			newRoad.Refresh();
-			
 			PathDataHolder dataHolder = newRoad.gameObject.AddComponent<PathDataHolder>();
 			dataHolder.pathData = pathData;
 		}
@@ -101,7 +116,7 @@ public static class PathManager
 		{
 			Debug.LogError($"Failed to create road '{roadName}'.");
 		}
-		
+
 		roadTransform.gameObject.SetLayerRecursively(9);
 	}
 
@@ -190,7 +205,7 @@ public static class PathManager
                     sw.Restart();
                 }
 				Debug.LogError(paths[i].gameObject.name);
-                ERRoad roadToDelete = _roadNetwork.GetRoadByName(paths[i].gameObject.name);
+                ERRoad roadToDelete = _roadNetwork.GetRoadByName(paths[i].pathData.name);
 
                 if (roadToDelete != null)
                 {

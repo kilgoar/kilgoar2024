@@ -327,7 +327,6 @@ public class WorldSerialization
     public MapData GetMap(string name)
     {
         for (int i = 0; i < world.maps.Count; i++){
-			Debug.LogError(world.maps[i].name + " - index " + i);
             if (world.maps[i].name == name) return world.maps[i];
 		}
         return null;

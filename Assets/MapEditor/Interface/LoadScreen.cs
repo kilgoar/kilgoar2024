@@ -84,6 +84,9 @@ public class LoadScreen : MonoBehaviour
         Progress(0);
         SetMessage("Loading Asset Bundles");
         isEnabled = true;
+		
+		MenuManager.Instance.Hide();
+		Compass.Instance.Hide();
     }
     
     public void Hide()
@@ -91,6 +94,9 @@ public class LoadScreen : MonoBehaviour
         // Disable the game object to hide the loading screen
         gameObject.SetActive(false);
         isEnabled = false;
+		
+		MenuManager.Instance.Show();
+		Compass.Instance.Show();
     }
     
     IEnumerator RotateLoadingScreen()

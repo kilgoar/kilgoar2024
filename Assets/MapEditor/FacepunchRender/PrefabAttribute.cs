@@ -4,80 +4,96 @@ using UnityEngine;
 
 public abstract class PrefabAttribute : MonoBehaviour
 {
-    // Non-serialized fields for storing transformation data
-    [NonSerialized]
-    public Vector3 position;
-    [NonSerialized]
-    public Quaternion rotation;
-    [NonSerialized]
-    public Vector3 scale;
+    // Non-serialized fields for transformation data
+    [NonSerialized] public Vector3 position;
+    [NonSerialized] public Quaternion rotation;
+    [NonSerialized] public Vector3 scale;
 
-    // Additional non-serialized fields for other data
-    [NonSerialized]
-    public string someStringData;
-    [NonSerialized]
-    public uint someUintData;
-    [NonSerialized]
-    public int someIntData;
-    [NonSerialized]
-    public bool someBoolData;
+    // Additional non-serialized fields
+    [NonSerialized] public string someStringData;
+    [NonSerialized] public uint someUintData;
+    [NonSerialized] public int someIntData;
+    [NonSerialized] public bool someBoolData;
 
-    // Protected method for some initialization or behavior based on GameObject parameters
+    // Protected virtual method for initialization
     protected virtual void Initialize(GameObject go, string identifier, bool someFlag1, bool someFlag2, bool someFlag3)
     {
-        // Implementation not provided in the decompiled code
+        // Default implementation (can be overridden)
     }
-	
-	protected abstract Type GetPrefabAttributeType();
 
+    // Abstract method to determine the type of this attribute
+    protected abstract Type GetPrefabAttributeType();
 
-    // Abstract method for type determination
-    //protected abstract Type GetAttributeType();
-
-    // Method for comparing equality, potentially for equality checks within Unity's serialization system
+    // Override Equals for comparison
     public override bool Equals(object obj)
     {
-        // Implementation logic not shown, but typically checks if obj is a PrefabAttribute and compares internals
-        return base.Equals(obj);
+        if (obj == null || GetType() != obj.GetType()) return false;
+        return base.Equals(obj); // Add specific comparison logic if needed
     }
 
-    // Hash code override, useful for collections
+    // Override GetHashCode for collections
     public override int GetHashCode()
     {
-        return base.GetHashCode();
+        return base.GetHashCode(); // Add specific hash logic if needed
     }
 
-    // String representation of the attribute
+    // Override ToString for debugging
     public override string ToString()
     {
-        return base.ToString();
+        return $"{GetType().Name} ({name})";
     }
 
-    // Various methods for different behaviors or attributes of PrefabAttribute
-    public virtual string GetName() { return "PrefabAttribute"; } // Example method name
-    public virtual bool IsActive() { return true; } // Example method name
+    // Virtual methods for attribute behavior
+    public virtual string GetName() => "PrefabAttribute";
+    public virtual bool IsActive() => true;
 
-    // Nested classes for managing collections or relationships of PrefabAttributes
+    // Nested class for managing collections of attributes
     public class AttributeCollection
     {
-        // Methods for managing or querying attributes by type or other criteria
-        public void AddAttribute(PrefabAttribute attribute) { }
-        public List<PrefabAttribute> GetAttributesByType(Type type) { return new List<PrefabAttribute>(); }
+        private List<PrefabAttribute> attributes = new List<PrefabAttribute>();
+
+        public void AddAttribute(PrefabAttribute attribute)
+        {
+            if (attribute != null) attributes.Add(attribute);
+        }
+
+        public List<PrefabAttribute> GetAttributesByType(Type type)
+        {
+            return attributes.FindAll(attr => attr.GetType() == type);
+        }
     }
 
+    // Nested class for managing attributes by ID
     public class AttributeManager
     {
-        // Methods for managing attributes by some ID or other unique identifier
-        public void AddAttribute(uint id, PrefabAttribute attribute) { }
-        public T GetAttribute<T>(uint id) where T : PrefabAttribute { return default(T); }
-        public T[] GetAllAttributes<T>(uint id) where T : PrefabAttribute { return new T[0]; }
+        private Dictionary<uint, List<PrefabAttribute>> attributeMap = new Dictionary<uint, List<PrefabAttribute>>();
+
+        public void AddAttribute(uint id, PrefabAttribute attribute)
+        {
+            if (!attributeMap.ContainsKey(id)) attributeMap[id] = new List<PrefabAttribute>();
+            if (attribute != null) attributeMap[id].Add(attribute);
+        }
+
+        public T GetAttribute<T>(uint id) where T : PrefabAttribute
+        {
+            if (attributeMap.TryGetValue(id, out var list))
+                return list.Find(attr => attr is T) as T;
+            return null;
+        }
+
+        public T[] GetAllAttributes<T>(uint id) where T : PrefabAttribute
+        {
+            if (attributeMap.TryGetValue(id, out var list))
+                return list.FindAll(attr => attr is T).ToArray() as T[];
+            return new T[0];
+        }
     }
 
-    // Static class for managing global or static collections of attributes
+    // Static class for global attribute management
     public static class AttributeRegistry
     {
-        public static AttributeManager SomeManager1;
-        public static AttributeManager SomeManager2;
-        // More static fields for managing different types of attributes or collections
+        public static AttributeManager SomeManager1 = new AttributeManager();
+        public static AttributeManager SomeManager2 = new AttributeManager();
+        // Add more managers as needed
     }
 }

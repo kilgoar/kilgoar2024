@@ -41,8 +41,23 @@ public class Compass : MonoBehaviour
          xField.onEndEdit.AddListener(OnFieldChanged);
          yField.onEndEdit.AddListener(OnFieldChanged);
          zField.onEndEdit.AddListener(OnFieldChanged);
-        UpdateFieldsFromCamera();
     }
+
+	public void Hide()
+	{
+		if (compass != null)
+		{
+			compass.gameObject.SetActive(false);
+		}
+	}
+
+	public void Show()
+	{
+		if (compass != null)
+		{
+			compass.gameObject.SetActive(true);
+		}
+	}
 
 	public void SyncScaleWithMenu()
     {
@@ -52,13 +67,20 @@ public class Compass : MonoBehaviour
 
     private void Update()
     {
-        if (!targetCamera) return;
 
         Vector3 currentPos = targetCamera.transform.position;
+		Vector3 relativePos = targetCamera.transform.position-PrefabManager.PrefabParent.position;
+
         if (currentPos != lastPosition)
         {
-            UpdateFieldsFromCamera();
-            lastPosition = currentPos;
+
+			xField.SetTextWithoutNotify(relativePos.x.ToString("F2"));
+			yField.SetTextWithoutNotify(relativePos.y.ToString("F2"));
+			zField.SetTextWithoutNotify(relativePos.z.ToString("F2"));
+            
+			quadrantText.text = PositionToGridString(relativePos);
+			
+			lastPosition = currentPos;
         }
         UpdateOrdinalDisplay(targetCamera.transform.forward);
     }
@@ -68,7 +90,7 @@ public class Compass : MonoBehaviour
         if (!targetCamera) return;
 
         Vector3 newPosition = GetVector3();
-        CameraManager.Instance.SetCameraPosition(newPosition);
+        CameraManager.Instance.SetCameraPosition(newPosition + PrefabManager.PrefabParent.position);
         UpdateOrdinalDisplay(targetCamera.transform.forward);
         lastPosition = newPosition;
     }
@@ -100,16 +122,28 @@ public class Compass : MonoBehaviour
         targetCamera.transform.position = value;
         lastPosition = value;
     }
+	
+	public string PositionToGridString(Vector3 position)
+	{
+		float gridUnit = 146.28572f;
+		int gridCount = Mathf.FloorToInt(TerrainManager.TerrainSize.x / gridUnit + 0.001f);
+		float cellSize = TerrainManager.TerrainSize.x / gridCount;
+		Vector2 origin = new Vector2(-TerrainManager.TerrainSize.x / 2f, TerrainManager.TerrainSize.x / 2f);
+		Vector2 gridPos = new Vector2((position.x - origin.x) / cellSize, (origin.y - position.z) / cellSize);
+		int x = Mathf.FloorToInt(gridPos.x);
+		int y = Mathf.FloorToInt(gridPos.y);
+		x = Mathf.Max(x, 0);
+		int letterNum = x + 1;
+		string letters = "";
+		while (letterNum > 0)
+		{
+			letterNum--;
+			letters = ((char)(65 + letterNum % 26)).ToString() + letters;
+			letterNum /= 26;
+		}
+		return $"{letters}{y}";
+	}
 
-    private void UpdateFieldsFromCamera()
-    {
-        if (!targetCamera) return;
-
-        Vector3 pos = targetCamera.transform.position;
-        if (xField) xField.text = pos.x.ToString("F2");
-        if (yField) yField.text = pos.y.ToString("F2");
-        if (zField) zField.text = pos.z.ToString("F2");
-    }
 
     private void UpdateOrdinalDisplay(Vector3 forward)
     {

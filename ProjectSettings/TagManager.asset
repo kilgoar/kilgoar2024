@@ -21,6 +21,7 @@ TagManager:
   - EmptyLOD
   - EasyRoads
   - DefaultCollider
+  - AppCanvas
   layers:
   - Default
   - TransparentFX

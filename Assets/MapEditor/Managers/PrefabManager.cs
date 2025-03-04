@@ -403,35 +403,40 @@ public static class PrefabManager
 	
 	public static void Spawn(GameObject go, PrefabData prefabData, Transform parent)
 	{
-		GameObject newObj = GameObject.Instantiate(go, parent);
-		Transform transform = newObj.transform;
+		try{
+			GameObject newObj = GameObject.Instantiate(go, parent);
+			Transform transform = newObj.transform;
 
-		// Set all transform properties in one go to reduce calls
-		transform.SetLocalPositionAndRotation(
-			new Vector3(prefabData.position.x, prefabData.position.y, prefabData.position.z),
-			Quaternion.Euler(prefabData.rotation.x, prefabData.rotation.y, prefabData.rotation.z)
-		);
+			// Set all transform properties in one go to reduce calls
+			transform.SetLocalPositionAndRotation(
+				new Vector3(prefabData.position.x, prefabData.position.y, prefabData.position.z),
+				Quaternion.Euler(prefabData.rotation.x, prefabData.rotation.y, prefabData.rotation.z)
+			);
 
-		// Set local scale directly
-		transform.localScale = new Vector3(prefabData.scale.x, prefabData.scale.y, prefabData.scale.z);
+			// Set local scale directly
+			transform.localScale = new Vector3(prefabData.scale.x, prefabData.scale.y, prefabData.scale.z);
 
-		// Update the object name
-		newObj.name = go.name;
+			// Update the object name
+			newObj.name = go.name;
 
-		// Use TryGetComponent to attempt to get the PrefabDataHolder component
-		if (newObj.TryGetComponent(out PrefabDataHolder holder))
-		{
-			holder.prefabData = prefabData;
+			// Use TryGetComponent to attempt to get the PrefabDataHolder component
+			if (newObj.TryGetComponent(out PrefabDataHolder holder))
+			{
+				holder.prefabData = prefabData;
+			}
+
+			// Activate the GameObject with error catching
+			try
+			{
+				newObj.SetActive(true);
+			}
+			catch (Exception e)
+			{
+				Debug.LogError($"Failed to activate {newObj.name}: {e.Message}");
+			}
 		}
-
-		// Activate the GameObject with error catching
-		try
-		{
-			newObj.SetActive(true);
-		}
-		catch (Exception e)
-		{
-			Debug.LogError($"Failed to activate {newObj.name}: {e.Message}");
+		catch(Exception e){
+			Debug.LogError($"Invalid prefab: {e.Message}");
 		}
 	}
 	

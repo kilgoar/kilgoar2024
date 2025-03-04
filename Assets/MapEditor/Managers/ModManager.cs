@@ -11,7 +11,8 @@ public static class ModManager
     public static readonly string[] KnownDataNames = new string[] 
     { 
         "ioentitydata", "vehiclespawnpoints", "lootcontainerdata", "vendingdata", 
-        "npcspawnpoints", "bradleypathpoints", "anchorpaths", "mappassword" 
+        "npcspawnpoints", "bradleypathpoints", "anchorpaths", "mappassword",
+		"buildingblocks", "oceanpathpoints"
     };
 	
 	//compatibility for high-security data fields (prefab count + salt)

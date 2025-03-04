@@ -161,27 +161,44 @@ public static class WorldConverter
         terrains.splatRes = splatMap.res;
         terrains.size = terrainSize;
 		
-		// Clear existing modding data and populate from world
-		ModManager.ClearModdingData();
-		foreach (var name in ModManager.GetKnownDataNames())
-		{
-			if (name == "buildingblocks"){
-				WorldSerialization.MapData buildData = world.GetMap(name);
-				ModManager.AddOrUpdateModdingData(name, buildData.data);
-				continue;
-			}
-			
-			string hashedName = ModManager.MapDataName(world.world.prefabs.Count, name);
-			WorldSerialization.MapData mapData = world.GetMap(hashedName);
-			
-			if (mapData != null)
+		
+		
+			ModManager.ClearModdingData();
+			foreach (var name in ModManager.GetKnownDataNames())
 			{
-				mapData.name = name; // Correct name 
-				ModManager.AddOrUpdateModdingData(name, mapData.data); 
+				if (name == "buildingblocks")
+				{
+					WorldSerialization.MapData buildData = world.GetMap(name);
+					if (buildData != null)
+					{
+						ModManager.AddOrUpdateModdingData(name, buildData.data);
+					}
+					continue;
+				}
+				
+				string hashedName = ModManager.MapDataName(world.world.prefabs.Count, name);
+				WorldSerialization.MapData mapData = world.GetMap(hashedName);
+				
+				if (mapData != null)
+				{
+					mapData.name = name;
+					ModManager.AddOrUpdateModdingData(name, mapData.data); 
+				}
 			}
-			
-			
-		}
+
+			foreach (var data in ModManager.moddingData)
+			{
+				string topoName = data.name;
+				if (topoName.Contains("custom_topology_"))
+				{
+					WorldSerialization.MapData topoData = world.GetMap(topoName);
+					if (topoData != null)
+					{
+						ModManager.AddOrUpdateModdingData(topoName, topoData.data);
+					}
+				}
+			}
+		
 		
 		
         var heightTask = Task.Run(() => ShortMapToFloatArray(heightMap));
@@ -366,7 +383,7 @@ public static class WorldConverter
 		{
 			foreach (var md in moddingData)
 			{
-				if (md.name == "buildingblocks")
+				if (md.name == "buildingblocks" || md.name.Contains("custom_topology_"))
 				{
 					world.AddMap(md.name, md.data);
 				}

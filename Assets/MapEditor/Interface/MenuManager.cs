@@ -9,14 +9,15 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
     public GameObject MenuPanel;
     public Button scaleButton;
     public Button closeButton;
-    public GameObject confirmationPanel; // Reference to the confirmation panel
-    public Button quitButton;           // Button to confirm quitting
-    public Button cancelButton;         // Button to cancel quitting
+    public GameObject confirmationPanel;
+    public Button quitButton;
+    public Button cancelButton;
     private bool isScaling = false;
     private RectTransform menuRectTransform;
     private RectTransform confirmationRectTransform;
+    private Canvas parentCanvas;
 
-    public static MenuManager Instance { get; private set; } // Singleton
+    public static MenuManager Instance { get; private set; }
 
     private void Awake()
     {
@@ -30,13 +31,30 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
             Destroy(gameObject);
         }
     }
+	
+	public void Hide()
+	{
+		if (MenuPanel != null)		{
+			MenuPanel.SetActive(false);
+		}
+	}
+
+	public void Show()
+	{
+		if (MenuPanel != null)		{
+			MenuPanel.SetActive(true);
+		}
+	}
 
     private void Start()
     {
+        GameObject canvasObj = GameObject.FindWithTag("AppCanvas");
+        parentCanvas = canvasObj != null ? canvasObj.GetComponent<Canvas>() : null;
+        if (parentCanvas == null) Debug.LogWarning("No Canvas with tag 'AppCanvas' found.");
+
         menuRectTransform = GetComponent<RectTransform>();
         confirmationRectTransform = confirmationPanel.GetComponent<RectTransform>();
 
-        // Hook up the close button to show the confirmation panel
         if (closeButton != null)
         {
             closeButton.onClick.AddListener(ShowConfirmationPanel);
@@ -46,7 +64,6 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
             Debug.LogWarning("Close button is not assigned in the Inspector.");
         }
 
-        // Hook up confirmation panel buttons
         if (quitButton != null)
         {
             quitButton.onClick.AddListener(CloseApplication);
@@ -65,16 +82,15 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
             Debug.LogWarning("Cancel button is not assigned in the Inspector.");
         }
 
-        // Ensure confirmation panel is hidden at start
         if (confirmationPanel != null)
         {
             confirmationPanel.SetActive(false);
         }
-		
-		LoadMenuState();
+
+        LoadMenuState();
     }
-	
-	public Vector3 GetMenuScale()
+
+    public Vector3 GetMenuScale()
     {
         return menuRectTransform.localScale;
     }
@@ -84,40 +100,36 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         SettingsManager.menuState = new MenuState(menuRectTransform.localScale, menuRectTransform.position);
         SettingsManager.SaveSettings();
     }
-	
-	public void LoadMenuState()
-	{
-		Vector3 loadedScale = SettingsManager.menuState.scale;
-		Vector3 loadedPosition = SettingsManager.menuState.position;
 
-    if (loadedPosition == Vector3.zero)
+    public void LoadMenuState()
     {
-        Vector3 parentOff = menuRectTransform.parent != null ? menuRectTransform.parent.position : Vector3.zero;
-        loadedPosition = new Vector3(parentOff.x*2, parentOff.y*2, 0);
-    }
+        Vector3 loadedScale = SettingsManager.menuState.scale;
+        Vector3 loadedPosition = SettingsManager.menuState.position;
 
-		if (loadedScale == Vector3.zero || loadedScale.x <= 0 || loadedScale.y <= 0)
-		{
-			loadedScale = Vector3.one * 1.5f;
-		}
+        if (loadedPosition == Vector3.zero)
+        {
+            Vector3 parentOff = menuRectTransform.parent != null ? menuRectTransform.parent.position : Vector3.zero;
+            loadedPosition = new Vector3(parentOff.x * 2, parentOff.y * 2, 0);
+        }
 
-		loadedScale.x = Mathf.Clamp(loadedScale.x, 1f, 3f);
-		loadedScale.y = Mathf.Clamp(loadedScale.y, 1f, 3f);
-		loadedScale.z = 1f;
+        if (loadedScale == Vector3.zero || loadedScale.x <= 0 || loadedScale.y <= 0)
+        {
+            loadedScale = Vector3.one * 1.5f;
+        }
 
-		// Adjust for parent offset to achieve desired WORLD position
-		Vector3 parentOffset = menuRectTransform.parent != null ? menuRectTransform.parent.position : Vector3.zero;
-		
+        loadedScale.x = Mathf.Clamp(loadedScale.x, 1f, 3f);
+        loadedScale.y = Mathf.Clamp(loadedScale.y, 1f, 3f);
+        loadedScale.z = 1f;
 
-		// Apply scale and adjusted local position
-		menuRectTransform.localScale = loadedScale;
-		menuRectTransform.position = loadedPosition;
+        Vector3 parentOffset = menuRectTransform.parent != null ? menuRectTransform.parent.position : Vector3.zero;
+        menuRectTransform.localScale = loadedScale;
+        menuRectTransform.position = ClampToCanvas(loadedPosition - parentOffset) + parentOffset;
         if (Compass.Instance != null)
         {
             Compass.Instance.SyncScaleWithMenu();
         }
-	}
-	
+    }
+
     public void OnPointerDown(PointerEventData eventData)
     {
         if (!lockToggle.isOn)
@@ -130,7 +142,8 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
             else
             {
                 isScaling = false;
-                transform.localPosition += new Vector3(eventData.delta.x, eventData.delta.y, 0f);
+                Vector3 newPos = transform.localPosition + new Vector3(eventData.delta.x, eventData.delta.y, 0f);
+                transform.localPosition = ClampToCanvas(newPos);
             }
 
             transform.SetAsLastSibling();
@@ -140,10 +153,7 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (lockToggle.isOn)
-            return;
-
-        if (eventData.button != PointerEventData.InputButton.Left)
+        if (lockToggle.isOn || eventData.button != PointerEventData.InputButton.Left)
             return;
 
         if (isScaling)
@@ -152,40 +162,33 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
             return;
         }
 
-        transform.localPosition += new Vector3(eventData.delta.x, eventData.delta.y, 0f);
-		SaveMenuState();
+        Vector3 newPos = transform.localPosition + new Vector3(eventData.delta.x, eventData.delta.y, 0f);
+        transform.localPosition = ClampToCanvas(newPos);
+        SaveMenuState();
     }
 
     public void ScaleMenu(PointerEventData eventData)
     {
-        // Invert scaling: down/left increases scale, up/right decreases scale
         float scaleChange = (eventData.delta.x * -0.004f) + (eventData.delta.y * -0.004f);
         Vector3 newScale = menuRectTransform.localScale + new Vector3(scaleChange, scaleChange, 0f);
 
-        // Clamp scale between sensible limits
         newScale.x = Mathf.Clamp(newScale.x, 1f, 3f);
         newScale.y = Mathf.Clamp(newScale.y, 1f, 3f);
 
-
-
-        // Apply adjusted scale to menu
         menuRectTransform.localScale = newScale;
-		
-		        // Subtract 1 from the scale for application (effective range: 0 to 2)
-        Vector3 adjustedScale = newScale - Vector3.one;
 
-        // Scale all windows via AppManager singleton with adjusted scale
+        Vector3 adjustedScale = newScale - Vector3.one;
         if (AppManager.Instance != null)
         {
             AppManager.Instance.ScaleAllWindows(adjustedScale);
         }
-		
-		if (Compass.Instance != null)
+
+        if (Compass.Instance != null)
         {
             Compass.Instance.SyncScaleWithMenu();
         }
-		
-		SaveMenuState();
+
+        SaveMenuState();
     }
 
     public void ShowConfirmationPanel()
@@ -193,8 +196,8 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         if (confirmationPanel != null)
         {
             confirmationPanel.SetActive(true);
-            confirmationRectTransform.localScale = menuRectTransform.localScale- Vector3.one; // Match menu scale
-            confirmationPanel.transform.SetAsLastSibling(); // Bring to front
+            confirmationRectTransform.localScale = menuRectTransform.localScale - Vector3.one;
+            confirmationPanel.transform.SetAsLastSibling();
         }
     }
 
@@ -208,12 +211,29 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
 
     public void CloseApplication()
     {
-        // Exit the application
         Application.Quit();
-
-        // For testing in the Unity Editor
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
+    }
+
+    public Vector3 ClampToCanvas(Vector3 newPos)
+    {
+        if (parentCanvas == null) return newPos;
+
+        RectTransform canvasRect = parentCanvas.GetComponent<RectTransform>();
+        Vector2 size = menuRectTransform.sizeDelta * menuRectTransform.localScale;
+        Vector2 canvasSize = canvasRect.sizeDelta;
+		Vector2 halfCanvas = canvasSize * 0.5f;
+
+        Vector2 halfSize = size * 0.5f; 
+        Vector2 minPos = Vector2.zero; 
+        Vector2 maxPos = canvasSize; 
+		
+        newPos.x = Mathf.Clamp(newPos.x, -minPos.x-halfCanvas.x+size.x, maxPos.x-halfCanvas.x);
+        newPos.y = Mathf.Clamp(newPos.y, -minPos.y-halfCanvas.y+size.y, maxPos.y-halfCanvas.y);
+        newPos.z = 0f;
+
+        return newPos;
     }
 }

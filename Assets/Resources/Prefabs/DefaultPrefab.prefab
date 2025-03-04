@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 23544993108442260}
   - component: {fileID: -7192436450185315141}
   - component: {fileID: -7662194657568266084}
-  m_Layer: 3
+  m_Layer: 9
   m_Name: DefaultPrefab
   m_TagString: Prefab
   m_Icon: {fileID: 0}
@@ -29,7 +29,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1518621727906414}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3765.858, y: 500.5, z: 2550.684}
+  m_LocalPosition: {x: 500, y: 500, z: 500}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

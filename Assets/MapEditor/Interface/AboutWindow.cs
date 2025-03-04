@@ -8,7 +8,7 @@ public class AboutWindow : MonoBehaviour
 
     // Replace these with your actual links
     private string patreonUrl = "https://www.patreon.com/kilgoar";
-    private string discordUrl = "https://discord.com/invite/P3CdRRHQtu";
+    private string discordUrl = "https://discord.com/invite/PUHAafD5dw";
 
     void Start()
     {

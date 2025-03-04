@@ -1,40 +1,51 @@
+using System;
 using UnityEngine;
 
-//[Serializable]
+[Serializable]
 public class ResourceRef<T> where T : UnityEngine.Object
 {
-    // Public field to store a unique identifier for the resource.
-    public string guid;
+    [SerializeField]
+    private string guid;
 
-    // Protected field to cache the actual resource object.
-    protected T resource;
+    [NonSerialized]
+    protected T cachedInstance;
 
-    // Constructor for ResourceRef, typically used by Unity for initialization.
     public ResourceRef()
     {
+        guid = string.Empty;
+        cachedInstance = null;
     }
 
-    // Property to get the GUID of the resource.
-    public string ResourceGuid
-    {
-        get { return guid; }
-    }
+    public string Guid => guid;
 
-    // Property to get an identifier, likely a hash or unique ID of the resource.
-    public uint ResourceId
-    {
-        get { return 0U; } // Placeholder return
-    }
+    public uint ResourceId => string.IsNullOrEmpty(guid) ? 0U : AssetManager.ToID(guid); // Use AssetManager’s ID mapping
 
-    // Property to check if the resource reference is valid or if the resource has been loaded.
-    public bool IsValid
-    {
-        get { return default(bool); } // Placeholder return
-    }
+    public bool IsValid => !string.IsNullOrEmpty(guid) && GetResource() != null;
 
-    // Virtual method to retrieve the actual resource. This might be overridden in derived classes to implement loading logic.
     public virtual T GetResource()
     {
-        return null; // Placeholder return
+        if (cachedInstance != null)
+        {
+            return cachedInstance;
+        }
+
+        if (string.IsNullOrEmpty(guid))
+        {
+            Debug.LogWarning("GUID is empty, cannot load resource.");
+            return null;
+        }
+
+        if (!AssetManager.IsInitialised)
+        {
+            Debug.LogWarning($"AssetManager is not initialized. Cannot load resource for GUID: {guid}");
+            return null;
+        }
+
+        //cachedInstance = AssetManager.LoadAsset<T>(ResourceId);
+        if (cachedInstance == null)
+        {
+            Debug.LogError($"Failed to load resource from AssetManager for GUID: {guid}");
+        }
+        return cachedInstance;
     }
 }

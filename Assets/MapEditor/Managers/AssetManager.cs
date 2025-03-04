@@ -11,7 +11,7 @@ using UnityEditor;
 using UnityEngine;
 using RustMapEditor.Variables;
 using System.Text.RegularExpressions;
-
+using EasyRoads3Dv3;
 
 public static class AssetManager
 {
@@ -143,6 +143,8 @@ public static class AssetManager
 	public static Dictionary<string, GameObject> VolumesCache { get; private set; } = new Dictionary<string, GameObject>();
 	public static Dictionary<string, Texture2D> PreviewCache { get; private set; } = new Dictionary<string, Texture2D>();
 	
+	public static  Dictionary<string, uint[]> MonumentLayers { get; private set; }  = new Dictionary<string, uint[]>();
+	
 	public static List<uint> MonumentList { get; private set; } = new List<uint>();
 	public static List<uint> ColliderBlocks { get; private set; } = new List<uint>();
 	
@@ -156,7 +158,7 @@ public static class AssetManager
 	
 
 
-	private static T GetAsset<T>(string filePath) where T : UnityEngine.Object
+	public static T GetAsset<T>(string filePath) where T : UnityEngine.Object
 	{
 		if (!BundleLookup.TryGetValue(filePath, out AssetBundle bundle))
 			return null;
@@ -204,6 +206,7 @@ public static class AssetManager
 
 	}
 	#endif
+
 
     public static T LoadAsset<T>(string filePath) where T : UnityEngine.Object
 	{
@@ -655,9 +658,24 @@ public static class AssetManager
 	/// <summary>Dumps every asset found in the Rust content bundle to a text file.</summary>
 	public static void AssetDump()
 	{
-		using (StreamWriter streamWriter = new StreamWriter(AssetDumpPath, false))
-			foreach (var item in BundleLookup.Keys)
-				streamWriter.WriteLine(item + " : " + ToID(item));
+		if (Manifest == null)
+		{
+			Debug.LogError("Manifest is null. Cannot dump contents.");
+			return;
+		}
+
+		string dumpPath = "ManifestDump.txt"; // Separate file for clarity
+		using (StreamWriter streamWriter = new StreamWriter(dumpPath, false))
+		{
+			streamWriter.WriteLine($"Total manifest entries: {Manifest.pooledStrings.Length}");
+			for (int i = 0; i < Manifest.pooledStrings.Length; i++)
+			{
+				string path = Manifest.pooledStrings[i].str;
+				uint hash = Manifest.pooledStrings[i].hash;
+				streamWriter.WriteLine($"{path} : {hash}");
+			}
+		}
+		Debug.Log($"Manifest contents dumped to {dumpPath}");
 	}
 
 	public static string ToPath(uint i)
@@ -1008,10 +1026,30 @@ public static class AssetManager
 				string monumentTag = "";
 				for (uint i = 0; i < Manifest.pooledStrings.Length; ++i)
 				{
+					
 					IDLookup.Add(Manifest.pooledStrings[i].hash, Manifest.pooledStrings[i].str);
 					PathLookup.Add(Manifest.pooledStrings[i].str, Manifest.pooledStrings[i].hash);
 					
 					monumentTag = "";
+					
+					if (Manifest.pooledStrings[i].str.EndsWith(".png"))
+					{
+						
+						parse = Manifest.pooledStrings[i].str.Split('/');
+						monumentTag = parse[parse.Length - 2]; // Extract the second-to-last element as the monumentTag
+
+						if (!MonumentLayers.ContainsKey(monumentTag))
+						{
+							MonumentLayers[monumentTag] = new uint[8]; 
+						}
+
+						int index = GetMapIndex(Manifest.pooledStrings[i].str);
+
+						if(index >-1){
+							MonumentLayers[monumentTag][index] = Manifest.pooledStrings[i].hash; 
+							//Debug.Log($"Mapped '{Manifest.pooledStrings[i].str}' to MonumentLayers['{monumentTag}'][{index}] with hash {Manifest.pooledStrings[i].hash}");
+						}
+					}
 					
 					if(Manifest.pooledStrings[i].str.EndsWith(".prefab"))
 					{
@@ -1282,7 +1320,18 @@ public static class AssetManager
 		yield return null;
 	}
 
-
+		private static int GetMapIndex(string fileName)
+		{
+			if (fileName.Contains("heighttexture")) return 0;
+			if (fileName.Contains("splattexture0")) return 1;
+			if (fileName.Contains("splattexture1")) return 2;
+			if (fileName.Contains("alphatexture")) return 3;
+			if (fileName.Contains("biometexture")) return 4;
+			if (fileName.Contains("topologytexture")) return 5;
+			if (fileName.Contains("watermap")) return 6;
+			if (fileName.Contains("watertexture")) return 7;
+			return -1; // Invalid index if no match
+		}
 
 
 		private static void SetKeyword(Material mat, string keyword, bool state)

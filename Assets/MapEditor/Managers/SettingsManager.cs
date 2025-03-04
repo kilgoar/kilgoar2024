@@ -431,6 +431,7 @@ public static class SettingsManager
 	
 	public static void ConvertPathsToNodes(UIRecycleTree tree, List<string> paths, string extension = ".prefab", string searchQuery = "")
 	{
+		
 		tree.Clear();
 		Dictionary<string, Node> nodeMap = new Dictionary<string, Node>();
 

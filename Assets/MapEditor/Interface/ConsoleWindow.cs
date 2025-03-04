@@ -116,8 +116,8 @@ public class ConsoleWindow : MonoBehaviour
 		// Create a new text object for the message
 		Text newText = Instantiate(textTemplate, consoleOutputLayout.transform);
 		newText.gameObject.SetActive(true);
-		newText.text = message;
-		Canvas.ForceUpdateCanvases();
+		newText.text = " " + message;
+		//Canvas.ForceUpdateCanvases();
 		// Scroll to the bottom of the ScrollRect
 		consoleScrollRect.verticalNormalizedPosition = 0f;
 	}

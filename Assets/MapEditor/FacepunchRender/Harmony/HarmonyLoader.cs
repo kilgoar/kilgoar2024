@@ -17,6 +17,21 @@ public static class HarmonyLoader
         return Path.Combine(directoryName, "0Harmony.dll");
     }
 
+	public static void DeleteLog(){
+				// Clear the harmony_log.txt file explicitly
+			string logFilePath = "harmony_log.txt"; // Matches HARMONY_LOG_FILE default
+			try
+			{
+				File.WriteAllText(logFilePath, ""); // Overwrite with empty content
+				Debug.Log("Cleared harmony_log.txt file.");
+			}
+			catch (Exception ex)
+			{
+				Debug.LogError("Failed to clear harmony_log.txt: " + ex.Message);
+			}
+	}
+
+
 public static string LoadHarmonyMods(string modsFolderPath)
 {
     System.Text.StringBuilder logBuilder = new System.Text.StringBuilder();
