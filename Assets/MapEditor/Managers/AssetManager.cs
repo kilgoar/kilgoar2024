@@ -395,10 +395,11 @@ public static class AssetManager
 	public static uint fragmentToID(string fragment, string parent, string monument)
 	{
 		string newFragment = Regex.Replace(fragment, @"\s?\(.*?\)$", "").ToLower();
-		string newParent = Regex.Replace(parent, @"\s?\(.*?\)$", "").ToLower();
+		string newParent = Regex.Replace(parent, @"\s?\(.*?\)$", "");
 		uint parentID = 0;
 		uint ID = 0;
 		uint returnID = 0;
+
 
 		try
 			{
@@ -409,8 +410,6 @@ public static class AssetManager
 			{
 			}
 
-
-		// Attempt to get parent ID from SettingsManager
 		if (SettingsManager.fragmentIDs.fragmentNamelist.TryGetValue("/" + newParent + "/", out parentID))
 		{
 			return parentID;

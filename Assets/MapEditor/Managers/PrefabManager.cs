@@ -758,9 +758,9 @@ public static class PrefabManager
 		if (item.TryGetComponent(typeof(BoxCollider), out Component compt))
 				{
 					BoxCollider collider = item.GetComponent(typeof(BoxCollider)) as BoxCollider;
-					colliderScales.box.x = collider.size.x;
-					colliderScales.box.y = collider.size.y;
-					colliderScales.box.z = collider.size.z;
+					colliderScales.box.x = collider.size.x * collider.center.x;
+					colliderScales.box.y = collider.size.y * collider.center.y;
+					colliderScales.box.z = collider.size.z * collider.center.z;
 				}
 				
 		if (item.TryGetComponent(typeof(CapsuleCollider), out Component compy))
