@@ -11,6 +11,32 @@ using UnityEngine;
 using RustMapEditor.Variables;
 using static BreakerSerialization;
 using UIRecycleTreeNamespace;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using UnityEngine;
+
+public class Vector3ContractResolver : DefaultContractResolver
+{
+    protected override JsonProperty CreateProperty(System.Reflection.MemberInfo member, MemberSerialization memberSerialization)
+    {
+        JsonProperty property = base.CreateProperty(member, memberSerialization);
+        
+        if (property.DeclaringType == typeof(Vector3))
+        {
+            if (property.PropertyName == "normalized" || 
+                property.PropertyName == "magnitude" || 
+                property.PropertyName == "sqrMagnitude")
+            {
+                property.ShouldSerialize = instance => false;
+            }
+        }
+        
+        return property;
+    }
+}
 
 
 public static class SettingsManager
@@ -22,13 +48,27 @@ public static class SettingsManager
     [InitializeOnLoadMethod]
     private static void Init()
     {
-		SettingsPath = "EditorSettings.json";
+        SettingsPath = "EditorSettings.json";
         if (!File.Exists(SettingsPath))
-            using (StreamWriter write = new StreamWriter(SettingsPath, false))
-                write.Write(JsonUtility.ToJson(new EditorSettings(), true));
+        {
+            try
+            {
+                using (StreamWriter write = new StreamWriter(SettingsPath, false))
+                {
+                    // Serialize with Newtonsoft.Json instead of JsonUtility
+                    string json = JsonConvert.SerializeObject(new EditorSettings(), Formatting.Indented);
+                    write.Write(json);
+                }
+                Debug.Log($"Created new settings file at {SettingsPath}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error creating settings file at {SettingsPath}: {e.Message}");
+            }
+        }
 
         LoadSettings();
-    }	
+    }
     #endif
 	#endregion
 	
@@ -565,18 +605,33 @@ public static class SettingsManager
     public static MenuState menuState { get; set; }
 	
     /// <summary>Saves the current EditorSettings to a JSON file.</summary>
-    public static void SaveSettings()    {
-		using (StreamWriter write = new StreamWriter(SettingsPath, false))  {
-            EditorSettings editorSettings = new EditorSettings
-            (
-                RustDirectory, PrefabRenderDistance, PathRenderDistance, WaterTransparency, LoadBundleOnLaunch, TerrainTextureSet, 
-				style, crazing, perlinSplat, ripple, ocean, terracing, perlin, geology, replacer,
-				city, breaker, macroSources, application, faves, windowStates, menuState
-            );
-            write.Write(JsonUtility.ToJson(editorSettings, true));
-			
-        }
-    }
+	public static void SaveSettings()
+	{
+		try
+		{
+			using (StreamWriter write = new StreamWriter(SettingsPath, false))
+			{
+				EditorSettings editorSettings = new EditorSettings
+				(
+					RustDirectory, PrefabRenderDistance, PathRenderDistance, WaterTransparency, 
+					LoadBundleOnLaunch, TerrainTextureSet, style, crazing, perlinSplat, ripple, 
+					ocean, terracing, perlin, geology, replacer, city, breaker, macroSources, 
+					application, faves, windowStates, menuState
+				);
+				JsonSerializerSettings settings = new JsonSerializerSettings
+				{
+					ContractResolver = new Vector3ContractResolver(),
+					Formatting = Formatting.Indented
+				};
+				string json = JsonConvert.SerializeObject(editorSettings, settings);
+				write.Write(json);
+			}
+		}
+		catch (Exception e)
+		{
+			Debug.LogError($"Error saving settings to {SettingsPath}: {e.Message}");
+		}
+	}
 
 	public static Dictionary<string,uint> ListToDict(List<FragmentPair> fragmentPairs)
 		{
@@ -604,55 +659,46 @@ public static class SettingsManager
 	public static void SaveFragmentLookup()
 	{
 		using (StreamWriter write = new StreamWriter(AppDataPath() + $"Presets/breakerFragments.json", false))
-        {
-            write.Write(JsonUtility.ToJson(fragmentIDs, true));
+		{
+			string json = JsonConvert.SerializeObject(fragmentIDs, Formatting.Indented);
+			write.Write(json);
 			fragmentIDs.Deserialize();
-        }
+		}
 	}
 
 	public static void LoadFragmentLookup()
-    {
-		fragmentIDs  = new FragmentLookup();
+	{
+		fragmentIDs = new FragmentLookup();
 		using (StreamReader reader = new StreamReader(AppDataPath() + $"Presets/breakerFragments.json"))
-			{
-				fragmentIDs  = JsonUtility.FromJson<FragmentLookup>(reader.ReadToEnd());
-				fragmentIDs.Deserialize();
-			}
-    }
+		{
+			fragmentIDs = JsonConvert.DeserializeObject<FragmentLookup>(reader.ReadToEnd());
+			fragmentIDs.Deserialize();
+		}
+	}
 
 	
 	public static void SaveBreakerPreset(string filename)
     {
 		breakerSerializer.breaker = breaker;
 		breakerSerializer.Save(AppDataPath() + $"Presets/Breaker/{filename}.breaker");
-		/*       
-	   using (StreamWriter write = new StreamWriter($"Presets/Breaker/{breaker.title}.breaker", false))
-        {
-            write.Write(JsonUtility.ToJson(breaker, true));
-        }
-		*/
+
     }
 	
 	public static void LoadBreakerPreset(string filename)
 	{
 		breaker = breakerSerializer.Load(Path.Combine(AppDataPath() +  $"Presets/Breaker/{filename}.breaker"));
-		/*
-		using (StreamReader reader = new StreamReader($"Presets/Breaker/{filename}.breaker"))
-			{
-				
-				breaker = JsonUtility.FromJson<BreakerPreset>(reader.ReadToEnd());
-			}
-		*/
+
 	}
 	
 	
 	public static void SaveGeologyPreset()
-    {
-        using (StreamWriter write = new StreamWriter(AppDataPath() + $"Presets/Geology/{geology.title}.json", false))
-        {
-            write.Write(JsonUtility.ToJson(geology, true));
-        }
-    }
+	{
+		using (StreamWriter write = new StreamWriter(AppDataPath() + $"Presets/Geology/{geology.title}.json", false))
+		{
+			string json = JsonConvert.SerializeObject(geology, Formatting.Indented);
+			write.Write(json);
+		}
+	}
 	
 	public static void DeleteGeologyPreset()
 	{
@@ -665,32 +711,33 @@ public static class SettingsManager
 
 	
 	public static void SaveReplacerPreset()
-    {
-        using (StreamWriter write = new StreamWriter(AppDataPath() + $"Presets/Geology/{geology.title}.json", false))
-        {
-            write.Write(JsonUtility.ToJson(replacer, true));
-        }
-    }
+	{
+		using (StreamWriter write = new StreamWriter(AppDataPath() + $"Presets/Geology/{geology.title}.json", false))
+		{
+			string json = JsonConvert.SerializeObject(replacer, Formatting.Indented);
+			write.Write(json);
+		}
+	}
 	
 	
 	
 	public static void LoadGeologyPreset(string filename)
 	{
 		using (StreamReader reader = new StreamReader(AppDataPath() + $"Presets/Geology/{filename}.json"))
-			{
-				geology = JsonUtility.FromJson<GeologyPreset>(reader.ReadToEnd());
-			}
+		{
+			geology = JsonConvert.DeserializeObject<GeologyPreset>(reader.ReadToEnd());
+		}
 	}
 	
 	public static GeologyPreset GetGeologyPreset(string filename)
 	{
 		if (File.Exists(filename))
+		{
+			using (StreamReader reader = new StreamReader(filename))
 			{
-				using (StreamReader reader = new StreamReader(filename))
-					{
-						return JsonUtility.FromJson<GeologyPreset>(reader.ReadToEnd());
-					}
+				return JsonConvert.DeserializeObject<GeologyPreset>(reader.ReadToEnd());
 			}
+		}
 		else
 			return new GeologyPreset("file not found");
 	}
@@ -699,24 +746,19 @@ public static class SettingsManager
 	public static void LoadReplacerPreset(string filename)
 	{
 		using (StreamReader reader = new StreamReader(AppDataPath() + $"Presets/Replacer/{filename}.json"))
-			{
-				replacer = JsonUtility.FromJson<ReplacerPreset>(reader.ReadToEnd());
-			}
+		{
+			replacer = JsonConvert.DeserializeObject<ReplacerPreset>(reader.ReadToEnd());
+		}
 	}
 	
 	public static void LoadGeologyMacro(string filename)
 	{
-		// Initialize the macro list
 		macro = new List<string>();
-
 		string macroPath = AppDataPath() + $"Presets/Geology/Macros/{filename}.macro";
-
-		// Read and deserialize JSON content
 		using (StreamReader reader = new StreamReader(macroPath))
 		{
 			string jsonContent = reader.ReadToEnd();
-			GeologyMacroWrapper wrapper = JsonUtility.FromJson<GeologyMacroWrapper>(jsonContent);
-
+			GeologyMacroWrapper wrapper = JsonConvert.DeserializeObject<GeologyMacroWrapper>(jsonContent);
 			if (wrapper != null && wrapper.macroList != null)
 			{
 				macro = wrapper.macroList;
@@ -727,9 +769,7 @@ public static class SettingsManager
 	public static void SaveGeologyMacro(string macroTitle)
 	{
 		GeologyMacroWrapper wrapper = new GeologyMacroWrapper { macroList = macro };
-
-		string jsonContent = JsonUtility.ToJson(wrapper, true);
-
+		string jsonContent = JsonConvert.SerializeObject(wrapper, Formatting.Indented);
 		string macroPath = AppDataPath() + $"Presets/Geology/Macros/{macroTitle}.macro";
 		using (StreamWriter writer = new StreamWriter(macroPath, false))
 		{
@@ -757,21 +797,20 @@ public static class SettingsManager
 	}
 	
 
-    /// <summary>Loads and sets the current EditorSettings from a JSON file.</summary>
-    public static void LoadSettings()
-    {
-		if (!File.Exists(SettingsPath)){ Debug.LogError("Config file not found"); return; }
+	public static void LoadSettings()
+	{
+		if (!File.Exists(SettingsPath)) { Debug.LogError("Config file not found"); return; }
 		
-        using (StreamReader reader = new StreamReader(SettingsPath))
-        {
-            EditorSettings editorSettings = JsonUtility.FromJson<EditorSettings>(reader.ReadToEnd());
-            
+		using (StreamReader reader = new StreamReader(SettingsPath))
+		{
+			EditorSettings editorSettings = JsonConvert.DeserializeObject<EditorSettings>(reader.ReadToEnd());
+			
 			RustDirectory = editorSettings.rustDirectory;
-            PrefabRenderDistance = editorSettings.prefabRenderDistance;
-            PathRenderDistance = editorSettings.pathRenderDistance;
-            WaterTransparency = editorSettings.waterTransparency;
-            LoadBundleOnLaunch = editorSettings.loadbundleonlaunch;
-            PrefabPaths = editorSettings.prefabPaths;
+			PrefabRenderDistance = editorSettings.prefabRenderDistance;
+			PathRenderDistance = editorSettings.pathRenderDistance;
+			WaterTransparency = editorSettings.waterTransparency;
+			LoadBundleOnLaunch = editorSettings.loadbundleonlaunch;
+			PrefabPaths = editorSettings.prefabPaths;
 			style = editorSettings.style;
 			crazing = editorSettings.crazing;
 			perlinSplat = editorSettings.perlinSplat;
@@ -786,12 +825,12 @@ public static class SettingsManager
 			application = editorSettings.application;
 			faves = editorSettings.faves;
 			windowStates = editorSettings.windowStates;
-            menuState = editorSettings.menuState;
-        }
+			menuState = editorSettings.menuState;
+		}
 		
 		LoadPresets();
 		LoadMacros();
-    }
+	}
 	
 	public static void LoadPresets()
 	{

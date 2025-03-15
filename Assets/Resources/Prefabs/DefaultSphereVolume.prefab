@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 23544993108442260}
   - component: {fileID: -7192436450185315141}
   - component: {fileID: -1634184551932929106}
-  m_Layer: 2
+  m_Layer: 9
   m_Name: DefaultSphereVolume
   m_TagString: Prefab
   m_Icon: {fileID: 0}
@@ -29,8 +29,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1518621727906414}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3765.858, y: 500.5, z: 2550.684}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 1633.3997, y: 498.95734, z: 1747.8363}
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}

@@ -131,24 +131,36 @@ public class AppManager : MonoBehaviour
 
 		for (int i = 0; i < windowPanels.Count; i++)
 		{
+			// Skip activation for these windows
+			bool isRestrictedWindow = (i == 6 || i == 9);
+			
 			RectTransform rect = windowPanels[i].GetComponent<RectTransform>();
 			WindowState state = SettingsManager.windowStates[i];
-			windowPanels[i].SetActive(state.isActive);
+
+			// Only set active state if not a restricted window
+			if (!isRestrictedWindow)
+			{
+				windowPanels[i].SetActive(state.isActive);
+			}
+			else
+			{
+				windowPanels[i].SetActive(false); // Ensure restricted windows stay inactive
+			}
 			
 			rect.localScale = state.scale;
-			windowToggles[i].SetIsOnWithoutNotify(state.isActive);
+			windowToggles[i].SetIsOnWithoutNotify(state.isActive && !isRestrictedWindow); // Reflect actual state
 
 			// Sync and load the associated RecycleTree
 			if (i < RecycleTrees.Count && RecycleTrees[i] != null)
 			{
-				RecycleTrees[i].gameObject.SetActive(state.isActive);
+				// Only activate tree if its corresponding window isn't restricted
+				RecycleTrees[i].gameObject.SetActive(state.isActive && !isRestrictedWindow);
 				RectTransform treeRect = RecycleTrees[i].GetComponent<RectTransform>();
 				if (treeRect != null)
 				{
 					treeRect.localScale = state.scale;
 					treeRect.position = rect.position; 
 				}
-				
 			}
 
 			// Set the window as the last sibling after loading its state and syncing its tree

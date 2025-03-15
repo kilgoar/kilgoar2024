@@ -9,6 +9,8 @@ using UIRecycleTreeNamespace;
 using RTG;
 using System;
 using System.Linq;
+using EasyRoads3Dv3;
+using static WorldSerialization;
 
 public class CameraManager : MonoBehaviour
 {
@@ -21,24 +23,25 @@ public class CameraManager : MonoBehaviour
 	public Terrain landTerrain;
 	public List<InputField> snapFields;
 	public Vector3 position;
+	public bool lockCam;
 	
 
-    private Vector3 movement = new Vector3(0, 0, 0);
-    private float movementSpeed = 100f;
-    private float rotationSpeed = .25f;
-    private InputControl<Vector2> mouseMovement;
-    private Vector3 globalMove = new Vector3(0, 0, 0);
-    private float pitch = 90f;
-    private float yaw = 0f;
-    private float sprint = 1f;
-    private bool dragXarrow, dragYarrow, dragZarrow, sync;
+    public Vector3 movement = new Vector3(0, 0, 0);
+    public float movementSpeed = 100f;
+    public float rotationSpeed = .25f;
+    public InputControl<Vector2> mouseMovement;
+    public Vector3 globalMove = new Vector3(0, 0, 0);
+    public float pitch = 90f;
+    public float yaw = 0f;
+    public float sprint = 1f;
+    public bool dragXarrow, dragYarrow, dragZarrow, sync;
     Quaternion dutchlessTilt;
-	private Keyboard key;
-	private Mouse mouse;
+	public Keyboard key;
+	public Mouse mouse;
 
-	private float currentTime;
-	private float lastUpdateTime = 0f;
-	private float updateFrequency = .3f;
+	public float currentTime;
+	public float lastUpdateTime = 0f;
+	public float updateFrequency = .3f;
 	
 	private ObjectTransformGizmo _objectMoveGizmo;
     private ObjectTransformGizmo _objectRotationGizmo;
@@ -46,11 +49,12 @@ public class CameraManager : MonoBehaviour
     private ObjectTransformGizmo _objectUniversalGizmo;
 	
 	public List<GameObject> _selectedObjects = new List<GameObject>();
+	public PathData _selectedRoad = new PathData();
 	
 	private int layerMask = 1 << 10; // "Land" layer	
 	
-	private GizmoId _workGizmoId;
-	private ObjectTransformGizmo _workGizmo;
+	public GizmoId _workGizmoId;
+	public ObjectTransformGizmo _workGizmo;
 
 	private List<RaycastHit> previousHits = new List<RaycastHit>();
 	private int currentSelectionIndex = 0;
@@ -201,6 +205,7 @@ public void InitializeGizmos()
 	
 	public void Configure()
 	{
+		lockCam = false;
 		dragXarrow = false;
 		dragYarrow = false;
 		dragZarrow = false;
@@ -228,6 +233,8 @@ public void InitializeGizmos()
     void Update()
     {
         if (cam == null) return;
+		
+		if (lockCam == true) return;
 		
 		if (LoadScreen.Instance.isEnabled){
 			return;
@@ -317,10 +324,6 @@ public void InitializeGizmos()
 			if (key.deleteKey.isPressed) {
 				DeleteSelection();
 				
-				if(ItemsWindow.Instance!=null){
-					ItemsWindow.Instance.PopulateList();
-				}
-				
 			}
 			
 			if (globalMove!=Vector3.zero){
@@ -336,6 +339,7 @@ public void InitializeGizmos()
 				lastUpdateTime = currentTime;
 			}
 			
+			
 			if(ItemsWindow.Instance!=null){
 				if(ItemsWindow.Instance.gameObject.activeInHierarchy){
 						ItemsWindow.Instance.UpdateData();
@@ -347,14 +351,14 @@ public void InitializeGizmos()
 	public void SelectPrefabWithoutNotify(GameObject go){
 		_selectedObjects.Add(go);
 		ItemsWindow.Instance.SetSelection(go);
-		EmissionHighlight(GetRenderers(go));
+		EmissionHighlight(GetRenderers(go),true);
 		UpdateGizmoState();
 	}
 	
 	public void SelectPrefab(GameObject go){
 		_selectedObjects.Add(go);
 		ItemsWindow.Instance.SetSelection(go);
-		EmissionHighlight(GetRenderers(go));
+		EmissionHighlight(GetRenderers(go),true);
 		UpdateItemsWindow();
 		UpdateGizmoState();
 
@@ -426,6 +430,8 @@ public void InitializeGizmos()
 	
 	public void DeleteSelection()
 	{
+		if(_selectedObjects.Count < 1){ return; }
+		
 		_workGizmo.Gizmo.SetEnabled(false);
 		// For each object in _selectedObjects, destroy the object
 		foreach (GameObject go in _selectedObjects) // Use ToList() to avoid modifying the collection while iterating
@@ -445,6 +451,7 @@ public void InitializeGizmos()
 		
 		itemTree.Rebuild();
 		UpdateGizmoState();
+		PrefabManager.NotifyItemsChanged(false);
 	}
 	
 	public GameObject FindParentWithTag(GameObject hitObject, string tag){
@@ -454,7 +461,216 @@ public void InitializeGizmos()
 		}
 		return hitObject;
 	}
-	
+
+	public void SelectPath()
+	{
+		if (Keyboard.current.altKey.isPressed) { return; }
+
+		int pathLayerMask = 1 << 9; // Paths are on layer 9 per PathManager
+		int allLayersMask = ~0;     // All layers
+
+		Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+		RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, allLayersMask);
+
+		Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+		// Prioritize hits: only paths on layer 9
+		List<RaycastHit> prioritizedHits = new List<RaycastHit>();
+		foreach (var hit in hits)
+		{
+			if ((1 << hit.transform.gameObject.layer & pathLayerMask) != 0)
+			{
+				prioritizedHits.Add(hit);
+			}
+		}
+
+		// Debug output for hit count
+		Debug.LogError(prioritizedHits.Count + " paths detected");
+		foreach (var hit in prioritizedHits)
+		{
+			Debug.LogError(hit.transform.name);
+		}
+
+		if (prioritizedHits.Count == 0)
+		{
+			ClearAndDepopulateSelection();
+			return;
+		}
+
+		// Process the closest hit
+		GameObject hitPathObject = prioritizedHits[0].transform.gameObject;
+		GameObject nodeObject = null;
+		GameObject pathObject = null;
+		GameObject roadObject = null;
+
+		// Resolve objects based on what was hit
+		if (hitPathObject.CompareTag("Node"))
+		{
+			nodeObject = hitPathObject;
+			pathObject = hitPathObject.transform.parent.gameObject;
+			roadObject = pathObject.GetComponentInParent<PathDataHolder>()?.gameObject;
+		}
+		else if (hitPathObject.CompareTag("Path"))
+		{
+			nodeObject = null;
+			roadObject = hitPathObject;
+			foreach (Transform child in hitPathObject.transform)
+			{
+				if (child.CompareTag("NodeParent"))
+				{
+					pathObject = child.gameObject;
+					break;
+				}
+			}
+		}
+		else
+		{
+			ClearAndDepopulateSelection();
+			return;
+		}
+		
+
+		if (roadObject == null)
+		{
+			ClearAndDepopulateSelection();
+			return;
+		}
+
+		GameObject currentRoad = _selectedObjects.Count > 0
+			? _selectedObjects[0].transform.parent?.GetComponentInParent<PathDataHolder>()?.gameObject
+			: null;
+
+		// Handle node selection
+		if (nodeObject != null)
+		{
+			if (currentRoad != null && currentRoad != roadObject)
+			{
+				ClearAndDepopulateSelection();
+				PopulateNodesForRoad(roadObject);
+			}
+			else if (currentRoad == null)
+			{
+				Unselect();
+				PopulateNodesForRoad(roadObject);
+			}
+
+			if (Keyboard.current.leftShiftKey.isPressed)
+			{
+				if (_selectedObjects.Contains(nodeObject))
+				{
+					_selectedObjects.Remove(nodeObject);
+				}
+				else
+				{
+					_selectedObjects.Add(nodeObject);
+				}
+			}
+			else
+			{
+				Unselect();
+				_selectedObjects.Add(nodeObject);
+			}
+		}
+		
+		
+		// Handle road selection
+		else if (roadObject != null)
+		{
+			if (currentRoad != null && currentRoad != roadObject)
+			{
+				ClearAndDepopulateSelection();
+			}
+
+			if (currentRoad != roadObject || _selectedObjects.Count == 0)
+			{
+				Unselect();
+				pathObject = PopulateNodesForRoad(roadObject);
+				_selectedObjects.Add(pathObject);
+			}
+		}
+
+		UpdateItemsWindow();
+		UpdateGizmoState();
+	}
+
+	// Helper method to handle repeated clearing and depopulation logic
+	private void ClearAndDepopulateSelection()
+	{
+		foreach (GameObject selected in _selectedObjects.ToList())
+		{
+			GameObject depopObject = selected.transform.parent?.GetComponentInParent<PathDataHolder>()?.gameObject;
+			if (depopObject != null)
+			{
+				DepopulateNodesForRoad(depopObject);
+			}
+		}
+		Unselect();
+		UpdateItemsWindow();
+		UpdateGizmoState();
+	}
+
+	public GameObject PopulateNodesForRoad(GameObject roadObject)
+	{
+		if (roadObject == null) return null;
+
+		Transform existingNodes = roadObject.transform.Find("Nodes");
+		if (existingNodes != null) return existingNodes.gameObject; // Return existing NodeCollection if already populated
+
+		// Get the ERRoad from the road network using PathDataHolder
+		PathDataHolder pathDataHolder = roadObject.GetComponent<PathDataHolder>();
+		if (pathDataHolder == null || pathDataHolder.pathData == null)
+		{
+			Debug.LogError($"No PathDataHolder or PathData found on {roadObject.name}. Cannot populate nodes.");
+			return null;
+		}
+
+		ERRoadNetwork roadNetwork = new ERRoadNetwork(); 
+		ERRoad road = roadNetwork.GetRoadByName(pathDataHolder.pathData.name);
+		if (road == null)
+		{
+			Debug.LogError($"Could not find ERRoad for {pathDataHolder.pathData.name} in the road network.");
+			return null;
+		}
+
+		GameObject nodeContainer = new GameObject("Nodes");
+		nodeContainer.tag = "NodeParent";
+		nodeContainer.transform.SetParent(roadObject.transform, false);
+		NodeCollection nodeCollection = nodeContainer.AddComponent<NodeCollection>();
+		nodeCollection.Initialize(road);
+		nodeCollection.pathData = pathDataHolder.pathData; // Set pathData directly
+		nodeCollection.PopulateNodes();
+		
+		PathManager.SetCurrentNodeCollection(nodeCollection); // Static reference
+
+		_selectedRoad = pathDataHolder.pathData;
+
+		// Optionally log if no nodes were created (for debugging)
+		if (nodeContainer.transform.childCount == 0)
+		{
+			Debug.LogWarning($"No nodes were populated for road {roadObject.name}. Selection set to road object anyway.");
+		}
+
+		return nodeCollection.GetFirstNode().gameObject;
+	}
+
+		//  depopulate nodes for a road
+		public void DepopulateNodesForRoad(GameObject roadObject)
+		{
+			if (roadObject == null) return;
+			_selectedRoad = null;
+			
+			Transform nodeParent = roadObject.transform.Find("Nodes");
+			if (nodeParent != null)
+			{
+				// Clear the current NodeCollection from PathManager before destruction
+				if (nodeParent.GetComponent<NodeCollection>() == PathManager.CurrentNodeCollection)
+				{
+					PathManager.ClearCurrentNodeCollection();
+				}
+				Destroy(nodeParent.gameObject); // Destroy NodeCollection and its nodes
+			}
+		}
+		
 	public void SelectPrefab()
 	{
 		int meshCount=0;
@@ -590,11 +806,11 @@ public void InitializeGizmos()
 						{
 							renderers.AddRange(lodMasterMesh.FetchRenderers());
 						}
-						EmissionHighlight(renderers);
+						EmissionHighlight(renderers,true);
 					}
 					else
 					{
-						EmissionHighlight(GetRenderers(hitObject));
+						EmissionHighlight(GetRenderers(hitObject),true);
 					}
 					UpdateItemsWindow();
 					UpdateGizmoState();
@@ -606,10 +822,35 @@ public void InitializeGizmos()
 		Unselect();
 	}
 	
+	public void PaintNodes()
+	{
+		if (Keyboard.current.altKey.isPressed)
+		{
+			RaycastHit localHit;
+			if (Physics.Raycast(cam.ScreenPointToRay(mouse.position.ReadValue()), out localHit, Mathf.Infinity, layerMask))
+			{
+				NodeCollection nodeCollection = PathManager.CurrentNodeCollection;
+				if (nodeCollection == null)
+				{
+					Debug.LogWarning("No current NodeCollection selected for node painting. Write the interface to create it bud.");
+					return;
+				}
+
+				Vector3 hitPoint = localHit.point;
+				nodeCollection.AddNodeAtPosition(hitPoint, _selectedObjects);
+
+				UpdateItemsWindow();
+				UpdateGizmoState();
+			}
+		}
+	}
+	
+
+	
 	public void Unselect(GameObject obj)
 	{
 		_selectedObjects.Remove(obj);
-		EmissionUnhighlight(GetRenderers(obj)); // Get the renderers from the object using helper method
+		EmissionHighlight(GetRenderers(obj),false); // Get the renderers from the object using helper method
 		UpdateItemsWindow();
 		UpdateGizmoState();
 	}
@@ -619,17 +860,23 @@ public void InitializeGizmos()
 		// Unhighlight all previously selected items
 		foreach (GameObject obj in _selectedObjects)
 		{
-			if (obj != null) {
-				EmissionUnhighlight(GetRenderers(obj)); // Get the renderers from selected objects using helper method
+			if (obj != null)
+			{
+				EmissionHighlight(GetRenderers(obj), false);
 			}
 		}
 		_selectedObjects.Clear();
-		// Disable all gizmos
-		_workGizmo.Gizmo.SetEnabled(false);
-		_objectMoveGizmo.Gizmo.SetEnabled(false);
-		_objectRotationGizmo.Gizmo.SetEnabled(false);
-		_objectScaleGizmo.Gizmo.SetEnabled(false);
-		_objectUniversalGizmo.Gizmo.SetEnabled(false);
+
+		// Explicitly disable and reset all gizmos to avoid hanging references
+		if (_objectMoveGizmo != null) _objectMoveGizmo.Gizmo.SetEnabled(false);
+		if (_objectRotationGizmo != null) _objectRotationGizmo.Gizmo.SetEnabled(false);
+		if (_objectScaleGizmo != null) _objectScaleGizmo.Gizmo.SetEnabled(false);
+		if (_objectUniversalGizmo != null) _objectUniversalGizmo.Gizmo.SetEnabled(false);
+		if (_workGizmo != null)
+		{
+			_workGizmo.Gizmo.SetEnabled(false);
+			_workGizmo.SetTargetObjects(new List<GameObject>()); // Clear targets to avoid missing references
+		}
 	}
 
 	public List<Renderer> GetRenderers(GameObject gameObject)
@@ -670,25 +917,38 @@ public void InitializeGizmos()
 		}
 	}
 
-	// Helper method to modify material settings for emission highlight
-	private void EmissionHighlight(List<Renderer> selection)
-	{
-		foreach (Renderer renderer in selection)
-		{
-			Material[] materials = renderer.materials;
-			foreach (Material material in materials)
-			{
-				// Enable emission for the material
-				material.EnableKeyword("_EMISSION");
-				
-				// Set emission color (you can adjust the color as needed)
-				Color emissionColor = Color.yellow; // Example: yellow highlight
-				material.SetColor("_EmissionColor", emissionColor);
-			}
-			renderer.materials = materials;
-		}
-	}
+private void EmissionHighlight(List<Renderer> selection, bool enable)
+{
+    foreach (Renderer renderer in selection)
+    {
+        Material[] materials = renderer.materials;
+        foreach (Material material in materials)
+        {
+            if (enable)
+            {
+                // Subtle yellow for emission
+                Color subtleYellow = new Color(.8f, .7f, 0f, 1f);
 
+                if (material.HasProperty("_EmissionColor"))
+                {
+                    material.EnableKeyword("_EMISSION");
+                    material.SetColor("_EmissionColor", subtleYellow);
+                }
+            }
+            else
+            {
+                if (material.HasProperty("_EmissionColor"))
+                {
+                    material.SetColor("_EmissionColor", Color.black);
+                    material.DisableKeyword("_EMISSION");
+                }
+            }
+        }
+        renderer.materials = materials; // Apply changes
+    }
+}
+
+	/*
 	// Helper method to undo emission highlight
 	private void EmissionUnhighlight(List<Renderer> selection)
 	{
@@ -717,7 +977,7 @@ public void InitializeGizmos()
 
 		}
 	}
-
+*/
 	
 	private void SetWorkGizmoId(GizmoId gizmoId)
     {
@@ -785,19 +1045,23 @@ public void InitializeGizmos()
 	}
 	
 	
-    public void UpdateGizmoState()
-    {
-        if (_selectedObjects.Count > 0)
-        {
-            _workGizmo.Gizmo.SetEnabled(true);
-            _workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
-            _workGizmo.RefreshPositionAndRotation();
-        }
-        else
-        {
-            _workGizmo.Gizmo.SetEnabled(false);
-        }
-    }
+	public void UpdateGizmoState()
+	{
+		if (_workGizmo == null) return;
+
+		if (_selectedObjects.Count > 0)
+		{
+			_workGizmo.Gizmo.SetEnabled(true);
+			_workGizmo.SetTargetObjects(_selectedObjects); // Ensure targets are updated
+			_workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
+			_workGizmo.RefreshPositionAndRotation();
+		}
+		else
+		{
+			_workGizmo.Gizmo.SetEnabled(false);
+			_workGizmo.SetTargetObjects(new List<GameObject>()); // Clear targets when no selection
+		}
+	}
 	
 	void DragTransform()
 	{

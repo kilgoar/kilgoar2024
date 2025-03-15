@@ -15,6 +15,7 @@ public class PrefabDataHolder : MonoBehaviour
     public WorldSerialization.PrefabData prefabData;
     public Area currentSector; // To keep track of which sector this prefab belongs to
     public List<LODComponent> lodComponents = new List<LODComponent>(); //  LOD component list
+	
 
 	public void AddLODs(List<LODComponent> newLODs)
 	{

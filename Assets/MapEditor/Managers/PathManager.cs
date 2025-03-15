@@ -16,7 +16,18 @@ public static class PathManager
     private static ERRoadNetwork _roadNetwork;
     private static int _roadIDCounter = 1;
 	private static Transform roadTransform;
+	public static GameObject NodePrefab { get; private set; }
+	public static NodeCollection CurrentNodeCollection { get; private set; } // New field for current NodeCollection
 
+    public static void SetCurrentNodeCollection(NodeCollection nodeCollection)
+    {
+        CurrentNodeCollection = nodeCollection;
+    }
+
+    public static void ClearCurrentNodeCollection()
+    {
+        CurrentNodeCollection = null;
+    }
 
 	//road type name keywords
 	//names are "Keyword X" where X is an integer enumerating the paths 
@@ -40,6 +51,7 @@ public static class PathManager
 		roadTransform.SetParent(PathParent, false);
 		roadTransform.position = PathParent.position;
 		EditorApplication.update += OnProjectLoad;
+		NodePrefab = Resources.Load<GameObject>("Prefabs/NodeSphere");
     }
 
     private static void OnProjectLoad()
@@ -57,68 +69,115 @@ public static class PathManager
 		roadTransform.SetParent(PathParent, false);
 		_roadNetwork = new ERRoadNetwork();
 		roadTransform.position = PathParent.position;
+		NodePrefab = Resources.Load<GameObject>("Prefabs/NodeSphere");
     }
 
 	public static void SpawnPath(PathData pathData)
 	{
-		if (_roadNetwork == null || pathData == null || pathData.nodes == null || pathData.nodes.Length == 0)
+		if (_roadNetwork == null)
 		{
-			Debug.LogError("Invalid RoadNetwork or PathData.");
+			Debug.LogError("RoadNetwork not initialized.");
 			return;
 		}
 
 		Vector3 offset = PathParent.transform.position;
-		Vector3[] markers = pathData.nodes.Select(v => (Vector3)v + offset).ToArray();
+		Vector3[] markers = pathData.nodes.Select(v => new Vector3(v.x, v.y, v.z) + offset).ToArray();
 		string roadName = pathData.name;
+
+		// Create the road object
 		ERRoad newRoad = _roadNetwork.CreateRoad(roadName, markers);
-
-		if (newRoad != null)
-		{
-			newRoad.SetName(roadName);
-			newRoad.SetWidth(pathData.width);
-			newRoad.SetMarkerControlType(0, pathData.spline ? ERMarkerControlType.Spline : ERMarkerControlType.StraightXZ);
-			newRoad.ClosedTrack(false); // All paths unclosed
-
-
-		ERRoadType[] roadTypes = _roadNetwork.GetRoadTypes();
-
-		if (roadName.StartsWith("River") || roadName.StartsWith("Powerline") || 
-			(roadName.StartsWith("Road") && pathData.width < 5))
-		{
-			// Set to transparent style (index 0)
-			if (roadTypes != null && roadTypes.Length > 0)
-			{
-				newRoad.SetRoadType(roadTypes[0]);
-			}
-			else
-			{
-				Debug.LogWarning("No road types available; cannot set transparent style (index 0).");
-			}
-		}
-		else
-		{
-			// Set to visible "good" style (index 1)
-			if (roadTypes != null && roadTypes.Length > 1)
-			{
-				newRoad.SetRoadType(roadTypes[1]);
-			}
-			else
-			{
-				Debug.LogWarning("Insufficient road types available; cannot set good style (index 1).");
-			}
-		}			
-
-			newRoad.Refresh();
-			PathDataHolder dataHolder = newRoad.gameObject.AddComponent<PathDataHolder>();
-			dataHolder.pathData = pathData;
-		}
-		else
+		if (newRoad == null)
 		{
 			Debug.LogError($"Failed to create road '{roadName}'.");
+			return;
 		}
 
-		roadTransform.gameObject.SetLayerRecursively(9);
+		// Configure the road
+		ConfigureRoad(newRoad, pathData);
+
+		// Set up the GameObject hierarchy
+		GameObject roadObject = newRoad.gameObject;
+		roadObject.transform.SetParent(roadTransform, false);
+
+		// Add PathDataHolder
+		PathDataHolder dataHolder = roadObject.AddComponent<PathDataHolder>();
+		dataHolder.pathData = pathData;
+		
+		newRoad.Refresh();
+		
+		NetworkManager.Register(roadObject);
+		roadObject.tag = "Path";
+		roadObject.SetLayerRecursively(9); // Paths layer
 	}
+	
+    public static void ConfigureRoad(ERRoad road, PathData pathData)
+    {
+
+        road.SetName(pathData.name);
+        road.SetWidth(pathData.width);
+        road.SetMarkerControlType(0, pathData.spline ? ERMarkerControlType.Spline : ERMarkerControlType.StraightXZ);
+        road.ClosedTrack(false);
+
+        ERModularRoad modularRoad = road.gameObject.GetComponent<ERModularRoad>();
+        if (modularRoad == null)
+        {
+            Debug.LogError($"ERModularRoad component not found on road '{pathData.name}'.");
+            return;
+        }
+
+        ERRoadType[] roadTypes = _roadNetwork.GetRoadTypes();
+        string[] nameParts = pathData.name.Split(' ');
+        string roadTypePrefix = nameParts[0].ToLower();
+
+        bool isVisible = true;
+        switch (roadTypePrefix)
+        {
+            case "river":
+            case "powerline":
+                isVisible = false;
+                if (roadTypes != null && roadTypes.Length > 0)
+                {
+                    road.SetRoadType(roadTypes[0]); // Transparent style
+                }
+                break;
+
+            case "road":
+                if (roadTypes != null && roadTypes.Length > 1)
+                {
+                    road.SetRoadType(roadTypes[1]); // Visible "good" style
+                    modularRoad.lanes = pathData.width >= 10 ? 2 : 1;
+                }
+                break;
+
+            case "rail":
+                if (roadTypes != null && roadTypes.Length > 1)
+                {
+                    road.SetRoadType(roadTypes[1]); // Visible style
+                    modularRoad.roadWidth = 2f; // Fixed width for rails
+                    modularRoad.lanes = 0;
+                }
+                break;
+
+            default:
+                Debug.LogWarning($"Unknown road type prefix '{roadTypePrefix}' in '{pathData.name}'. Using default visible style.");
+                if (roadTypes != null && roadTypes.Length > 1)
+                {
+                    road.SetRoadType(roadTypes[1]);
+                }
+                break;
+        }
+
+        modularRoad.roadWidth = pathData.width;
+        modularRoad.indent = pathData.innerPadding;
+        modularRoad.surrounding = pathData.outerPadding;
+        modularRoad.fadeInDistance = pathData.innerFade;
+        modularRoad.fadeOutDistance = pathData.outerFade;
+        modularRoad.terrainContoursOffset = pathData.terrainOffset;
+        modularRoad.splatIndex = pathData.splat;
+        modularRoad.startConnectionFlag = pathData.start;
+        modularRoad.endConnectionFlag = pathData.end;
+    }
+
 
     public static void RotatePaths(bool CW)
     {

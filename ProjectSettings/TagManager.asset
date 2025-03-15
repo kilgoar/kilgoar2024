@@ -22,6 +22,9 @@ TagManager:
   - EasyRoads
   - DefaultCollider
   - AppCanvas
+  - Node
+  - NodeParent
+  - Path
   layers:
   - Default
   - TransparentFX

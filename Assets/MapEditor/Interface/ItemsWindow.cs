@@ -22,6 +22,8 @@ public class ItemsWindow : MonoBehaviour
 	
 	public static ItemsWindow Instance { get; private set; }
 	
+	
+	
     private void Awake()
     {
         if (Instance == null)
@@ -353,14 +355,20 @@ public class ItemsWindow : MonoBehaviour
 	
 	public void PopulateList()
 	{
-		tree.nodes.Clear(); // Clear any existing nodes in the tree
-		Dictionary<Transform, Node> transformToNodeMap = new Dictionary<Transform, Node>();
+		tree.nodes.Clear();
+		Dictionary<Transform, Node> transformToNodeMap = new Dictionary<Transform, Node>(); //recursion target
 
-		Transform prefabParentTransform = PrefabManager.PrefabParent.transform;
-		foreach (Transform child in prefabParentTransform)
+		foreach (Transform child in PrefabManager.PrefabParent)
 		{
 			BuildTreeRecursive(child, null, transformToNodeMap); // Build the tree recursively from each top-level child
 		}
+		foreach (Transform child in PathManager.PathParent)
+		{
+			BuildTreeRecursive(child, null, transformToNodeMap);
+		}
+		
+		
+		
 		CheckSelection();
 		tree.Rebuild(); // Update the tree view after all nodes are added
 	}
@@ -381,6 +389,14 @@ public class ItemsWindow : MonoBehaviour
 
 			case "Collection":
 				currentNode = new Node(current.name) { data = current.gameObject };
+				break;
+				
+				
+			case "Path":
+				currentNode = new Node(current.name) { data = current.gameObject };
+				break;
+
+			case "EasyRoads": 
 				break;
 
 			default:
@@ -543,6 +559,8 @@ public class ItemsWindow : MonoBehaviour
 		CameraManager.Instance._selectedObjects.Clear();
 		tree.Rebuild();
 		CameraManager.Instance.UpdateGizmoState();
+		
+		PrefabManager.NotifyItemsChanged(false);
 	}
 
 	private void DeleteCheckedNodesStack(Node rootNode)

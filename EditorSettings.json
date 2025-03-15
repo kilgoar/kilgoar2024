@@ -1,429 +1,417 @@
 {
-    "rustDirectory": "",
-    "prefabRenderDistance": 0.0,
-    "pathRenderDistance": 0.0,
-    "waterTransparency": 0.0,
-    "loadbundleonlaunch": false,
-    "terrainTextureSet": false,
-    "style": true,
-    "application": {
-        "rustDirectory": "E:/Program Files (x86)/Steam/steamapps/common/Rust",
-        "prefabRenderDistance": 5000.0,
-        "pathRenderDistance": 5000.0,
-        "waterTransparency": 0.2511078417301178,
-        "loadbundleonlaunch": true,
-        "terrainTextureSet": true,
-        "loadBatch": 128,
-        "newSize": 3261,
-        "newHeight": 0.5896109342575073,
-        "newBiome": 2,
-        "newSplat": 16,
-        "recentFiles": [
-            "E:\\proceduralmaptest.map",
-            "E:\\Program Files (x86)\\Steam\\steamapps\\common\\Rust\\maps\\proceduralmap.4500.972430378.264_f9da216b3ee5be449ccdeee2aa807b07.map",
-            "F:\\newfolder3\\anasazi3k.v10.map",
-            "F:\\newfolder3\\Marsv10v1.0.8cliffsores.map",
-            "F:\\newfolder3\\compatibilitymap.map",
-            "F:\\NOS4000.map",
-            "F:\\newfolder3\\wtfux.map",
-            "F:\\newfolder3\\greece.3000.monuments.v2.map",
-            "F:\\newfolder3\\highrisemonuments4.map",
-            "F:\\newfolder3\\uqbar3000.v9.map",
-            "F:\\newfolder3\\Nymark.3000.v1.map"
-        ]
-    },
-    "crazing": {
-        "title": "",
-        "zones": 0,
-        "minSize": 0,
-        "maxSize": 0,
-        "splatLayer": 0
-    },
-    "perlinSplat": {
-        "scale": 0,
-        "splatLayer": 0,
-        "biomeLayer": 0,
-        "strength": 0.0,
-        "invert": false,
-        "paintBiome": false
-    },
-    "ripple": {
-        "size": 0,
-        "density": 0,
-        "weight": 0.0
-    },
-    "ocean": {
-        "title": "",
-        "radius": 0,
-        "gradient": 0,
-        "xOffset": 0,
-        "yOffset": 0,
-        "s": 0,
-        "seafloor": 0,
-        "perlin": false
-    },
-    "terracing": {
-        "flatten": false,
-        "perlinBanks": false,
-        "circular": false,
-        "weight": 0.0,
-        "zStart": 0,
-        "gateBottom": 0,
-        "gateTop": 0,
-        "gates": 0,
-        "descaleFactor": 0,
-        "perlinDensity": 0
-    },
-    "perlin": {
-        "layers": 0,
-        "period": 0,
-        "scale": 0,
-        "simple": false
-    },
-    "geology": {
-        "geologyItems": [
-            {
-                "customPrefab": "",
-                "custom": false,
-                "prefabID": 3464059523,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "",
-                "custom": false,
-                "prefabID": 835824009,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "",
-                "custom": false,
-                "prefabID": 3043824457,
-                "emphasis": 1
-            },
-            {
-                "customPrefab": "",
-                "custom": false,
-                "prefabID": 1309014915,
-                "emphasis": 1
-            }
-        ],
-        "geologyCollisions": [
-            {
-                "minMax": true,
-                "radius": 8.0,
-                "layer": 256
-            },
-            {
-                "minMax": true,
-                "radius": 30.0,
-                "layer": 512
-            }
-        ],
-        "newCollisions": {
-            "minMax": true,
-            "radius": 50.0,
-            "layer": 256
-        },
-        "filename": "Presets/Geology/mars overhang rocks.json",
-        "title": "china cliffs",
-        "density": 132,
-        "frequency": 11,
-        "floor": 505,
-        "ceiling": 1000,
-        "biomeIndex": 0,
-        "seed": 0,
-        "spawns": 0,
-        "biomeLayer": 1,
-        "colliderLayer": 0,
-        "closeColliderLayer": 0,
-        "avoidTopo": true,
-        "flipping": false,
-        "tilting": false,
-        "normalizeX": false,
-        "normalizeY": true,
-        "normalizeZ": false,
-        "biomeExclusive": true,
-        "cliffTest": true,
-        "overlap": false,
-        "closeOverlap": false,
-        "temperate": true,
-        "arid": true,
-        "arctic": true,
-        "tundra": true,
-        "road": false,
-        "monument": false,
-        "dither": false,
-        "useSeed": false,
-        "slopeRange": true,
-        "curveRange": false,
-        "heightRange": true,
-        "featureMenu": true,
-        "rotationMenu": true,
-        "scaleMenu": false,
-        "placementMenu": true,
-        "collisionMenu": true,
-        "presetMenu": true,
-        "jitterMenu": true,
-        "preview": true,
-        "scalesLow": {
-            "x": 1.0,
-            "y": 1.0,
-            "z": 1.0
-        },
-        "scalesHigh": {
-            "x": 1.0,
-            "y": 1.0,
-            "z": 1.0
-        },
-        "rotationsLow": {
-            "x": 0.0,
-            "y": 0.0,
-            "z": 0.0
-        },
-        "rotationsHigh": {
-            "x": 0.0,
-            "y": 0.0,
-            "z": 0.0
-        },
-        "jitterLow": {
-            "x": -1.226227879524231,
-            "y": 0.018377304077148439,
-            "z": 0.18308639526367188
-        },
-        "jitterHigh": {
-            "x": 2.730393409729004,
-            "y": 0.13235688209533692,
-            "z": 0.19362688064575196
-        },
-        "zOffset": -0.15000000596046449,
-        "colliderDistance": 0.0,
-        "closeColliderDistance": 0.0,
-        "balance": 0.0,
-        "slopeLow": 26.410537719726564,
-        "slopeHigh": 147.50717163085938,
-        "heights": {
-            "slopeLow": 49.599220275878909,
-            "slopeHigh": 180.0,
-            "heightMin": 0.0,
-            "heightMax": 1.0,
-            "curveMin": -1.0839223861694337,
-            "curveMax": -0.42713236808776858,
-            "slopeWeight": 1.0,
-            "curveWeight": 1.0
-        },
-        "topologies": 2145905663
-    },
-    "replacer": {
-        "prefabID0": 0,
-        "prefabID1": 0,
-        "prefabID2": 0,
-        "prefabID3": 0,
-        "prefabID4": 0,
-        "prefabID5": 0,
-        "prefabID6": 0,
-        "prefabID7": 0,
-        "prefabID8": 0,
-        "prefabID9": 0,
-        "prefabID10": 0,
-        "prefabID11": 0,
-        "prefabID12": 0,
-        "prefabID13": 0,
-        "prefabID14": 0,
-        "prefabID15": 0,
-        "prefabID16": 0,
-        "replaceID0": 0,
-        "replaceID1": 0,
-        "replaceID2": 0,
-        "replaceID3": 0,
-        "replaceID4": 0,
-        "replaceID5": 0,
-        "replaceID6": 0,
-        "replaceID7": 0,
-        "replaceID8": 0,
-        "replaceID9": 0,
-        "replaceID10": 0,
-        "replaceID11": 0,
-        "replaceID12": 0,
-        "replaceID13": 0,
-        "replaceID14": 0,
-        "replaceID15": 0,
-        "replaceID16": 0,
-        "rotateToTerrain": false,
-        "rotateToX": false,
-        "rotateToY": false,
-        "rotateToZ": false,
-        "title": "",
-        "scale": false,
-        "scaling": {
-            "x": 0.0,
-            "y": 0.0,
-            "z": 0.0
-        }
-    },
-    "prefabPaths": [],
-    "city": {
-        "title": "",
-        "size": 0,
-        "alley": 0,
-        "street": 0,
-        "start": 0,
-        "flatness": 0.0,
-        "zOff": 0.0,
-        "x": 0,
-        "y": 0
-    },
-    "breaker": {
-        "title": "",
-        "monument": {
-            "category": [],
-            "monumentName": ""
-        }
-    },
-    "macroSources": false,
-    "faves": {
-        "favoriteCustoms": [
-            "assets/bundled/prefabs/autospawn/monument/large/airfield_1",
-            "assets/bundled/prefabs/autospawn/monument/large/excavator_1",
-            "assets/bundled/prefabs/autospawn/monument/large/military_tunnel_1",
-            "assets/bundled/prefabs/autospawn/monument/large/trainyard_1",
-            "assets/bundled/prefabs/autospawn/monument/large/water_treatment_plant_1",
-            "assets/bundled/prefabs/fireball_small_arrow",
-            "assets/bundled/prefabs/incendiary_fireball",
-            "assets/bundled/prefabs/napalm",
-            "assets/bundled/prefabs/oilfireballsmall",
-            "~Custom/polygons/parkourOctahedron",
-            "assets/bundled/prefabs/modding/cubes/concrete_cube"
-        ]
-    },
-    "windowStates": [
-        {
-            "isActive": false,
-            "position": {
-                "x": 6.460000038146973,
-                "y": -8.859999656677246,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.6000000238418579,
-                "y": 0.6000000238418579,
-                "z": 0.0
-            }
-        },
-        {
-            "isActive": false,
-            "position": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.6000000238418579,
-                "y": 0.6000000238418579,
-                "z": 0.0
-            }
-        },
-        {
-            "isActive": false,
-            "position": {
-                "x": -150.5,
-                "y": 87.49996948242188,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.6000000238418579,
-                "y": 0.6000000238418579,
-                "z": 0.0
-            }
-        },
-        {
-            "isActive": false,
-            "position": {
-                "x": -5.392578125,
-                "y": 2.0865478515625,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.6000000238418579,
-                "y": 0.6000000238418579,
-                "z": 0.0
-            }
-        },
-        {
-            "isActive": true,
-            "position": {
-                "x": -319.892578125,
-                "y": 44.20001220703125,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.6000000238418579,
-                "y": 0.6000000238418579,
-                "z": 0.0
-            }
-        },
-        {
-            "isActive": false,
-            "position": {
-                "x": -152.0159912109375,
-                "y": -72.14599609375,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.6000000238418579,
-                "y": 0.6000000238418579,
-                "z": 0.0
-            }
-        },
-        {
-            "isActive": false,
-            "position": {
-                "x": -59.5,
-                "y": 53.499969482421878,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.6000000238418579,
-                "y": 0.6000000238418579,
-                "z": 0.0
-            }
-        },
-        {
-            "isActive": false,
-            "position": {
-                "x": -51.5,
-                "y": 18.499969482421876,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.6000000238418579,
-                "y": 0.6000000238418579,
-                "z": 0.0
-            }
-        },
-        {
-            "isActive": false,
-            "position": {
-                "x": -73.80000305175781,
-                "y": -15.199999809265137,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.6000000238418579,
-                "y": 0.6000000238418579,
-                "z": 0.0
-            }
-        }
+  "rustDirectory": "",
+  "prefabRenderDistance": 0.0,
+  "pathRenderDistance": 0.0,
+  "waterTransparency": 0.0,
+  "loadbundleonlaunch": false,
+  "terrainTextureSet": false,
+  "style": true,
+  "application": {
+    "rustDirectory": "E:/Program Files (x86)/Steam/steamapps/common/Rust",
+    "prefabRenderDistance": 5000.0,
+    "pathRenderDistance": 5000.0,
+    "waterTransparency": 0.251107842,
+    "loadbundleonlaunch": true,
+    "terrainTextureSet": true,
+    "loadBatch": 128,
+    "newSize": 3261,
+    "newHeight": 0.589610934,
+    "newBiome": 2,
+    "newSplat": 16,
+    "recentFiles": [
+      "E:\\smallmap.map"
+    ]
+  },
+  "crazing": {
+    "title": "",
+    "zones": 0,
+    "minSize": 0,
+    "maxSize": 0,
+    "splatLayer": 0
+  },
+  "perlinSplat": {
+    "scale": 0,
+    "splatLayer": 0,
+    "biomeLayer": 0,
+    "strength": 0.0,
+    "invert": false,
+    "paintBiome": false
+  },
+  "ripple": {
+    "size": 0,
+    "density": 0,
+    "weight": 0.0
+  },
+  "ocean": {
+    "title": "",
+    "radius": 0,
+    "gradient": 0,
+    "xOffset": 0,
+    "yOffset": 0,
+    "s": 0,
+    "seafloor": 0,
+    "perlin": false
+  },
+  "terracing": {
+    "flatten": false,
+    "perlinBanks": false,
+    "circular": false,
+    "weight": 0.0,
+    "zStart": 0,
+    "gateBottom": 0,
+    "gateTop": 0,
+    "gates": 0,
+    "descaleFactor": 0,
+    "perlinDensity": 0
+  },
+  "perlin": {
+    "layers": 0,
+    "period": 0,
+    "scale": 0,
+    "simple": false
+  },
+  "geology": {
+    "geologyItems": [
+      {
+        "customPrefab": "",
+        "custom": false,
+        "prefabID": 3464059523,
+        "emphasis": 1
+      },
+      {
+        "customPrefab": "",
+        "custom": false,
+        "prefabID": 835824009,
+        "emphasis": 1
+      },
+      {
+        "customPrefab": "",
+        "custom": false,
+        "prefabID": 3043824457,
+        "emphasis": 1
+      },
+      {
+        "customPrefab": "",
+        "custom": false,
+        "prefabID": 1309014915,
+        "emphasis": 1
+      }
     ],
-    "menuState": {
-        "scale": {
-            "x": 1.5520031452178956,
-            "y": 1.5520031452178956,
-            "z": 1.0
-        },
-        "position": {
-            "x": 1183.0,
-            "y": 643.0,
-            "z": 0.0
-        }
+    "geologyCollisions": [
+      {
+        "minMax": true,
+        "radius": 8.0,
+        "layer": 256
+      },
+      {
+        "minMax": true,
+        "radius": 30.0,
+        "layer": 512
+      }
+    ],
+    "newCollisions": {
+      "minMax": true,
+      "radius": 50.0,
+      "layer": 256
+    },
+    "filename": "Presets/Geology/mars overhang rocks.json",
+    "title": "china cliffs",
+    "density": 132,
+    "frequency": 11,
+    "floor": 505,
+    "ceiling": 1000,
+    "biomeIndex": 0,
+    "seed": 0,
+    "spawns": 0,
+    "biomeLayer": 1,
+    "colliderLayer": 0,
+    "closeColliderLayer": 0,
+    "avoidTopo": true,
+    "flipping": false,
+    "tilting": false,
+    "normalizeX": false,
+    "normalizeY": true,
+    "normalizeZ": false,
+    "biomeExclusive": true,
+    "cliffTest": true,
+    "overlap": false,
+    "closeOverlap": false,
+    "temperate": true,
+    "arid": true,
+    "arctic": true,
+    "tundra": true,
+    "road": false,
+    "monument": false,
+    "dither": false,
+    "useSeed": false,
+    "slopeRange": true,
+    "curveRange": false,
+    "heightRange": true,
+    "featureMenu": true,
+    "rotationMenu": true,
+    "scaleMenu": false,
+    "placementMenu": true,
+    "collisionMenu": true,
+    "presetMenu": true,
+    "jitterMenu": true,
+    "preview": true,
+    "scalesLow": {
+      "x": 1.0,
+      "y": 1.0,
+      "z": 1.0
+    },
+    "scalesHigh": {
+      "x": 1.0,
+      "y": 1.0,
+      "z": 1.0
+    },
+    "rotationsLow": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "rotationsHigh": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "jitterLow": {
+      "x": -1.22622788,
+      "y": 0.0183773041,
+      "z": 0.1830864
+    },
+    "jitterHigh": {
+      "x": 2.73039341,
+      "y": 0.132356882,
+      "z": 0.193626881
+    },
+    "zOffset": -0.15,
+    "colliderDistance": 0.0,
+    "closeColliderDistance": 0.0,
+    "balance": 0.0,
+    "slopeLow": 26.4105377,
+    "slopeHigh": 147.507172,
+    "heights": {
+      "slopeLow": 49.59922,
+      "slopeHigh": 180.0,
+      "heightMin": 0.0,
+      "heightMax": 1.0,
+      "curveMin": -1.08392239,
+      "curveMax": -0.427132368,
+      "slopeWeight": 1.0,
+      "curveWeight": 1.0
+    },
+    "topologies": 2145905663
+  },
+  "replacer": {
+    "prefabID0": 0,
+    "prefabID1": 0,
+    "prefabID2": 0,
+    "prefabID3": 0,
+    "prefabID4": 0,
+    "prefabID5": 0,
+    "prefabID6": 0,
+    "prefabID7": 0,
+    "prefabID8": 0,
+    "prefabID9": 0,
+    "prefabID10": 0,
+    "prefabID11": 0,
+    "prefabID12": 0,
+    "prefabID13": 0,
+    "prefabID14": 0,
+    "prefabID15": 0,
+    "prefabID16": 0,
+    "replaceID0": 0,
+    "replaceID1": 0,
+    "replaceID2": 0,
+    "replaceID3": 0,
+    "replaceID4": 0,
+    "replaceID5": 0,
+    "replaceID6": 0,
+    "replaceID7": 0,
+    "replaceID8": 0,
+    "replaceID9": 0,
+    "replaceID10": 0,
+    "replaceID11": 0,
+    "replaceID12": 0,
+    "replaceID13": 0,
+    "replaceID14": 0,
+    "replaceID15": 0,
+    "replaceID16": 0,
+    "rotateToTerrain": false,
+    "rotateToX": false,
+    "rotateToY": false,
+    "rotateToZ": false,
+    "title": "",
+    "scale": false,
+    "scaling": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     }
+  },
+  "prefabPaths": [],
+  "city": {
+    "title": "",
+    "size": 0,
+    "alley": 0,
+    "street": 0,
+    "start": 0,
+    "flatness": 0.0,
+    "zOff": 0.0,
+    "x": 0,
+    "y": 0
+  },
+  "breaker": {
+    "title": null,
+    "monument": null
+  },
+  "macroSources": false,
+  "faves": {
+    "favoriteCustoms": []
+  },
+  "windowStates": [
+    {
+      "isActive": false,
+      "position": {
+        "x": 6.46,
+        "y": -8.86,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 0.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 1.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": -128.0,
+        "y": 56.99997,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 1.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": -5.392578,
+        "y": 2.08654785,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 1.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": -32.39258,
+        "y": -2.29998779,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 0.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": -58.8999939,
+        "y": 2.1,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 1.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": -37.0,
+        "y": 22.99997,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 0.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": -29.0,
+        "y": -12.0000305,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 0.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": -73.8,
+        "y": -15.2,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 1.0
+      }
+    },
+    {
+      "isActive": true,
+      "position": {
+        "x": -373.977,
+        "y": 60.99997,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 0.0
+      }
+    }
+  ],
+  "menuState": {
+    "scale": {
+      "x": 1.54800057,
+      "y": 1.54800057,
+      "z": 1.0
+    },
+    "position": {
+      "x": 998.0,
+      "y": 626.0,
+      "z": 0.0
+    }
+  }
 }

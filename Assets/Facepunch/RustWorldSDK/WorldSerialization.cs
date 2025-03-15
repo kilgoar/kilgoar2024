@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using ProtoBuf;
 using LZ4;
+using Newtonsoft.Json; 
 
 using RustMapEditor.Variables;
 
@@ -504,13 +505,24 @@ public class WorldSerialization
         }
     }
 	
-	public void SavePrefabJSON(string fileName)
+    public void SavePrefabJSON(string fileName)
     {
-		string rustedit = JsonUtility.ToJson(rePrefab, true);
-		
-		using (StreamWriter write = new StreamWriter(fileName, false))
+        try
         {
-            write.Write(rustedit);
+            // Serialize REPrefabData to JSON with Newtonsoft.Json
+            string json = JsonConvert.SerializeObject(rePrefab, Formatting.Indented, new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore, // Handle circular references
+                NullValueHandling = NullValueHandling.Include // Include null values
+            });
+
+            // Write JSON to file
+            File.WriteAllText(fileName, json);
+            Debug.Log($"Saved JSON to {fileName}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error saving JSON: {e.Message}");
         }
     }
 	

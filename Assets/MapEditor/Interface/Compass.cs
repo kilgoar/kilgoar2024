@@ -60,11 +60,18 @@ public class Compass : MonoBehaviour
 	}
 
 	public void SyncScaleWithMenu()
-    {
-            Vector3 menuScale = MenuManager.Instance.GetMenuScale();
-            compass.localScale = menuScale - Vector3.one;
-    }
-
+	{
+		Vector3 menuScale = MenuManager.Instance.GetMenuScale();
+		Vector3 newScale = menuScale - Vector3.one;
+		
+		// Clamp each component of the vector between 0.6 and 3
+		newScale.x = Mathf.Clamp(newScale.x, 0.6f, 3f);
+		newScale.y = Mathf.Clamp(newScale.y, 0.6f, 3f);
+		newScale.z = Mathf.Clamp(newScale.z, 0.6f, 3f);
+		
+		compass.localScale = newScale;
+	}
+	
     private void Update()
     {
 

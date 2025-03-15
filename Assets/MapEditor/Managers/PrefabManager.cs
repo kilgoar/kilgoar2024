@@ -78,6 +78,7 @@ public static class PrefabManager
     public static class Callbacks
     {
         public delegate void PrefabManagerCallback(GameObject prefab);
+		public delegate void PrefabsCallBack(List<GameObject> prefabs);
 
         /// <summary>Called after prefab is loaded and setup from bundle. </summary>
         public static event PrefabManagerCallback PrefabLoaded;
@@ -85,11 +86,12 @@ public static class PrefabManager
         public static event PrefabManagerCallback PrefabCategoryChanged;
         /// <summary>Called after prefab ID is changed.</summary>
         public static event PrefabManagerCallback PrefabIDChanged;
-
 		
         public static void OnPrefabLoaded(GameObject prefab) => PrefabLoaded?.Invoke(prefab);
         public static void OnPrefabCategoryChanged(GameObject prefab) => PrefabCategoryChanged?.Invoke(prefab);
-        public static void OnPrefabIDChanged(GameObject prefab) => PrefabIDChanged?.Invoke(prefab);
+        public static void OnPrefabIDChanged(GameObject prefab) => PrefabIDChanged?.Invoke(prefab);        
+		
+  
     }
 	public static Transform TransformTool;
 	
@@ -115,11 +117,12 @@ public static class PrefabManager
 	public static ModifierDataHolder CurrentModifiers { get => ModifiersParent.gameObject.GetComponentInChildren<ModifierDataHolder>(); }
 	
     /// <summary>List of prefab names from the asset bundle.</summary>
-    private static List<string> Prefabs;
-	private static List<Collider> unprocessedColliders = new List<Collider>();
+    public static List<string> Prefabs;
+	public static List<Collider> unprocessedColliders = new List<Collider>();
     /// <summary>Prefabs currently spawned on the map.</summary>
     public static PrefabDataHolder[] CurrentMapPrefabs { get => PrefabParent.gameObject.GetComponentsInChildren<PrefabDataHolder>(); }
 	
+	public static bool networking = false;
 	//public static PrefabDataHolder CurrentSelection { get; private set; }
 	//public static Transform CollectionSelection { get; private set; }
 
@@ -144,9 +147,28 @@ public static class PrefabManager
 		"Airfield AI",
 		"Trainyard AI",
 		"RadiationSphere",
+		"sound",
+		"SafeZone",
+		"prevent_building_sphere",
+		"prevent_building",
+		"PreventBuilding",
 	};
 	
     public static bool IsChangingPrefabs { get; private set; }
+
+	public static void NotifyItemsChanged(bool update=true){
+		
+		if(networking){ return; }  // short circuit notifications when loading via network
+		
+		Debug.LogError("updating items list\n" + new System.Diagnostics.StackTrace().ToString());  //trace shitty updates
+		
+		if(!update) {return;} // short circuit notifications if they derive from items window
+		
+		if(ItemsWindow.Instance != null)
+		{
+			ItemsWindow.Instance.PopulateList();
+		}
+	}
 
     /// <summary>Loads, sets up and returns the prefab at the asset path.</summary>
     /// <param name="path">The prefab path in the bundle file.</param>
@@ -204,6 +226,7 @@ public static class PrefabManager
     /// <param name="filePath">Asset filepath of the gameobject, used to get and set the PrefabID.</param>
 	public static GameObject Setup(GameObject go, string filePath)
 	{
+		NetworkManager.Register(go);
 		// Apply global changes to the GameObject
 		go.SetLayerRecursively(3);
 		go.SetTagRecursively("Untagged");
@@ -369,26 +392,23 @@ public static class PrefabManager
 				// Check if the GameObject is valid before proceeding
 				if (collider.gameObject != null)
 				{
-					/*
-					//hide problem volumes
+
 					var hierarchyInfo = collider.gameObject.GetHierarchyInfo();					
 					if (hierarchyInfo != default((string, string, string)))
 					{
 						var (firstName, parentName, monumentName) = hierarchyInfo;
 						
-						if (!string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(parentName) && !string.IsNullOrEmpty(monumentName))
-						{
-							//uint testID = AssetManager.fragmentToID(firstName, parentName, monumentName);
-							
-							if (BlockedColliderNames.Contains(firstName))
+							if (BlockedColliderNames.Contains(firstName)  && !string.IsNullOrEmpty(monumentName))
 							{
-								Debug.LogError($"Interfering collider found: {firstName} at {monumentName}");
-								collider.gameObject.layer = 2; // Set to a layer that won't interact with ray casts
+								//Debug.LogError($"Interfering collider found: {firstName} at {monumentName}");
+								collider.gameObject.layer = 0; // Set to a layer that won't interact with ray casts at all
 							}
-						}
+							else
+							{
+						
+								collider.gameObject.layer = 2; // Set to a layer to de-prioritize volume selections
+							}
 					}
-						*/
-						collider.gameObject.layer = 2; // Set to a layer to de-prioritize volume selections
 				
 					
 					
@@ -739,6 +759,8 @@ public static class PrefabManager
 			
 			
 			MapManager.MergeOffsetREPrefab(WorldConverter.WorldToREPrefab(world), newObj.transform, loadPath);
+			
+
 	}
 	
 	public static Colliders ItemToColliders(Transform item)
@@ -861,147 +883,7 @@ public static class PrefabManager
 		return prefab;
 	}
 	
-	public static void blacklistedCreatePrefab(string category, uint id, Vector3 adjuster, Transform spawnItem)
-    {
-		/*
-		if(id !=0 && id != 1677700966 && id != 2408482215 && id != 1071933290 && id != 4114395726 && id != 4179136873 && id != 3782603339 && id != 3072760270 && id != 3468856354 && id != 4022753621
-		&& id != 3415994284 && id != 447739874 && id != 2316560245 && id != 3052882219 && id != 2962527842 && id != 1872469913 && id != 2364515962 && id != 1369298112 && id != 3450258766 && id != 2483607632)
-		{
-			if (id == 3286143640)
-					id = 3713697082;
-		*/	
-		
-		if (id == 859761354) //system
-			return;
-		
-		if (id == 817541646)
-		{
-			spawnItem.position -= adjuster;		
-			//placeCustomPrefab("fenceReplacer.prefab", spawnItem);
-			return;
-		}
-		
-			string[] parse;
-			parse = spawnItem.name.Split(' ');
-			string itemName = parse[0];
-			
-			
 
-
-				//pass over duplicate bushes etc
-					if (spawnItem.name.Contains("temperate") || spawnItem.name.Contains("tundra"))
-					{
-						return;
-					}
-					else if (spawnItem.name.Contains("snow") || spawnItem.name.Contains("arid") )
-					{
-							if (spawnItem.name.Contains("ball") || spawnItem.name.Contains("mound")
-								|| spawnItem.name.Contains("shipping") || spawnItem.name.Contains("rock")
-								|| spawnItem.name.Contains("drum") || spawnItem.name.Contains("crate")
-								|| spawnItem.name.Contains("boxes") || spawnItem.name.Contains("Cliff"))
-								{
-									//do not remove  snowballs or snowmounds of ice lakes etc
-									
-								}
-							else
-								{
-									return;
-								}
-					}
-
-
-
-			
-		Vector3 rotation = spawnItem.eulerAngles;
-		Vector3 position = spawnItem.position - adjuster;
-		Vector3 scale=spawnItem.lossyScale;
-			//ladder fixes
-			if(id == 3381066643)
-			{
-				BoxCollider collider = spawnItem.GetComponent(typeof(BoxCollider)) as BoxCollider;
-				scale = collider.size;
-			if (monumentName == "airfield 1" || monumentName =="trainyard 1" || monumentName == "water treatment plant 1")
-				{
-					position.y += scale.y /2f;
-				}
-				else if(monumentName == "military tunnel 1")
-				{
-					position.y += scale.y *.4f;
-				}
-			}
-		if (id == 3224970585 || id == 316558065 || id == 4190049974  || id == 3521578167 || id == 3381066643 || id == 3000049339 || id == 602278094 || id == 858853278)
-		{
-			if ((monumentName == "trainyard 1" || monumentName == "sphere tank" || monumentName == "Oilrig 1" ||
-			monumentName == "Oilrig 2") && id != 4190049974 && id !=3521578167)
-			{
-				//scale is correct
-			}
-			else
-			{
-				
-				if (spawnItem.TryGetComponent(typeof(SphereCollider), out Component comp))
-				{
-					SphereCollider collider = spawnItem.GetComponent(typeof(SphereCollider)) as SphereCollider;
-					scale.x = collider.radius*2f;
-					scale.y = collider.radius*2f;
-					scale.z = collider.radius*2f;
-					
-					if (id == 4190049974){ id = 3224970585;}
-					
-				}
-				
-				else if (spawnItem.TryGetComponent(typeof(BoxCollider), out Component compt))
-				{
-					BoxCollider collider = spawnItem.GetComponent(typeof(BoxCollider)) as BoxCollider;
-					//position += collider.center;
-					scale = collider.size;
-					if(id ==3224970585){ id = 4190049974;}
-				}
-				
-				else if (spawnItem.TryGetComponent(typeof(CapsuleCollider), out Component compy))
-				{
-					CapsuleCollider collider = spawnItem.GetComponent(typeof(CapsuleCollider)) as CapsuleCollider;
-					scale.x = collider.radius*2f;
-					scale.z = collider.radius*2f;
-					scale.y = collider.height;
-					if(id ==3224970585){ id = 4190049974;}
-				}
-			}
-			
-			if (scale.x == 1f && scale.y == 1f && scale.z == 1f)
-			{
-				scale = spawnItem.lossyScale;
-			}
-		}
-		else if (id == 3028561942 || id == 2493569314 || id == 3279304307)
-		{
-			rotation.y -= 90f;
-		}
-		else if (spawnItem.name.Contains("hinged"))
-		{
-			scale.x = 0.01f;
-		}
-		else if (id == 0)
-		{
-			return;
-		}
-		
-		Transform prefabsParent = GameObject.FindGameObjectWithTag("Prefabs").transform;
-		GameObject defaultObj = Load(id);
-		PrefabData newPrefab = new PrefabData();
-		defaultObj.SetActive(true);
-		var prefab = new PrefabData();
-
-		prefab.category = category;
-		prefab.id = id;
-		prefab.position = position;
-		prefab.rotation = rotation;
-		prefab.scale = scale;
-		
-		SpawnPrefab(defaultObj, prefab, prefabsParent);
-		/*}*/
-    }
-	//1537983469
 	
 	public static void placeCube(Vector3 position, Vector3 scale, float scaleDown)
 	{
@@ -1321,6 +1203,8 @@ public static class PrefabManager
 				}
 			}
 		}
+		
+		NotifyItemsChanged();
 		Debug.LogError(count1 + count + " prefabs replaced." + count + " prefabs rotated to terrain. " );
 	}
 
@@ -1361,6 +1245,7 @@ public static class PrefabManager
 				}
 			}
 		}
+		NotifyItemsChanged();
 		Debug.LogError(count + " prefabs deleted.");
 	}
 	
@@ -1401,6 +1286,8 @@ public static class PrefabManager
 				}
 			}
 		}
+		
+		NotifyItemsChanged();
 		return (count + " duplicates removed");
 	}
 
@@ -1416,6 +1303,8 @@ public static class PrefabManager
 		position = new Vector3(0f, 1f, 750f);
 		createPrefab("Decor", id,	position, rotation, scale);
 		
+		
+		NotifyItemsChanged();
 	}
 
 	public static void keepPrefabList(PrefabDataHolder[] prefabs, uint[] keepersList)
@@ -1445,6 +1334,8 @@ public static class PrefabManager
 					}						
 			}
 		}
+		
+		NotifyItemsChanged();
 		
 	}
 
@@ -1994,6 +1885,8 @@ public static class PrefabManager
 		Vector3 rotation = new Vector3(0,0,0);
 		Vector3 scale = new Vector3(1,1,1);
 		createPrefab(mark, 1724395471, location, rotation, scale);
+		
+		NotifyItemsChanged();
 	}
 	
 	public static uint GetPalette(int index)
@@ -2122,6 +2015,8 @@ public static class PrefabManager
 				}
 			}
 		}
+		
+		NotifyItemsChanged();
 		Debug.LogError(count + "vehicles scrambled");
 	}
 	
@@ -2185,6 +2080,8 @@ public static class PrefabManager
 			GameObject prefab = Load(prefabs[i].id);
 			Spawn(prefab, prefabs[i], prefabParent);
 		}
+		
+		NotifyItemsChanged();
 	}
 
 	[ConsoleCommand("delete prefabs in arid biome")]
@@ -2215,6 +2112,8 @@ public static class PrefabManager
 			}
 		}
 		Debug.LogError(count + " prefabs removed");
+		
+		NotifyItemsChanged();
 	}
 
 	[ConsoleCommand("delete prefabs matching IDs")]
@@ -2235,6 +2134,8 @@ public static class PrefabManager
 			}
 		}
 		Debug.LogError(count + " prefabs removed");
+		
+		NotifyItemsChanged();
 	}
 
 
@@ -2277,7 +2178,7 @@ public static class PrefabManager
 		}
 
 
-		
+		NotifyItemsChanged();
 		Debug.LogError(count + " prefabs removed");
 	}
 	
@@ -2294,6 +2195,8 @@ public static class PrefabManager
 							prefabs[k] = null;
 							count ++;
 		}
+		
+		NotifyItemsChanged();
 		Debug.LogError(count + " prefabs removed");
 	}
 	
@@ -2320,6 +2223,8 @@ public static class PrefabManager
 					}
 				}
             }
+			
+			NotifyItemsChanged();
         }
 	
 	
@@ -2394,6 +2299,7 @@ public static class Coroutines
 
 		// Hide the loading screen
 		LoadScreen.Instance.Hide();
+		NotifyItemsChanged();
 	}
 	
 	// Helper coroutine for periodic yielding with a self-stopping mechanism
@@ -2448,6 +2354,9 @@ public static class Coroutines
 			Progress.Report(progressID, 1f, "Deleted " + prefabs.Length + " prefabs and " + collections.Length + " collections.");
 			Progress.Finish(progressID, Progress.Status.Succeeded);
 			#endif
+			
+			
+			NotifyItemsChanged();
 		}
 
 		public static IEnumerator ReplaceWithLoaded(PrefabDataHolder[] prefabs, int progressID)
@@ -2475,6 +2384,9 @@ public static class Coroutines
 			Progress.Finish(progressID, Progress.Status.Succeeded);
 			#endif
 			IsChangingPrefabs = false;
+			
+			
+			NotifyItemsChanged();
 		}
 
 		public static IEnumerator ReplaceWithDefault(PrefabDataHolder[] prefabs, int progressID)
@@ -2502,6 +2414,8 @@ public static class Coroutines
 			Progress.Finish(progressID, Progress.Status.Succeeded);
 			#endif
 			IsChangingPrefabs = false;
+			
+			NotifyItemsChanged();
 		}
 
 	public static IEnumerator SpawnPrefabs(PrefabData[] prefabs, int progressID, Transform prefabParent)
@@ -2542,6 +2456,7 @@ public static class Coroutines
 
 			yield return null; // Wait for next frame after processing each batch
 		}
+		NotifyItemsChanged();
 	}
 		
 		public static IEnumerator SpawnCircuits(CircuitData[] circuitData, int progressID = 0)
@@ -2732,6 +2647,8 @@ public static class Coroutines
 			Progress.Report(progressId, 0.99f, "Renamed: " + prefabs.Length + " prefabs.");
 			Progress.Finish(progressId);
 			#endif
+			
+			NotifyItemsChanged();
 		}
 
 		public static IEnumerator RenamePrefabIDs(PrefabDataHolder[] prefabs, uint id, bool replace)
@@ -2767,6 +2684,8 @@ public static class Coroutines
 			Progress.Report(progressId, 0.99f, "Renamed: " + prefabs.Length + " prefabs.");
 			Progress.Finish(progressId);
 			#endif
+			
+			NotifyItemsChanged();
 		}
 
     }

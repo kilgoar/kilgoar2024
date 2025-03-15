@@ -3,6 +3,7 @@ using UnityEngine;
 using RustMapEditor.Variables;
 using static WorldSerialization;
 using static TerrainManager;
+using Newtonsoft.Json;
 
 #if UNITY_EDITOR
 using Unity.EditorCoroutines.Editor;
@@ -1763,14 +1764,15 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
 		Transform prefabsParent = GameObject.FindGameObjectWithTag("Prefabs").transform;
 		GameObject defaultObj = Resources.Load<GameObject>("Prefabs/DefaultPrefab");
         
+		
+		//the math here is wrong i believe, probably best to rewrite this entire crap anyway
 		for (int i = 0; i < terrains.prefabData.Length; i++)
         {
 			terrains.prefabData[i].position.x = terrains.prefabData[i].position.x+y1*2f;
 			terrains.prefabData[i].position.z = terrains.prefabData[i].position.z+x1*2f;
 			terrains.prefabData[i].position.y = terrains.prefabData[i].position.y + zOffset*1000f;
-			GameObject newObj = PrefabManager.SpawnPrefab(defaultObj, terrains.prefabData[i], prefabsParent);
-            newObj.GetComponent<PrefabDataHolder>().prefabData = terrains.prefabData[i];
         }
+		PrefabManager.SpawnPrefabs(terrains.prefabData, 0, prefabsParent);
 		
 		Transform PathParent = GameObject.FindGameObjectWithTag("Paths").transform;
 		//int progressID = Progress.Start("Load: " + "", "Preparing Map", Progress.Options.Sticky);
@@ -2677,9 +2679,7 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
 
 		makeCliffsRunning = false;
 		
-		if (ItemsWindow.Instance!=null){
-			ItemsWindow.Instance.PopulateList();
-		}
+		PrefabManager.NotifyItemsChanged();
 
 		
 	}
@@ -2726,17 +2726,29 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
 		return rayDataList;
 	}
 
-public static GeologyPreset LoadGeologyPreset(string filename)
-{
-    //string path = SettingsManager.AppDataPath() + $"Presets/Geology/{filename}.preset";
-    string path = filename;
-	if (File.Exists(path))
+    public static GeologyPreset LoadGeologyPreset(string filename)
     {
-        string json = File.ReadAllText(path);
-        return JsonUtility.FromJson<GeologyPreset>(json);
+        //string path = SettingsManager.AppDataPath() + $"Presets/Geology/{filename}.preset";
+        string path = filename; // Using the provided filename directly
+        if (File.Exists(path))
+        {
+            try
+            {
+                string json = File.ReadAllText(path);
+                return JsonConvert.DeserializeObject<GeologyPreset>(json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error loading GeologyPreset from {path}: {e.Message}");
+                return new GeologyPreset(); // Return default preset on error
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"Geology preset file not found: {path}");
+            return new GeologyPreset(); // Return default preset if file doesn’t exist
+        }
     }
-    return new GeologyPreset();
-}
 
 private static void AdjustRotationForNormalization(ref Vector3 rRotate, GeologyPreset geo, Vector3 normal, Terrain land, int i, int j, int splatRes)
 {

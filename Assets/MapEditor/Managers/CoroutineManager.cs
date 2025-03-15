@@ -119,11 +119,28 @@ public class CoroutineManager : MonoBehaviour
 							nextCrumpetTime = Time.time + 0.05f;
 						}
 						break;
+					case 3:
+						PathStylusMode();
+						break;
 				}
 
 			}
 
     }
+
+    private void PathStylusMode()
+    {
+        if (Mouse.current.rightButton.wasPressedThisFrame) return;
+
+        if (Mouse.current.leftButton.wasPressedThisFrame && RTGizmosEngine.Get.HoveredGizmo == null)
+        {
+			CameraManager.Instance.SelectPath();
+			CameraManager.Instance.PaintNodes();
+        }
+		
+		
+    }
+
 
     private void ItemStylusMode()
     {
@@ -138,11 +155,8 @@ public class CoroutineManager : MonoBehaviour
 					if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask)){
 						
 							HierarchyWindow.Instance.PlacePrefab(hit.point);
-						
-						if(ItemsWindow.Instance!=null){
-							
-							ItemsWindow.Instance.PopulateList();
-						}
+							PrefabManager.NotifyItemsChanged();
+
 					}
 
 				}

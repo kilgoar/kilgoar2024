@@ -1745,6 +1745,69 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: pathsGreen
+      rect:
+        serializedVersion: 2
+        x: 834
+        y: 873
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dbcad046b9afb0d4c8636ec90ed0e9e4
+      internalID: -1432066
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: paths
+      rect:
+        serializedVersion: 2
+        x: 890
+        y: 870
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4950718ab904a2445b649d2ac1afa675
+      internalID: -1829354638
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: folderOpenWhite
+      rect:
+        serializedVersion: 2
+        x: 1079
+        y: 969
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fd04942961237e9488bc01ae5ae145eb
+      internalID: 935141968
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     physicsShape: []
     bones: []
@@ -1800,6 +1863,7 @@ TextureImporter:
       favorite: 1947781011
       folder: -1578959667
       folder open: 911976114
+      folderOpenWhite: 935141968
       gear: 1788931696
       gearIcon: -440914037
       gearIconGreen: 2044013127
@@ -1813,6 +1877,8 @@ TextureImporter:
       mapicon: -451219018
       painter green: -1578229693
       painter white: -97966464
+      paths: -1829354638
+      pathsGreen: -1432066
       plus sign blue: -981460359
       prefabList: -1071875092
       prefabListGreen: 1569333959
