@@ -58,6 +58,9 @@ public class CameraManager : MonoBehaviour
 
 	private List<RaycastHit> previousHits = new List<RaycastHit>();
 	private int currentSelectionIndex = 0;
+	
+	public delegate void SelectionChangedHandler();
+    public event SelectionChangedHandler OnSelectionChanged;
 
     FilePreset settings;
 	
@@ -321,7 +324,7 @@ public void InitializeGizmos()
 				globalMove += cam.transform.up * currentSpeed;
 			}
 			
-			if (key.deleteKey.isPressed) {
+			if (key.deleteKey.wasPressedThisFrame) {
 				DeleteSelection();
 				
 			}
@@ -348,21 +351,6 @@ public void InitializeGizmos()
 		}
 	}
 	
-	public void SelectPrefabWithoutNotify(GameObject go){
-		_selectedObjects.Add(go);
-		ItemsWindow.Instance.SetSelection(go);
-		EmissionHighlight(GetRenderers(go),true);
-		UpdateGizmoState();
-	}
-	
-	public void SelectPrefab(GameObject go){
-		_selectedObjects.Add(go);
-		ItemsWindow.Instance.SetSelection(go);
-		EmissionHighlight(GetRenderers(go),true);
-		UpdateItemsWindow();
-		UpdateGizmoState();
-
-	}
 	
 	public void UpdateItemsWindow(){
 		if(ItemsWindow.Instance != null){
@@ -462,136 +450,137 @@ public void InitializeGizmos()
 		return hitObject;
 	}
 
-	public void SelectPath()
-	{
-		if (Keyboard.current.altKey.isPressed) { return; }
+public void SelectPath()
+{
+    if (Keyboard.current.altKey.isPressed) { return; }
 
-		int pathLayerMask = 1 << 9; // Paths are on layer 9 per PathManager
-		int allLayersMask = ~0;     // All layers
+    int pathLayerMask = 1 << 9; // Paths are on layer 9
+    Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+    RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, pathLayerMask);
 
-		Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
-		RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, allLayersMask);
+    if (hits.Length == 0)
+    {
+        return; // No path hit, do nothing
+    }
 
-		Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+    Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+    GameObject hitPathObject = hits[0].transform.gameObject;
 
-		// Prioritize hits: only paths on layer 9
-		List<RaycastHit> prioritizedHits = new List<RaycastHit>();
-		foreach (var hit in hits)
-		{
-			if ((1 << hit.transform.gameObject.layer & pathLayerMask) != 0)
-			{
-				prioritizedHits.Add(hit);
-			}
-		}
+    // Resolve the road and node objects
+    GameObject roadObject = null;
+    GameObject nodeObject = null;
+    if (hitPathObject.CompareTag("Node"))
+    {
+        nodeObject = hitPathObject;
+        roadObject = hitPathObject.transform.parent?.GetComponentInParent<PathDataHolder>()?.gameObject;
+    }
+    else if (hitPathObject.CompareTag("Path"))
+    {
+        roadObject = hitPathObject;
+    }
+    else
+    {
+        return; // Non-path object hit, do nothing
+    }
 
-		// Debug output for hit count
-		Debug.LogError(prioritizedHits.Count + " paths detected");
-		foreach (var hit in prioritizedHits)
-		{
-			Debug.LogError(hit.transform.name);
-		}
+    if (roadObject == null)
+    {
+        Debug.LogWarning("Could not resolve road object from hit.");
+        return;
+    }
 
-		if (prioritizedHits.Count == 0)
-		{
-			ClearAndDepopulateSelection();
-			return;
-		}
+    // Get the PathDataHolder to check against _selectedRoad
+    PathDataHolder pathDataHolder = roadObject.GetComponent<PathDataHolder>();
+    if (pathDataHolder == null || pathDataHolder.pathData == null)
+    {
+        Debug.LogWarning($"No valid PathDataHolder found on '{roadObject.name}'.");
+        return;
+    }
 
-		// Process the closest hit
-		GameObject hitPathObject = prioritizedHits[0].transform.gameObject;
-		GameObject nodeObject = null;
-		GameObject pathObject = null;
-		GameObject roadObject = null;
+    // Find the corresponding tree node for the road
+    Node pathNode = ItemsWindow.Instance?.tree.FindFirstNodeByDataRecursive(roadObject);
+    if (pathNode == null)
+    {
+        Debug.LogWarning($"No tree node found for road '{roadObject.name}'.");
+        return;
+    }
 
-		// Resolve objects based on what was hit
-		if (hitPathObject.CompareTag("Node"))
-		{
-			nodeObject = hitPathObject;
-			pathObject = hitPathObject.transform.parent.gameObject;
-			roadObject = pathObject.GetComponentInParent<PathDataHolder>()?.gameObject;
-		}
-		else if (hitPathObject.CompareTag("Path"))
-		{
-			nodeObject = null;
-			roadObject = hitPathObject;
-			foreach (Transform child in hitPathObject.transform)
-			{
-				if (child.CompareTag("NodeParent"))
-				{
-					pathObject = child.gameObject;
-					break;
-				}
-			}
-		}
-		else
-		{
-			ClearAndDepopulateSelection();
-			return;
-		}
-		
+    // Handle node selection
+    if (nodeObject != null)
+    {
+        // Find the node in the tree
+        Node nodeInTree = ItemsWindow.Instance?.tree.FindFirstNodeByDataRecursive(nodeObject);
+        if (nodeInTree == null)
+        {
+            Debug.LogWarning($"No tree node found for node '{nodeObject.name}'. Populating road to sync tree.");
+            ItemsWindow.Instance.SelectRoad(pathNode, roadObject);
+            ItemsWindow.Instance.PopulateList();
+            nodeInTree = ItemsWindow.Instance?.tree.FindFirstNodeByDataRecursive(nodeObject);
+        }
 
-		if (roadObject == null)
-		{
-			ClearAndDepopulateSelection();
-			return;
-		}
+        if (nodeInTree != null)
+        {
+            if (Keyboard.current.leftShiftKey.isPressed)
+            {
+                // Multi-selection: toggle node inclusion
+                if (_selectedObjects.Contains(nodeObject))
+                {
+                    _selectedObjects.Remove(nodeObject);
+                    EmissionHighlight(GetRenderers(nodeObject), false);
+                    nodeInTree.SetCheckedWithoutNotify(false);
+                }
+                else
+                {
+                    _selectedObjects.Add(nodeObject);
+                    EmissionHighlight(GetRenderers(nodeObject), true);
+                    nodeInTree.SetCheckedWithoutNotify(true);
+                }
+            }
+            else
+            {
+                // Single selection: clear all and select this node
+                Unselect();
+                ItemsWindow.Instance?.UnselectAllInTree();
+                _selectedObjects.Add(nodeObject);
+                EmissionHighlight(GetRenderers(nodeObject), true);
+                nodeInTree.SetCheckedWithoutNotify(true);
+                ItemsWindow.Instance.FocusList(nodeInTree); // Focus the selected node in the tree
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"Failed to find tree node for '{nodeObject.name}' after sync.");
+        }
+    }
+    // Handle road selection
+    else if (CameraManager.Instance._selectedRoad != null && pathDataHolder.pathData == CameraManager.Instance._selectedRoad)
+    {
+        pathNode.isChecked = false;
+        return; // Same road already selected, do nothing
+    }
+    else
+    {
+        // Clear previous selection and select the road
+        Unselect();
+        ItemsWindow.Instance?.UnselectAllInTree();
+        ItemsWindow.Instance?.ClearRoads();
+        ItemsWindow.Instance.SelectRoad(pathNode, roadObject);
+        ItemsWindow.Instance.PopulateList();
+    }
 
-		GameObject currentRoad = _selectedObjects.Count > 0
-			? _selectedObjects[0].transform.parent?.GetComponentInParent<PathDataHolder>()?.gameObject
-			: null;
+    UpdateGizmoState();
+    NotifySelectionChanged();
+    if (PathWindow.Instance != null)
+    {
+        Debug.Log("SelectPath: Updating PathWindow");
+        PathWindow.Instance.UpdateData();
+    }
+}
 
-		// Handle node selection
-		if (nodeObject != null)
-		{
-			if (currentRoad != null && currentRoad != roadObject)
-			{
-				ClearAndDepopulateSelection();
-				PopulateNodesForRoad(roadObject);
-			}
-			else if (currentRoad == null)
-			{
-				Unselect();
-				PopulateNodesForRoad(roadObject);
-			}
-
-			if (Keyboard.current.leftShiftKey.isPressed)
-			{
-				if (_selectedObjects.Contains(nodeObject))
-				{
-					_selectedObjects.Remove(nodeObject);
-				}
-				else
-				{
-					_selectedObjects.Add(nodeObject);
-				}
-			}
-			else
-			{
-				Unselect();
-				_selectedObjects.Add(nodeObject);
-			}
-		}
-		
-		
-		// Handle road selection
-		else if (roadObject != null)
-		{
-			if (currentRoad != null && currentRoad != roadObject)
-			{
-				ClearAndDepopulateSelection();
-			}
-
-			if (currentRoad != roadObject || _selectedObjects.Count == 0)
-			{
-				Unselect();
-				pathObject = PopulateNodesForRoad(roadObject);
-				_selectedObjects.Add(pathObject);
-			}
-		}
-
-		UpdateItemsWindow();
-		UpdateGizmoState();
-	}
+	public void NotifySelectionChanged()
+    {
+        OnSelectionChanged?.Invoke();
+    }
 
 	// Helper method to handle repeated clearing and depopulation logic
 	private void ClearAndDepopulateSelection()
@@ -610,8 +599,25 @@ public void InitializeGizmos()
 	}
 
 	public GameObject PopulateNodesForRoad(GameObject roadObject)
+    {
+        GameObject result = PopulateNodesForRoadInternal(roadObject); // Refactor to avoid duplication
+        if (result != null)
+        {
+            OnSelectionChanged?.Invoke(); // Notify after populating road
+        }
+        return result;
+    }
+
+	public GameObject PopulateNodesForRoadInternal(GameObject roadObject)
 	{
 		if (roadObject == null) return null;
+
+		// Ensure only one road is ever selected
+		GameObject[] allPaths = GameObject.FindGameObjectsWithTag("Path");
+		foreach (GameObject path in allPaths)
+		{
+			DepopulateNodesForRoad(path);
+		}
 
 		Transform existingNodes = roadObject.transform.Find("Nodes");
 		if (existingNodes != null) return existingNodes.gameObject; // Return existing NodeCollection if already populated
@@ -624,13 +630,15 @@ public void InitializeGizmos()
 			return null;
 		}
 
-		ERRoadNetwork roadNetwork = new ERRoadNetwork(); 
+		ERRoadNetwork roadNetwork = new ERRoadNetwork();
 		ERRoad road = roadNetwork.GetRoadByName(pathDataHolder.pathData.name);
 		if (road == null)
 		{
 			Debug.LogError($"Could not find ERRoad for {pathDataHolder.pathData.name} in the road network.");
 			return null;
 		}
+
+		AppManager.Instance.ActivateWindow(9);
 
 		GameObject nodeContainer = new GameObject("Nodes");
 		nodeContainer.tag = "NodeParent";
@@ -639,10 +647,43 @@ public void InitializeGizmos()
 		nodeCollection.Initialize(road);
 		nodeCollection.pathData = pathDataHolder.pathData; // Set pathData directly
 		nodeCollection.PopulateNodes();
-		
+
 		PathManager.SetCurrentNodeCollection(nodeCollection); // Static reference
 
 		_selectedRoad = pathDataHolder.pathData;
+
+		// Update the ItemsWindow tree
+		if (ItemsWindow.Instance != null)
+		{
+			// Find the tree node corresponding to the roadObject
+			Node pathNode = ItemsWindow.Instance.tree.FindFirstNodeByDataRecursive(roadObject);
+			if (pathNode != null)
+			{
+				// Update the node's data to reference the NodeCollection
+				pathNode.data = nodeContainer;
+
+				// Clear existing child nodes (if any) to avoid duplicates
+				pathNode.nodes.Clear();
+
+				// Add each node from the NodeCollection as a child node in the tree
+				foreach (Transform nodeTransform in nodeCollection.GetNodes())
+				{
+					if (nodeTransform != null)
+					{
+						Node childNode = new Node(nodeTransform.name) { data = nodeTransform.gameObject };
+						pathNode.nodes.AddWithoutNotify(childNode);
+					}
+				}
+
+				// Rebuild the tree to reflect changes
+				ItemsWindow.Instance.tree.Rebuild();
+				Debug.Log($"Updated tree for path '{roadObject.name}' with {nodeCollection.GetNodes().Count} nodes.");
+			}
+			else
+			{
+				Debug.LogWarning($"Could not find tree node for path '{roadObject.name}' to update with NodeCollection.");
+			}
+		}
 
 		// Optionally log if no nodes were created (for debugging)
 		if (nodeContainer.transform.childCount == 0)
@@ -650,178 +691,203 @@ public void InitializeGizmos()
 			Debug.LogWarning($"No nodes were populated for road {roadObject.name}. Selection set to road object anyway.");
 		}
 
-		return nodeCollection.GetFirstNode().gameObject;
+		Transform firstNode = nodeCollection.GetFirstNode();
+		return firstNode != null ? firstNode.gameObject : null;
 	}
 
-		//  depopulate nodes for a road
-		public void DepopulateNodesForRoad(GameObject roadObject)
-		{
-			if (roadObject == null) return;
-			_selectedRoad = null;
-			
-			Transform nodeParent = roadObject.transform.Find("Nodes");
-			if (nodeParent != null)
-			{
-				// Clear the current NodeCollection from PathManager before destruction
-				if (nodeParent.GetComponent<NodeCollection>() == PathManager.CurrentNodeCollection)
-				{
-					PathManager.ClearCurrentNodeCollection();
-				}
-				Destroy(nodeParent.gameObject); // Destroy NodeCollection and its nodes
-			}
-		}
-		
-	public void SelectPrefab()
-	{
-		int meshCount=0;
-		int volumesCount=0;
-		
-		int prefabLayerMask = 1 << 3; // prefab layer
-		int landLayerMask = 1 << 10; // land layer
-		int allLayersMask = ~0; // all layers
+public void DepopulateNodesForRoad(GameObject roadObject)
+{
+    if (roadObject == null) return;
 
-		Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
-		RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, allLayersMask);
+    // Clear static references
+    if (_selectedRoad != null && _selectedRoad == roadObject.GetComponent<PathDataHolder>()?.pathData)
+    {
+        _selectedRoad = null;
+    }
+    if (PathManager.CurrentNodeCollection != null && PathManager.CurrentNodeCollection.gameObject.transform.parent == roadObject.transform)
+    {
+        PathManager.ClearCurrentNodeCollection();
+    }
 
-		Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+    // Find and destroy the Nodes GameObject
+    Transform nodeParent = roadObject.transform.Find("Nodes");
+    if (nodeParent != null)
+    {
+        GameObject.DestroyImmediate(nodeParent.gameObject);
+        Debug.Log($"Destroyed Nodes GameObject for '{roadObject.name}'.");
+    }
 
-		// Determine the closest land distance
-		float landDistance = float.MaxValue;
-		foreach (var hit in hits)
-		{
-			if ((1 << hit.transform.gameObject.layer & landLayerMask) != 0)
-			{
-				landDistance = hit.distance;
-				break;
-			}
-		}
+    // Restore the ItemsWindow tree
+    if (ItemsWindow.Instance != null && ItemsWindow.Instance.tree != null)
+    {
+        Node pathDataNode = ItemsWindow.Instance.tree.FindFirstNodeByDataRecursive(roadObject);
+        if (pathDataNode == null)
+        {
+            pathDataNode = ItemsWindow.Instance.tree.FindFirstNodeByDataRecursive(nodeParent?.gameObject);
+            if (pathDataNode != null)
+            {
+                // If the node was reassigned to nodeContainer, fix it
+                pathDataNode.data = roadObject;
+                pathDataNode.nodes.Clear();
+                pathDataNode.SetCheckedWithoutNotify(false);
+                Debug.Log($"Restored PathData node for '{roadObject.name}' in tree.");
+            }
+            else
+            {
+                Debug.LogWarning($"No PathData node found for '{roadObject.name}' to restore.");
+            }
+        }
+        else
+        {
+            // Reset the node’s data and clear children
+            pathDataNode.data = roadObject;
+            pathDataNode.nodes.Clear();
+            pathDataNode.SetCheckedWithoutNotify(false);
+            Debug.Log($"Reset PathData node for '{roadObject.name}' in tree.");
+        }
 
-		// Rebuild the hits array with priority baked into the sorting
-		List<RaycastHit> prioritizedHits = new List<RaycastHit>();
+        ItemsWindow.Instance.tree.Rebuild();
+        Debug.Log($"Tree rebuilt after depopulating nodes for '{roadObject.name}'.");
+    }
 
-		// Add prefabs first, only those closer than the land
-		foreach (var hit in hits)
-		{
-			if ((1 << hit.transform.gameObject.layer & prefabLayerMask) != 0 && hit.distance < landDistance)
-			{
-				prioritizedHits.Add(hit);
-				meshCount++;
-			}
-		}
-
-		// Add volumes next (layer 2), also limited by the land distance
-		foreach (var hit in hits)
-		{
-			if ((1 << hit.transform.gameObject.layer & (1 << 2)) != 0 && hit.distance < landDistance)
-			{
-				prioritizedHits.Add(hit);
-				volumesCount++;
-			}
-		}
+}
 	
-		foreach (var hit in prioritizedHits)
-		{
-			Debug.LogError(hit.transform.name);
-		}
+    public void SelectPrefabWithoutNotify(GameObject go)
+    {
+        _selectedObjects.Add(go);
+        ItemsWindow.Instance.SetSelection(go);
+        EmissionHighlight(GetRenderers(go), true);
+        UpdateGizmoState();
+        OnSelectionChanged?.Invoke(); // Notify listeners
+    }
+
+    public void SelectPrefab(GameObject go)
+    {
+        _selectedObjects.Add(go);
+        ItemsWindow.Instance.SetSelection(go);
+        EmissionHighlight(GetRenderers(go), true);
+        UpdateItemsWindow();
+        UpdateGizmoState();
+        OnSelectionChanged?.Invoke(); // Notify listeners
+    }
 	
-		Debug.LogError(meshCount + " meshes and " + volumesCount + " volumes");
+public void SelectPrefab()
+{
+    int prefabLayerMask = 1 << 3; // prefab layer
+    int landLayerMask = 1 << 10; // land layer
+    int allLayersMask = ~0; // all layers
 
-		// Check if the prioritized hits match the previous set
-		bool hitsUnchanged = prioritizedHits.SequenceEqual(previousHits);
+    Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+    RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, allLayersMask);
+
+    Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+    float landDistance = float.MaxValue;
+    foreach (var hit in hits)
+    {
+        if ((1 << hit.transform.gameObject.layer & landLayerMask) != 0)
+        {
+            landDistance = hit.distance;
+            break;
+        }
+    }
+
+    List<RaycastHit> prioritizedHits = new List<RaycastHit>();
+    foreach (var hit in hits)
+    {
+        if ((1 << hit.transform.gameObject.layer & prefabLayerMask) != 0 && hit.distance < landDistance)
+        {
+            prioritizedHits.Add(hit);
+        }
+    }
+    foreach (var hit in hits)
+    {
+        if ((1 << hit.transform.gameObject.layer & (1 << 2)) != 0 && hit.distance < landDistance)
+        {
+            prioritizedHits.Add(hit);
+        }
+    }
+
+    bool hitsUnchanged = prioritizedHits.SequenceEqual(previousHits);
+    if (hitsUnchanged && prioritizedHits.Count > 1)
+    {
+        currentSelectionIndex = (currentSelectionIndex + 1) % prioritizedHits.Count;
+    }
+    else
+    {
+        currentSelectionIndex = 0;
+    }
+    previousHits = new List<RaycastHit>(prioritizedHits);
+
+    GameObject hitPrefab = null;
+    if (prioritizedHits.Count > 0)
+    {
+        hitPrefab = prioritizedHits[currentSelectionIndex].transform.gameObject;
+    }
+
+    if (hitPrefab != null)
+    {
+        GameObject hitObject = Keyboard.current.ctrlKey.isPressed
+            ? FindParentWithTag(hitPrefab, "Prefab")
+            : FindParentWithTag(hitPrefab, "Collection") ?? FindParentWithTag(hitPrefab, "Prefab");
+
+        if (hitObject != null)
+        {
+            if (_selectedObjects.Contains(hitObject))
+            {
+                Unselect(hitObject);
+                return;
+            }
+
+            // Clear previous checkmarks unless shift is pressed
+            if (!Keyboard.current.leftShiftKey.isPressed)
+            {
+                ItemsWindow.Instance?.UnselectAllInTree();
+            }
+
+            if (Keyboard.current.leftShiftKey.isPressed)
+            {
+                _selectedObjects.Add(hitObject);
+            }
+            else
+            {
+                Unselect(); // Clear previous selection
+                _selectedObjects.Add(hitObject);
+            }
+
+            Node node = itemTree?.FindFirstNodeByDataRecursive(hitObject);
+            if (node != null && ItemsWindow.Instance != null)
+            {
+                ItemsWindow.Instance.FocusList(node);
+            }
+
+            List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(hitObject.GetComponentsInChildren<LODMasterMesh>());
+            if (lodMasterMeshes.Count > 0)
+            {
+                List<Renderer> renderers = new List<Renderer>();
+                foreach (var lodMasterMesh in lodMasterMeshes)
+                {
+                    renderers.AddRange(lodMasterMesh.FetchRenderers());
+                }
+                EmissionHighlight(renderers, true);
+            }
+            else
+            {
+                EmissionHighlight(GetRenderers(hitObject), true);
+            }
+            UpdateItemsWindow();
+            UpdateGizmoState();
+            return;
+        }
+    }
+
+    if (!Keyboard.current.leftShiftKey.isPressed)
+    {
+        ItemsWindow.Instance?.UnselectAllInTree();
+        Unselect();
+    }
+}
 		
-
-		// If unchanged, cycle the selection
-		if (hitsUnchanged && prioritizedHits.Count > 1)
-		{
-			currentSelectionIndex = (currentSelectionIndex + 1) % prioritizedHits.Count;
-		}
-		else
-		{
-			currentSelectionIndex = 0;
-		}
-		
-		previousHits = new List<RaycastHit>(prioritizedHits);
-
-		// Select the current hit based on the index
-		GameObject hitPrefab = null;
-		if (prioritizedHits.Count > 0)
-		{
-			hitPrefab = prioritizedHits[currentSelectionIndex].transform.gameObject;
-		}
-
-
-
-		if (hitPrefab != null)
-		{
-			GameObject hitObject;
-			
-			if(Keyboard.current.ctrlKey.isPressed){
-				hitObject = FindParentWithTag(hitPrefab, "Prefab");
-			}
-			else{
-				hitObject = FindParentWithTag(hitPrefab, "Collection");
-				if(hitObject==null){
-					hitObject = FindParentWithTag(hitPrefab, "Prefab");
-				}
-			}
-			
-			if (hitObject != null)
-			{
-					List<LODMasterMesh> lodMasterMeshes = new List<LODMasterMesh>(hitObject.GetComponentsInChildren<LODMasterMesh>());
-
-					if (_selectedObjects.Contains(hitObject)){
-							Unselect(hitObject);
-							return;
-					}
-
-					// Multi-select with shift key
-					if (Keyboard.current.leftShiftKey.isPressed)
-					{
-							_selectedObjects.Add(hitObject);
-					}
-					else
-					{
-						Unselect(); // Clear previous selection
-						_selectedObjects.Add(hitObject);
-					}
-					
-					//find corresponding node for item
-					Node node = null;
-					if (itemTree != null)	{
-						node = itemTree.FindFirstNodeByDataRecursive(hitObject);
-					}
-
-					//focus item
-					if (node != null)	{
-						if (ItemsWindow.Instance != null)	{
-							ItemsWindow.Instance.FocusList(node);
-						}
-					}
-
-					// Use the lodMasterMesh to fetch renderers and highlight them
-					if (lodMasterMeshes.Count > 0)
-					{
-						List<Renderer> renderers = new List<Renderer>();
-						foreach (var lodMasterMesh in lodMasterMeshes)
-						{
-							renderers.AddRange(lodMasterMesh.FetchRenderers());
-						}
-						EmissionHighlight(renderers,true);
-					}
-					else
-					{
-						EmissionHighlight(GetRenderers(hitObject),true);
-					}
-					UpdateItemsWindow();
-					UpdateGizmoState();
-					return;
-				
-			}
-		}
-
-		Unselect();
-	}
-	
 	public void PaintNodes()
 	{
 		if (Keyboard.current.altKey.isPressed)
@@ -829,18 +895,74 @@ public void InitializeGizmos()
 			RaycastHit localHit;
 			if (Physics.Raycast(cam.ScreenPointToRay(mouse.position.ReadValue()), out localHit, Mathf.Infinity, layerMask))
 			{
-				NodeCollection nodeCollection = PathManager.CurrentNodeCollection;
-				if (nodeCollection == null)
+				if (PathWindow.Instance != null && PathWindow.Instance.gameObject.activeInHierarchy)
 				{
-					Debug.LogWarning("No current NodeCollection selected for node painting. Write the interface to create it bud.");
-					return;
+					if (CameraManager.Instance._selectedRoad == null)
+					{
+						// No path selected, create a new road
+						PathData newPathData = new PathData
+						{
+							name = $"Road {PathManager._roadIDCounter++}", // Assuming _roadIDCounter is public or accessible
+							width = 10f,
+							innerPadding = 0f,
+							outerPadding = 0f,
+							innerFade = 0f,
+							outerFade = 0f,
+							splat = (int)TerrainSplat.Enum.Dirt,
+							topology = (int)TerrainTopology.Enum.Road,
+							nodes = new VectorData[] { new VectorData { x = localHit.point.x, y = localHit.point.y, z = localHit.point.z } }
+						};
+
+						PathManager.SpawnPath(newPathData);
+						GameObject newRoadObject = PathManager.CurrentMapPaths.Last().gameObject;
+
+						Unselect();
+						GameObject firstNode = PopulateNodesForRoad(newRoadObject);
+						_selectedObjects.Add(firstNode);
+						_selectedRoad = newPathData;
+
+						UpdateItemsWindow();
+						UpdateGizmoState();
+						PathWindow.Instance.SetSelection(newRoadObject);
+
+						Debug.Log($"Created new road '{newPathData.name}' at {localHit.point}");
+					}
+					else
+					{
+						// Path selected, add node to existing road
+						NodeCollection nodeCollection = PathManager.CurrentNodeCollection;
+						if (nodeCollection == null)
+						{
+							// Shouldn’t happen since a road is selected, but populate if missing
+							GameObject roadObject = null;
+							foreach (var holder in PathManager.CurrentMapPaths)
+							{
+								if (holder.pathData == _selectedRoad)
+								{
+									roadObject = holder.gameObject;
+									break;
+								}
+							}
+							if (roadObject != null)
+							{
+								PopulateNodesForRoad(roadObject);
+								nodeCollection = PathManager.CurrentNodeCollection;
+							}
+						}
+
+						if (nodeCollection != null)
+						{
+							Vector3 hitPoint = localHit.point;
+							nodeCollection.AddNodeAtPosition(hitPoint, _selectedObjects);
+							UpdateItemsWindow();
+							UpdateGizmoState();
+						}
+						else
+						{
+							Debug.LogWarning("Failed to find or create NodeCollection for selected road.");
+						}
+					}
 				}
-
-				Vector3 hitPoint = localHit.point;
-				nodeCollection.AddNodeAtPosition(hitPoint, _selectedObjects);
-
-				UpdateItemsWindow();
-				UpdateGizmoState();
 			}
 		}
 	}
@@ -857,7 +979,6 @@ public void InitializeGizmos()
 	
 	public void Unselect()
 	{
-		// Unhighlight all previously selected items
 		foreach (GameObject obj in _selectedObjects)
 		{
 			if (obj != null)
@@ -866,8 +987,8 @@ public void InitializeGizmos()
 			}
 		}
 		_selectedObjects.Clear();
+		_selectedRoad = null;
 
-		// Explicitly disable and reset all gizmos to avoid hanging references
 		if (_objectMoveGizmo != null) _objectMoveGizmo.Gizmo.SetEnabled(false);
 		if (_objectRotationGizmo != null) _objectRotationGizmo.Gizmo.SetEnabled(false);
 		if (_objectScaleGizmo != null) _objectScaleGizmo.Gizmo.SetEnabled(false);
@@ -875,8 +996,17 @@ public void InitializeGizmos()
 		if (_workGizmo != null)
 		{
 			_workGizmo.Gizmo.SetEnabled(false);
-			_workGizmo.SetTargetObjects(new List<GameObject>()); // Clear targets to avoid missing references
+			_workGizmo.SetTargetObjects(new List<GameObject>());
 		}
+
+		// update active path window
+		if (PathWindow.Instance != null)
+		{
+			Debug.Log("Unselect: Road was selected, updating PathWindow");
+			PathWindow.Instance.UpdateData();
+		}
+		
+		OnSelectionChanged?.Invoke();
 	}
 
 	public List<Renderer> GetRenderers(GameObject gameObject)
@@ -1047,19 +1177,58 @@ private void EmissionHighlight(List<Renderer> selection, bool enable)
 	
 	public void UpdateGizmoState()
 	{
-		if (_workGizmo == null) return;
+		if (_workGizmo == null)
+		{
+			Debug.LogWarning("Work gizmo is null. Cannot update gizmo state.");
+			return;
+		}
 
+		// Filter out null or destroyed objects from _selectedObjects
+		_selectedObjects.RemoveAll(obj => obj == null);
 		if (_selectedObjects.Count > 0)
 		{
-			_workGizmo.Gizmo.SetEnabled(true);
-			_workGizmo.SetTargetObjects(_selectedObjects); // Ensure targets are updated
-			_workGizmo.SetTargetPivotObject(_selectedObjects[_selectedObjects.Count - 1]);
-			_workGizmo.RefreshPositionAndRotation();
+			// Ensure all objects are still valid
+			bool hasValidObjects = false;
+			GameObject lastValidObject = null;
+
+			for (int i = _selectedObjects.Count - 1; i >= 0; i--)
+			{
+				if (_selectedObjects[i] != null)
+				{
+					hasValidObjects = true;
+					lastValidObject = _selectedObjects[i]; // Last valid object for pivot
+					break; // We only need the last valid one for the pivot
+				}
+			}
+
+			if (hasValidObjects && lastValidObject != null)
+			{
+				_workGizmo.Gizmo.SetEnabled(true);
+				_workGizmo.SetTargetObjects(_selectedObjects); // Set all objects as targets
+				try
+				{
+					_workGizmo.SetTargetPivotObject(lastValidObject); // Set pivot to last valid object
+					_workGizmo.RefreshPositionAndRotation();
+				}
+				catch (MissingReferenceException ex)
+				{
+					Debug.LogWarning($"Missing reference encountered while updating gizmo state: {ex.Message}. Disabling gizmo.");
+					_workGizmo.Gizmo.SetEnabled(false);
+					_workGizmo.SetTargetObjects(new List<GameObject>()); // Clear targets
+				}
+			}
+			else
+			{
+				// No valid objects left after filtering
+				_workGizmo.Gizmo.SetEnabled(false);
+				_workGizmo.SetTargetObjects(new List<GameObject>()); // Clear targets
+			}
 		}
 		else
 		{
+			// No selected objects
 			_workGizmo.Gizmo.SetEnabled(false);
-			_workGizmo.SetTargetObjects(new List<GameObject>()); // Clear targets when no selection
+			_workGizmo.SetTargetObjects(new List<GameObject>()); // Clear targets to avoid stale references
 		}
 	}
 	

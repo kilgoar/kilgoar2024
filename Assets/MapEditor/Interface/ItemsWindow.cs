@@ -352,99 +352,240 @@ public class ItemsWindow : MonoBehaviour
 		}
 
 	}
-	
-	public void PopulateList()
-	{
-		tree.nodes.Clear();
-		Dictionary<Transform, Node> transformToNodeMap = new Dictionary<Transform, Node>(); //recursion target
+public void PopulateList()
+{
+    tree.nodes.Clear();
+    Dictionary<Transform, Node> transformToNodeMap = new Dictionary<Transform, Node>();
 
-		foreach (Transform child in PrefabManager.PrefabParent)
-		{
-			BuildTreeRecursive(child, null, transformToNodeMap); // Build the tree recursively from each top-level child
-		}
-		foreach (Transform child in PathManager.PathParent)
-		{
-			BuildTreeRecursive(child, null, transformToNodeMap);
-		}
-		
-		
-		
-		CheckSelection();
-		tree.Rebuild(); // Update the tree view after all nodes are added
+    foreach (Transform child in PrefabManager.PrefabParent)
+    {
+        BuildTreeRecursive(child, null, transformToNodeMap);
+    }
+    foreach (Transform child in PathManager.PathParent)
+    {
+        BuildTreeRecursive(child, null, transformToNodeMap);
+    }
+
+    CheckSelection();
+    tree.Rebuild();
+}
+
+private void BuildTreeRecursive(Transform current, Node parentNode, Dictionary<Transform, Node> transformToNodeMap)
+{
+    Node currentNode = null;
+
+    switch (current.tag)
+    {
+        case "Prefab":
+            if (current.GetComponent<PrefabDataHolder>() is PrefabDataHolder prefabData)
+            {
+                string prefabName = AssetManager.ToName(prefabData.prefabData.id);
+                currentNode = new Node(prefabName) { data = current.gameObject };
+            }
+            break;
+
+        case "Collection":
+            currentNode = new Node(current.name) { data = current.gameObject };
+            break;
+
+        case "Path":
+            currentNode = new Node(current.name) { data = current.gameObject };
+            break;
+
+        case "NodeParent":
+            // Handle the "Nodes" GameObject that contains individual nodes
+            currentNode = new Node(current.name) { data = current.gameObject };
+            break;
+
+        case "Node":
+            // Handle individual nodes under a NodeParent
+            currentNode = new Node(current.name) { data = current.gameObject };
+            break;
+
+        case "EasyRoads":
+            break;
+
+        default:
+            return; // Skip other tags
+    }
+
+    if (currentNode != null)
+    {
+        // Safeguard: Ensure data is a valid GameObject
+        if (currentNode.data is GameObject go && go != null && go.activeInHierarchy)
+        {
+            if (parentNode != null)
+            {
+                parentNode.nodes.AddWithoutNotify(currentNode);
+            }
+            else
+            {
+                tree.nodes.AddWithoutNotify(currentNode);
+            }
+
+            transformToNodeMap[current] = currentNode;
+        }
+        else
+        {
+            Debug.LogWarning($"Node '{current.name}' has invalid or destroyed data: {currentNode.data}. Skipping.");
+            return;
+        }
+    }
+
+    // Recursively build the tree for all children
+    for (int i = 0; i < current.childCount; i++)
+    {
+        BuildTreeRecursive(current.GetChild(i), currentNode, transformToNodeMap);
+    }
+}
+	
+public void OnSelect(Node node)
+{
+    GameObject goSelect = (GameObject)node.data;
+	
+	//allow editing of nodes and clicking on node parent
+	if(!goSelect.CompareTag("Node") && !goSelect.CompareTag("NodeParent")){
+		ClearRoads();
 	}
 
-	private void BuildTreeRecursive(Transform current, Node parentNode, Dictionary<Transform, Node> transformToNodeMap)
-	{
-		Node currentNode = null;
-
-		switch (current.tag)
-		{
-			case "Prefab":
-				if (current.GetComponent<PrefabDataHolder>() is PrefabDataHolder prefabData)
-				{
-					string prefabName = AssetManager.ToName(prefabData.prefabData.id);
-					currentNode = new Node(prefabName) { data = current.gameObject };
-				}
-				break;
-
-			case "Collection":
-				currentNode = new Node(current.name) { data = current.gameObject };
-				break;
-				
-				
-			case "Path":
-				currentNode = new Node(current.name) { data = current.gameObject };
-				break;
-
-			case "EasyRoads": 
-				break;
-
-			default:
-				return; // Skip if tag does not match
-		}
-
-		if (currentNode != null)
-		{
-			if (parentNode != null)
+    // Clear path selection only if selecting a non-path-related object
+    if (goSelect.CompareTag("Path") || 
+        goSelect.CompareTag("NodeParent") || 
+        goSelect.CompareTag("Node"))
+    {
+		    if (node.data == CameraManager.Instance._selectedRoad)
 			{
-				parentNode.nodes.AddWithoutNotify(currentNode);
-			}
-			else
-			{
-				tree.nodes.AddWithoutNotify(currentNode); // Add root-level nodes directly to the tree
-			}
-
-			transformToNodeMap[current] = currentNode; // Map the current transform to its node
-		}
-
-		for (int i = 0; i < current.childCount; i++)
-		{
-			BuildTreeRecursive(current.GetChild(i), currentNode, transformToNodeMap); // Recur on children
-		}
-	}
-	
-	public void OnSelect(Node node){
-		GameObject goSelect = (GameObject)node.data;
-		
-			if(!Keyboard.current.leftShiftKey.isPressed){
-				CameraManager.Instance.Unselect();
-				UnselectAllInTree();
-			}
-			
-			if(Keyboard.current.leftAltKey.isPressed){
-				SelectChildren(node, true);
-				node.ExpandAll();
+				//don't reselect
+				node.isChecked = false;
+				return; 
 			}
 		
-		node.SetCheckedWithoutNotify(true);	
-		CameraManager.Instance.SelectPrefabWithoutNotify(goSelect);
+    }
+
+    if (goSelect.CompareTag("Path"))
+    {		 
+        CameraManager.Instance.Unselect();
+        UnselectAllInTree();
+		node.isChecked = false;
+        SelectRoad(node, goSelect);	
+		PopulateList();
+		PathWindow.Instance?.UpdateData();
+		//FocusFirstNode(node, goSelect);
+        return;
+    }
+	
+	if (goSelect.CompareTag("NodeParent")){
+		//don't select node collections
+		node.isChecked = false;
+		return;
 	}
 	
-	void UnselectAllInTree(){
+
+    // Non-path selection logic (e.g., prefabs, collections, or nodes)
+    if (!Keyboard.current.leftShiftKey.isPressed)
+    {
+        CameraManager.Instance.Unselect();
+        UnselectAllInTree();
+    }
+
+    if (Keyboard.current.leftAltKey.isPressed)
+    {
+        SelectChildren(node, true);
+        node.ExpandAll();
+    }
+
+    node.SetCheckedWithoutNotify(true);
+    CameraManager.Instance.SelectPrefabWithoutNotify(goSelect);
+    CameraManager.Instance.NotifySelectionChanged();
+}
+
+public void ClearRoads()
+{
+
+    GameObject[] allPaths = GameObject.FindGameObjectsWithTag("Path");
+    foreach (GameObject path in allPaths)
+    {
+        CameraManager.Instance.DepopulateNodesForRoad(path);
+    }
+}
+
+public void SelectRoad(Node node, GameObject roadObject)
+{
+    PathDataHolder pathDataHolder = roadObject.GetComponent<PathDataHolder>();
+    if (pathDataHolder == null || pathDataHolder.pathData == null)
+    {
+        Debug.LogWarning($"Invalid PathDataHolder for '{node.name}'. Clearing selection.");
+        return;
+    }
+    
+    GameObject firstNodeGO = CameraManager.Instance.PopulateNodesForRoad(roadObject);
+    if (firstNodeGO == null)
+    {
+        Debug.LogWarning($"Failed to populate nodes for '{roadObject.name}'.");
+        return;
+    }
+
+    CameraManager.Instance._selectedRoad = pathDataHolder.pathData;
+    CameraManager.Instance._selectedObjects.Add(firstNodeGO);
+    CameraManager.Instance.SelectPrefabWithoutNotify(firstNodeGO);
+
+    node.nodes.Clear();
+    GameObject nodeCollectionGO = firstNodeGO.transform.parent.gameObject;
+    Node collectionNode = new Node("Nodes") { data = nodeCollectionGO };
+    node.nodes.AddWithoutNotify(collectionNode);
+
+    NodeCollection nodeCollection = nodeCollectionGO.GetComponent<NodeCollection>();
+    foreach (Transform nodeTransform in nodeCollection.GetNodes())
+    {
+        if (nodeTransform != null)
+        {
+            Node childNode = new Node(nodeTransform.name) { data = nodeTransform.gameObject };
+            collectionNode.nodes.AddWithoutNotify(childNode);
+        }
+    }
+
+    UpdateData();
+    CameraManager.Instance.NotifySelectionChanged();
+    CameraManager.Instance.UpdateGizmoState();
+}
+
+public void FocusFirstNode(Node node, GameObject roadObject)
+{
+    GameObject firstNodeGO = CameraManager.Instance.PopulateNodesForRoad(roadObject);
+    if (firstNodeGO == null)
+    {
+        Debug.LogWarning($"Failed to populate nodes for '{roadObject.name}' in FocusFirstNode.");
+        return;
+    }
+
+    Node firstNodeInTree = tree.FindFirstNodeByDataRecursive(firstNodeGO);
+    if (firstNodeInTree != null)
+    {
+        Node current = firstNodeInTree;
+        while (current != null && current != tree.rootNode)
+        {
+            current.isExpanded = true;
+            current = current.parentNode;
+        }
+        firstNodeInTree.SetCheckedWithoutNotify(true);
+        node.SetCheckedWithoutNotify(false);
+
+        tree.Rebuild(); // Final rebuild after all changes
+        tree.FocusOn(firstNodeInTree); // Final focus, overrides prior state
+        Debug.Log($"Focused on first node '{firstNodeInTree.name}' of road '{roadObject.name}'.");
+    }
+    else
+    {
+        Debug.LogWarning($"Could not find tree node for first node '{firstNodeGO.name}'.");
+        tree.Rebuild();
+    }
+}
+	
+	public void UnselectAllInTree(){
 		ToggleNodes(false);
 	}
 	
-	private void ToggleNodes(bool isChecked)	{
+	public void ToggleNodes(bool isChecked)	{
 		int count =0;
 		if (tree != null){
 
@@ -512,30 +653,24 @@ public class ItemsWindow : MonoBehaviour
 		matchingNodes = FindNodesByPartRecursive(tree.rootNode, "");
 	}
 	
-	public void CheckSelection(){
-		if (tree != null)
+	public void CheckSelection()
+	{
+		if (tree == null) return;
+
+		Stack<Node> stack = new Stack<Node>();
+		stack.Push(tree.rootNode);
+
+		while (stack.Count > 0)
 		{
-			Stack<Node> stack = new Stack<Node>();
-			stack.Push(tree.rootNode);
+			Node currentNode = stack.Pop();
+			currentNode.SetCheckedWithoutNotify(CameraManager.Instance._selectedObjects.Contains((GameObject)currentNode.data));
 
-			while (stack.Count > 0)
+			for (int i = currentNode.nodes.Count - 1; i >= 0; i--)
 			{
-				Node currentNode = stack.Pop();
-				if(CameraManager.Instance._selectedObjects.Contains((GameObject)currentNode.data)){
-					currentNode.SetCheckedWithoutNotify(true);
-				}
-				else{
-					currentNode.SetCheckedWithoutNotify(false);
-				}
-
-				// Push all child nodes onto the stack
-				for (int i = currentNode.nodes.Count - 1; i >= 0; i--)
-				{
-					Node childNode = currentNode.nodes[i];
-					stack.Push(childNode);
-				}
+				stack.Push(currentNode.nodes[i]);
 			}
 		}
+		tree.Rebuild();
 	}
 	
 	public void UncheckAll(){

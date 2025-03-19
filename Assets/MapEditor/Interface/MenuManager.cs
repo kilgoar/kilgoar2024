@@ -12,6 +12,7 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
     public GameObject confirmationPanel;
     public Button quitButton;
     public Button cancelButton;
+	public Toggle templateTogglePrefab;
     private bool isScaling = false;
     private RectTransform menuRectTransform;
     private RectTransform confirmationRectTransform;
@@ -88,6 +89,18 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         }
 
         LoadMenuState();
+    }
+	
+	public void LoadTemplateTogglePrefab()
+    {
+        if (templateTogglePrefab == null)
+        {
+            templateTogglePrefab = Resources.Load<Toggle>("TemplateToggle");
+            if (templateTogglePrefab == null)
+            {
+                Debug.LogError("");
+            }
+        }
     }
 
     public Vector3 GetMenuScale()
@@ -207,6 +220,34 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         {
             confirmationPanel.SetActive(false);
         }
+    }
+
+    public Toggle CreateWindowToggle()
+    {
+        if (templateTogglePrefab == null)
+        {
+            LoadTemplateTogglePrefab();
+            if (templateTogglePrefab == null)
+            {
+                return null;
+            }
+        }
+
+        Toggle newToggle = Instantiate(templateTogglePrefab, MenuPanel.transform);
+
+        // Find the menucontrols child and set the toggle as the last sibling before it
+        Transform menuControls = MenuPanel.transform.Find("menucontrols");
+        if (menuControls != null)
+        {
+            newToggle.transform.SetSiblingIndex(menuControls.GetSiblingIndex());
+        }
+        else
+        {
+            Debug.LogWarning("No 'menucontrols' child found in MenuPanel; toggle added as last sibling.");
+            newToggle.transform.SetAsLastSibling();
+        }
+
+        return newToggle;
     }
 
     public void CloseApplication()

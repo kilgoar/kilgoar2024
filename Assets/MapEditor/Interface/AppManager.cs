@@ -12,13 +12,15 @@ public class AppManager : MonoBehaviour
     public List<GameObject> windowPanels = new List<GameObject>();
 	public List<UIRecycleTree> RecycleTrees = new List<UIRecycleTree>();
 	public List<Button> CloseButtons = new List<Button>();
-	private List<InputField> allInputFields = new List<InputField>();
+	public List<InputField> allInputFields = new List<InputField>();
 	public GameObject menuPanel;
     public Toggle lockToggle;
 	public string harmonyMessage;
 
-    private Dictionary<Toggle, GameObject> windowDictionary = new Dictionary<Toggle, GameObject>();
+    public Dictionary<Toggle, GameObject> windowDictionary = new Dictionary<Toggle, GameObject>();
 
+    public TemplateWindow templateWindowPrefab;
+	public Canvas uiCanvas;
 	public static AppManager Instance { get; private set; }
 	
     private void Awake()
@@ -27,6 +29,7 @@ public class AppManager : MonoBehaviour
         {
             Instance = this;            
             DontDestroyOnLoad(gameObject); 
+			LoadTemplatePrefab();
         }
         else
         {
@@ -133,8 +136,14 @@ public class AppManager : MonoBehaviour
 		{
 			// Skip activation for these windows
 			bool isRestrictedWindow = (i == 6 || i == 9);
-			
+
 			RectTransform rect = windowPanels[i].GetComponent<RectTransform>();
+			if (rect == null)
+			{
+				Debug.LogWarning($"Window panel at index {i} has no RectTransform. Skipping.");
+				continue;
+			}
+
 			WindowState state = SettingsManager.windowStates[i];
 
 			// Only set active state if not a restricted window
@@ -146,24 +155,27 @@ public class AppManager : MonoBehaviour
 			{
 				windowPanels[i].SetActive(false); // Ensure restricted windows stay inactive
 			}
-			
+
+			// Apply loaded scale and position
 			rect.localScale = state.scale;
-			windowToggles[i].SetIsOnWithoutNotify(state.isActive && !isRestrictedWindow); // Reflect actual state
+			rect.localPosition = state.position; // THIS WAS MISSING!
+
+			// Reflect toggle state without triggering callbacks
+			windowToggles[i].SetIsOnWithoutNotify(state.isActive && !isRestrictedWindow);
 
 			// Sync and load the associated RecycleTree
 			if (i < RecycleTrees.Count && RecycleTrees[i] != null)
 			{
-				// Only activate tree if its corresponding window isn't restricted
 				RecycleTrees[i].gameObject.SetActive(state.isActive && !isRestrictedWindow);
 				RectTransform treeRect = RecycleTrees[i].GetComponent<RectTransform>();
 				if (treeRect != null)
 				{
 					treeRect.localScale = state.scale;
-					treeRect.position = rect.position; 
+					treeRect.localPosition = rect.localPosition; // Sync position locally
 				}
 			}
 
-			// Set the window as the last sibling after loading its state and syncing its tree
+			// Set the window as the last sibling after loading its state
 			windowPanels[i].transform.SetAsLastSibling();
 		}
 
@@ -172,37 +184,116 @@ public class AppManager : MonoBehaviour
 		{
 			menuPanel.transform.SetAsLastSibling();
 		}
+
+		Debug.Log("Window states loaded and applied.");
 	}
 
-	
-	public void ActivateWindow(int index){
-		windowToggles[index].isOn = true;
-		windowPanels[index].SetActive(true);
+	public void DeactivateWindow(int index)
+    {
+        if (index < 0 || index >= windowToggles.Count || index >= windowPanels.Count)
+        {
+            Debug.LogWarning($"Invalid window index: {index}. Must be within bounds of windowToggles and windowPanels arrays.");
+            return;
+        }
+
+        if (windowToggles[index] == null || windowPanels[index] == null)
+        {
+            Debug.LogWarning($"Null reference found at index {index}: windowToggles or windowPanels is null.");
+            return;
+        }
+
+        windowToggles[index].SetIsOnWithoutNotify(false); // Update toggle without triggering callback
+        windowPanels[index].SetActive(false);
+
+        // Deactivate associated RecycleTree if it exists
+        if (index < RecycleTrees.Count && RecycleTrees[index] != null)
+        {
+            RecycleTrees[index].gameObject.SetActive(false);
+        }
+
+        SaveWindowStates(); // Persist the state change
+    }
+		
+    public void ActivateWindow(int index)
+    {
+        if (index < 0 || index >= windowToggles.Count || index >= windowPanels.Count)
+        {
+            Debug.LogWarning($"Invalid window index: {index}. Must be within bounds of windowToggles and windowPanels arrays.");
+            return;
+        }
+
+        if (windowToggles[index] == null || windowPanels[index] == null)
+        {
+            Debug.LogWarning($"Null reference found at index {index}: windowToggles or windowPanels is null.");
+            return;
+        }
+
+        windowToggles[index].isOn = true;
+        windowPanels[index].SetActive(true);
+
+        RectTransform windowRect = windowPanels[index].GetComponent<RectTransform>();
+        if (windowRect == null)
+        {
+            Debug.LogWarning($"Window panel at index {index} has no RectTransform component.");
+            return;
+        }
+
+        if (menuPanel == null)
+        {
+            Debug.LogWarning("menuPanel is null. Cannot adjust scale.");
+            return;
+        }
+
+        RectTransform menuRect = menuPanel.GetComponent<RectTransform>();
+        if (menuRect == null)
+        {
+            Debug.LogWarning("menuPanel has no RectTransform component. Cannot adjust scale.");
+            return;
+        }
+
+        Vector3 menuScale = menuRect.localScale;
+        Vector3 adjustedScale = menuScale - Vector3.one;
+
+        adjustedScale.x = Mathf.Clamp(adjustedScale.x, 0.6f, 3f);
+        adjustedScale.y = Mathf.Clamp(adjustedScale.y, 0.6f, 3f);
+        adjustedScale.z = Mathf.Clamp(adjustedScale.z, 0.6f, 3f);
+
+        windowRect.localScale = adjustedScale;
+
+        ActivateRecycleTree(index, adjustedScale);
+    }
+
+	private void ActivateRecycleTree(int index, Vector3 adjustedScale)
+	{
+		// Validate RecycleTrees list and index
+		if (RecycleTrees == null || index < 0 || index >= RecycleTrees.Count)
+		{
+			// Silently return since RecycleTrees are optional
+			return;
+		}
+
+		// Check if the RecycleTree at index exists
+		if (RecycleTrees[index] == null)
+		{
+			// Silently return since it's fine for RecycleTrees to not exist
+			return;
+		}
+
+		// Activate the RecycleTree GameObject
 		RecycleTrees[index].gameObject.SetActive(true);
-				
-                RectTransform windowRect = windowPanels[index].GetComponent<RectTransform>();
-                Vector3 menuScale = menuPanel.GetComponent<RectTransform>().localScale;
-                Vector3 adjustedScale = menuScale - Vector3.one;
-				
-				adjustedScale.x = Mathf.Clamp(adjustedScale.x, .6f, 3f);
-				adjustedScale.y = Mathf.Clamp(adjustedScale.y, .6f, 3f);
 
-                if (windowRect != null)
-                {
-                    windowRect.localScale = adjustedScale;
-                }
-
-                if (index < RecycleTrees.Count && RecycleTrees[index] != null)
-                {
-                    RectTransform treeRect = RecycleTrees[index].GetComponent<RectTransform>();
-                    if (treeRect != null)
-                    {
-                        treeRect.localScale = adjustedScale;
-                    }
-                }
-	
+		// Safely handle RecycleTree scaling
+		RectTransform treeRect = RecycleTrees[index].GetComponent<RectTransform>();
+		if (treeRect != null)
+		{
+			treeRect.localScale = adjustedScale;
+		}
+		else
+		{
+			Debug.LogWarning($"RecycleTree at index {index} has no RectTransform component.");
+		}
 	}
-	
+		
 	public void CloseWindow(int index)
     {
         if (index >= 0 && index < windowPanels.Count)        {
@@ -338,5 +429,308 @@ public class AppManager : MonoBehaviour
 			SettingsManager.SaveSettings();
 	}
 
+	public void LoadTemplatePrefab()
+    {
+        if (templateWindowPrefab == null)
+        {
+            templateWindowPrefab = Resources.Load<TemplateWindow>("TemplateWindow");
+            if (templateWindowPrefab == null)
+            {
+                Debug.LogError("Failed to load TemplateWindow prefab");
+            }
+        }
+    }
 
-	}
+     public TemplateWindow CreateWindow(string titleText, Rect rect)
+    {
+        if (Instance == null)
+        {
+            Debug.LogError("AppManager Instance is not initialized.");
+            return null;
+        }
+
+        if (templateWindowPrefab == null)
+        {
+            LoadTemplatePrefab();
+            if (templateWindowPrefab == null)
+            {
+                return null;
+            }
+        }
+
+        if (uiCanvas == null)
+        {
+            Debug.LogError("uiCanvas is not assigned in AppManager. Cannot create window.");
+            return null;
+        }
+
+        // Instantiate the window under the child Canvas
+        TemplateWindow newWindow = Instantiate(templateWindowPrefab, uiCanvas.transform);
+        RectTransform windowRect = newWindow.GetComponent<RectTransform>();
+
+        // Clean up non-essential children
+        CleanUpNonEssentialChildren(newWindow);
+
+        // Configure the remaining essential components
+        newWindow.title.text = titleText;
+        windowRect.anchoredPosition = new Vector2(rect.x, rect.y);
+        windowRect.sizeDelta = new Vector2(rect.width, rect.height);
+
+        if (menuPanel != null)
+        {
+            Vector3 menuScale = menuPanel.GetComponent<RectTransform>().localScale;
+            Vector3 adjustedScale = menuScale - Vector3.one;
+            adjustedScale.x = Mathf.Clamp(adjustedScale.x, 0.6f, 3f);
+            adjustedScale.y = Mathf.Clamp(adjustedScale.y, 0.6f, 3f);
+            windowRect.localScale = adjustedScale;
+        }
+        else
+        {
+            windowRect.localScale = Vector3.zero;
+        }
+
+        newWindow.gameObject.SetActive(false);
+
+        // Add WindowManager component and configure it
+        WindowManager windowManager = newWindow.gameObject.AddComponent<WindowManager>();
+        ConfigureWindowManager(windowManager, newWindow);
+
+        // Create a toggle in MenuManager and replace the window's toggle
+        if (MenuManager.Instance != null)
+        {
+            Toggle newToggle = MenuManager.Instance.CreateWindowToggle();
+            if (newToggle != null)
+            {
+                newWindow.toggle = newToggle;
+            }
+            else
+            {
+                Debug.LogWarning("Failed to create toggle for window in MenuManager.");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("MenuManager Instance is not available to create window toggle.");
+        }
+
+        RegisterWindow(newWindow);
+
+        return newWindow;
+    }
+
+    // New method to remove non-essential children
+    private void CleanUpNonEssentialChildren(TemplateWindow newWindow)
+    {
+        // Define essential GameObjects to keep
+        List<GameObject> essentialObjects = new List<GameObject>
+        {
+            newWindow.gameObject,           // The panel (root)
+            newWindow.title.gameObject,     // The title Text
+            newWindow.close.gameObject,      // The close Button
+			newWindow.footer.gameObject,
+			newWindow.rescale.gameObject
+        };
+
+        // Get all children and destroy non-essential ones
+        List<GameObject> childrenToDestroy = new List<GameObject>();
+        foreach (Transform child in newWindow.transform)
+        {
+            if (!essentialObjects.Contains(child.gameObject))
+            {
+                childrenToDestroy.Add(child.gameObject);
+            }
+        }
+
+        foreach (GameObject child in childrenToDestroy)
+        {
+            Destroy(child);
+        }
+    }
+
+    // Updated method to configure the WindowManager
+    private void ConfigureWindowManager(WindowManager windowManager, TemplateWindow newWindow)
+    {
+        windowManager.WindowsPanel = newWindow.gameObject; // The window itself is the panel
+        windowManager.Window = newWindow.gameObject;       // Same GameObject for simplicity
+        windowManager.lockToggle = lockToggle;             // Use AppManager's lockToggle
+
+        // Get the RectTransform for positioning
+        RectTransform windowRect = newWindow.GetComponent<RectTransform>();
+
+        // Use the close button as rescaleButton, or create a new one if needed
+        windowManager.rescaleButton = newWindow.rescale;
+
+        // Tree remains null unless specified
+        windowManager.Tree = null;
+    }
+
+    public void RegisterWindow(TemplateWindow window)
+    {
+        if (window.toggle == null || window.close == null)
+        {
+            Debug.LogError("TemplateWindow prefab is missing required components (Toggle or Close Button).");
+            return;
+        }
+
+        windowToggles.Add(window.toggle);
+        windowPanels.Add(window.gameObject);
+        CloseButtons.Add(window.close);
+
+        windowDictionary.Add(window.toggle, window.gameObject);
+        window.toggle.onValueChanged.AddListener(delegate { OnWindowToggle(window.toggle, window.gameObject); });
+
+        int index = CloseButtons.Count - 1;
+        CloseButtons[index].onClick.AddListener(() => CloseWindow(index));
+
+        InputField[] inputFields = window.gameObject.GetComponentsInChildren<InputField>(true);
+        allInputFields.AddRange(inputFields);
+
+        SaveWindowStates();
+
+        if (menuPanel != null)
+        {
+            menuPanel.transform.SetAsLastSibling();
+        }
+    }
+
+    // UI Element Creation Methods
+    public Toggle CreateToggle(Transform parent, Rect rect, string text = "")
+    {
+        if (templateWindowPrefab == null || templateWindowPrefab.toggle == null)
+        {
+            Debug.LogError("TemplateWindow prefab or its Toggle is not available.");
+            return null;
+        }
+        Toggle newToggle = Instantiate(templateWindowPrefab.toggle, parent);
+        RectTransform toggleRect = newToggle.GetComponent<RectTransform>();
+        toggleRect.anchoredPosition = new Vector2(rect.x, rect.y);
+        toggleRect.sizeDelta = new Vector2(rect.width, rect.height);
+
+        // Set the label if it exists as a child
+        Text label = newToggle.GetComponentInChildren<Text>();
+        if (label != null)
+        {
+            label.text = text;
+        }
+        else if (!string.IsNullOrEmpty(text))
+        {
+            Debug.LogWarning("Toggle prefab has no child Text component to set label.");
+        }
+
+        return newToggle;
+    }
+
+    public Button CreateButton(Transform parent, Rect rect, string text = "")
+    {
+        if (templateWindowPrefab == null || templateWindowPrefab.button == null)
+        {
+            Debug.LogError("TemplateWindow prefab or its default Button is not available.");
+            return null;
+        }
+        Button newButton = Instantiate(templateWindowPrefab.button, parent);
+        RectTransform buttonRect = newButton.GetComponent<RectTransform>();
+        buttonRect.anchoredPosition = new Vector2(rect.x, rect.y);
+        buttonRect.sizeDelta = new Vector2(rect.width, rect.height);
+
+        // Set the label if it exists as a child
+        Text label = newButton.GetComponentInChildren<Text>();
+        if (label != null)
+        {
+            label.text = text;
+        }
+        else if (!string.IsNullOrEmpty(text))
+        {
+            Debug.LogWarning("Button prefab has no child Text component to set label.");
+        }
+
+        return newButton;
+    }
+
+    public Button CreateBrightButton(Transform parent, Rect rect, string text = "")
+    {
+        if (templateWindowPrefab == null || templateWindowPrefab.buttonbright == null)
+        {
+            Debug.LogError("TemplateWindow prefab or its Bright Button is not available.");
+            return null;
+        }
+        Button newButton = Instantiate(templateWindowPrefab.buttonbright, parent);
+        RectTransform buttonRect = newButton.GetComponent<RectTransform>();
+        buttonRect.anchoredPosition = new Vector2(rect.x, rect.y);
+        buttonRect.sizeDelta = new Vector2(rect.width, rect.height);
+
+        // Set the label if it exists as a child
+        Text label = newButton.GetComponentInChildren<Text>();
+        if (label != null)
+        {
+            label.text = text;
+        }
+        else if (!string.IsNullOrEmpty(text))
+        {
+            Debug.LogWarning("Bright Button prefab has no child Text component to set label.");
+        }
+
+        return newButton;
+    }
+
+    public Text CreateLabelText(Transform parent, Rect rect, string text = "")
+    {
+        if (templateWindowPrefab == null || templateWindowPrefab.label == null)
+        {
+            Debug.LogError("TemplateWindow prefab or its Label Text is not available.");
+            return null;
+        }
+        Text newText = Instantiate(templateWindowPrefab.label, parent);
+        RectTransform textRect = newText.GetComponent<RectTransform>();
+        textRect.anchoredPosition = new Vector2(rect.x, rect.y);
+        textRect.sizeDelta = new Vector2(rect.width, rect.height);
+        newText.text = text;
+        return newText;
+    }
+
+    public Slider CreateSlider(Transform parent, Rect rect)
+    {
+        if (templateWindowPrefab == null || templateWindowPrefab.slider == null)
+        {
+            Debug.LogError("TemplateWindow prefab or its Slider is not available.");
+            return null;
+        }
+        Slider newSlider = Instantiate(templateWindowPrefab.slider, parent);
+        RectTransform sliderRect = newSlider.GetComponent<RectTransform>();
+        sliderRect.anchoredPosition = new Vector2(rect.x, rect.y);
+        sliderRect.sizeDelta = new Vector2(rect.width, rect.height);
+        return newSlider;
+    }
+
+    public Dropdown CreateDropdown(Transform parent, Rect rect)
+    {
+        if (templateWindowPrefab == null || templateWindowPrefab.dropdown == null)
+        {
+            Debug.LogError("TemplateWindow prefab or its Dropdown is not available.");
+            return null;
+        }
+        Dropdown newDropdown = Instantiate(templateWindowPrefab.dropdown, parent);
+        RectTransform dropdownRect = newDropdown.GetComponent<RectTransform>();
+        dropdownRect.anchoredPosition = new Vector2(rect.x, rect.y);
+        dropdownRect.sizeDelta = new Vector2(rect.width, rect.height);
+        return newDropdown;
+    }
+
+    public InputField CreateInputField(Transform parent, Rect rect, string text = "")
+    {
+        if (templateWindowPrefab == null || templateWindowPrefab.inputField == null)
+        {
+            Debug.LogError("TemplateWindow prefab or its InputField is not available.");
+            return null;
+        }
+        InputField newInputField = Instantiate(templateWindowPrefab.inputField, parent);
+        RectTransform inputRect = newInputField.GetComponent<RectTransform>();
+        inputRect.anchoredPosition = new Vector2(rect.x, rect.y);
+        inputRect.sizeDelta = new Vector2(rect.width, rect.height);
+        newInputField.text = text;
+        allInputFields.Add(newInputField);
+        return newInputField;
+    }
+
+
+
+}

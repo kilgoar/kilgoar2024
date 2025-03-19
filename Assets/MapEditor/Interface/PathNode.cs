@@ -5,6 +5,7 @@ public class PathNode : MonoBehaviour
 {
     private NodeCollection nodeCollection;
     public event Action OnTransformChanged;
+	public event Action<PathNode> OnNodeDestroyed;
     private Vector3 lastPosition;
     private Quaternion lastRotation;
     private Vector3 lastScale;
@@ -53,9 +54,10 @@ public class PathNode : MonoBehaviour
         ReportTransformChange("Manual");
     }
 
+
     private void OnDestroy()
     {
-
+        OnNodeDestroyed?.Invoke(this); // Notify the collection this node is destroyed
     }
 
     private void OnDrawGizmosSelected()

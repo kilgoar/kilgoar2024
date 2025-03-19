@@ -19,19 +19,8 @@ public class TemplateWindow : MonoBehaviour
 	public RangeSlide rangeSlide;
 	public InputField inputField;
 	
-	public static TemplateWindow Instance { get; private set; }
-    
-    private void Awake()
-    {
-        if (Instance == null)        
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject); 
-        }
-        else        
-        {
-            Destroy(gameObject);
-        }
-    }
+	//close, footer, and title are always included in a window
+	//the close button needs to be registered with app manager
+
 	
 }

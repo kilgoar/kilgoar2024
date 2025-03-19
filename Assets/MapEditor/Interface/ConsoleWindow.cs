@@ -173,245 +173,241 @@ public class ConsoleWindow : MonoBehaviour
         }
     }
 	
-	public void ExecuteCommand(string command)
+    public void ExecuteCommand(string command)
     {
- 		// Echo the command entered
-		Post("> " + command);
+        Post("> " + command);
 
-		string[] parts = command.Split(new char[] { ' ' }, 2);
-		
-		
-			// Check if the command is a variable name or help command
-		if (parts[0].Trim().ToLower() == "help")
-			{
-				if (parts.Length == 2)
-				{
-					ListMethods(parts[1]);
-				}
-				if (parts.Length == 1)
-				{
-					ListMethods();
-				}
-				ActivateConsole();
-				return;
-			}
-			
-		if (parts[0].Trim().ToLower() == "loadmods")
-		{		
-			PostMultiLine(HarmonyLoader.LoadHarmonyMods(Path.Combine(SettingsManager.AppDataPath(), "HarmonyMods")));
-			ActivateConsole();
-			return;
-		}
+        string[] parts = command.Split(new char[] { ' ' }, 2);
 
-		// Handle 'dir' command for listing .rmml files
-		if (parts[0].Trim().ToLower() == "dir")
-		{
-			Post("");
-			List<string> scriptFiles = SettingsManager.GetScriptFiles();
-			if (scriptFiles.Count == 0)
-			{
-				Post("No scripts (.rmml) found in AppData/Roaming/RustMapper/Presets/Scripts/");
-			}
-			else
-			{
-				Post("AppData/Roaming/RustMapper/Presets/Scripts/");
-				foreach (string file in scriptFiles)
-				{
-					Post($"  {file}");
-				}
-			}
-			
-			ActivateConsole();
-			return;
-		}
-		
-	if (parts[0].Trim().ToLower() == "echo")
-	{
-		string trimmedCommand = command;
-		trimmedCommand = command.Substring(5);
+        string trimmedCommand = parts[0].Trim().ToLower();
 
-		Post(trimmedCommand);
-		ActivateConsole();
-		return;
-	}
-	
-	if (parts[0].Trim().ToLower() == "run")
-	{
-		if (parts.Length < 2)
-		{
-			Post("Usage: run <scriptname>.rmml");
-			ActivateConsole();
-			return;
-		}
+        if (trimmedCommand == "help")
+        {
+            if (parts.Length == 2)
+            {
+                ListMethods(parts[1]);
+            }
+            else
+            {
+                ListMethods();
+            }
+            ActivateConsole();
+            return;
+        }
 
-		System.Diagnostics.Stopwatch batchWatch = System.Diagnostics.Stopwatch.StartNew();
-		string scriptName = parts[1].Trim();
-		if (!scriptName.EndsWith(".rmml", StringComparison.OrdinalIgnoreCase))
-		{
-			scriptName += ".rmml"; // Append extension if missing
-		}
+        if (trimmedCommand == "loadmods")
+        {
+            PostMultiLine(HarmonyLoader.LoadHarmonyMods(Path.Combine(SettingsManager.AppDataPath(), "HarmonyMods")));
+            ActivateConsole();
+            return;
+        }
 
-		List<string> commands = SettingsManager.GetScriptCommands(scriptName);
-		if (commands.Count == 0)
-		{
-			Post($"No commands found in {scriptName}.");
-			ActivateConsole();
-			return;
-		}
+        if (trimmedCommand == "dir")
+        {
+            Post("");
+            List<string> scriptFiles = SettingsManager.GetScriptFiles();
+            if (scriptFiles.Count == 0)
+            {
+                Post("No scripts (.rmml) found in AppData/Roaming/RustMapper/Presets/Scripts/");
+            }
+            else
+            {
+                Post("AppData/Roaming/RustMapper/Presets/Scripts/");
+                foreach (string file in scriptFiles)
+                {
+                    Post($"  {file}");
+                }
+            }
+            ActivateConsole();
+            return;
+        }
 
-		Post($"Executing {scriptName}");
-		foreach (string cmd in commands)
-		{
-			// Check if the command is "run" and skip it to prevent nesting
-			string trimmedCmd = cmd.Trim().ToLower();
-			if (trimmedCmd.StartsWith("run"))
-			{
-				Post($"> {cmd}");
-				Post("Nested 'run' commands are not allowed.");
-				continue; // Skip to the next command
-			}
+        if (trimmedCommand == "echo")
+        {
+            string echoText = parts.Length > 1 ? command.Substring(5) : "";
+            Post(echoText);
+            ActivateConsole();
+            return;
+        }
 
-			ExecuteCommand(cmd); // Execute it
-		}
+        if (trimmedCommand == "run")
+        {
+            if (parts.Length < 2)
+            {
+                Post("Usage: run <scriptname>.rmml");
+                ActivateConsole();
+                return;
+            }
 
-		batchWatch.Stop();
-		Post($"Script {scriptName} completed in {batchWatch.ElapsedMilliseconds}ms.");
-		ActivateConsole();
-		return;
-	}
-	
-	if (parts[0].Trim().ToLower() == "list" && parts.Length > 1)
-	{
-		string scriptName = parts[1].Trim();
-		if (!scriptName.EndsWith(".rmml", StringComparison.OrdinalIgnoreCase))
-		{
-			scriptName += ".rmml"; // Ensure extension if omitted
-		}
+            System.Diagnostics.Stopwatch batchWatch = System.Diagnostics.Stopwatch.StartNew();
+            string scriptName = parts[1].Trim();
+            if (!scriptName.EndsWith(".rmml", StringComparison.OrdinalIgnoreCase))
+            {
+                scriptName += ".rmml";
+            }
 
-		List<string> commands = SettingsManager.GetScriptCommands(scriptName);
-		if (commands.Count == 0)
-		{
-			Post($"No commands found in {scriptName}.");
-		}
-		else
-		{
-			Post($"Commands in {scriptName}:");
-			foreach (string cmd in commands)
-			{
-				Post($"  {cmd}");
-			}
-		}
+            List<string> commands = SettingsManager.GetScriptCommands(scriptName);
+            if (commands.Count == 0)
+            {
+                Post($"No commands found in {scriptName}.");
+                ActivateConsole();
+                return;
+            }
 
-		ActivateConsole();
-		return;
-	}
+            Post($"Executing {scriptName}");
+            foreach (string cmd in commands)
+            {
+                string trimmedCmd = cmd.Trim().ToLower();
+                if (trimmedCmd.StartsWith("run"))
+                {
+                    Post($"> {cmd}");
+                    Post("Nested 'run' commands are not allowed.");
+                    continue;
+                }
+                ExecuteCommand(cmd);
+            }
 
-		// Measure the time of execution
-		System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            batchWatch.Stop();
+            Post($"Script {scriptName} completed in {batchWatch.ElapsedMilliseconds}ms.");
+            ActivateConsole();
+            return;
+        }
 
-		try
-			{
+        if (trimmedCommand == "list" && parts.Length > 1)
+        {
+            string scriptName = parts[1].Trim();
+            if (!scriptName.EndsWith(".rmml", StringComparison.OrdinalIgnoreCase))
+            {
+                scriptName += ".rmml";
+            }
 
-				string[] subParts = parts[0].Split('.');
-				
-					object variableInstance = GetStructInstance(subParts[0]);
+            List<string> commands = SettingsManager.GetScriptCommands(scriptName);
+            if (commands.Count == 0)
+            {
+                Post($"No commands found in {scriptName}.");
+            }
+            else
+            {
+                Post($"Commands in {scriptName}:");
+                foreach (string cmd in commands)
+                {
+                    Post($"  {cmd}");
+                }
+            }
+            ActivateConsole();
+            return;
+        }
 
-					if (variableInstance!=null) 
-					{
-						//display variables and fields when they're named in console
-						if (parts.Length == 1){	
-							if(subParts.Length == 1){ PostVariableFields(variableInstance);	}
-							else if (subParts.Length == 2) {	PostVariableField(variableInstance, subParts[1]); }
-							
-							ActivateConsole();
-							return;
-						}
-						else if (parts.Length == 2){
-							if(subParts.Length == 2){ //only allow the modifications of variable fields
-								ModifyVariableField(variableInstance, subParts[1], parts[1]);
-								ActivateConsole();
-								return;
-							}
-						}
-					}
-					else { //now look for methods
-						
-							string prefix = subParts[0].ToLower();
-							string actualMethodName = subParts[1];
-							string parameters = parts[1];
+        System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-							Type targetClass = prefix switch
-							{
-								"t" => typeof(TerrainManager),
-								"g" => typeof(GenerativeManager),
-								"p" => typeof(PrefabManager),
-								"m" => typeof(MapManager),
-								_ => null
-							};
+        try
+        {
+            string[] subParts = parts[0].Split('.');
 
-							if (targetClass == null)
-							{
-								Post($"Unknown command prefix: {prefix}");
-								ActivateConsole();
-								return;
-							}
-							
-							// Use reflection to find and execute the method
-							System.Reflection.MethodInfo method = targetClass.GetMethod(actualMethodName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-							if (method == null)
-							{
-								Post($"Method '{actualMethodName}' not found in {targetClass.Name}.");
-								ActivateConsole();
-								return;
-							}
+            object variableInstance = GetStructInstance(subParts[0]);
 
-							// Convert string parameters to the method's expected parameter types
-							object[] convertedParams = parameters.Length > 0 ? ConvertParameters(method.GetParameters(), parameters.Split(',')) : new object[0];
+            if (variableInstance != null)
+            {
+                if (parts.Length == 1)
+                {
+                    if (subParts.Length == 1) PostVariableFields(variableInstance);
+                    else if (subParts.Length == 2) PostVariableField(variableInstance, subParts[1]);
+                    ActivateConsole();
+                    return;
+                }
+                else if (parts.Length == 2)
+                {
+                    if (subParts.Length == 2)
+                    {
+                        ModifyVariableField(variableInstance, subParts[1], parts[1]);
+                        ActivateConsole();
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                string prefix = subParts[0].ToLower();
+                string actualMethodName = subParts.Length > 1 ? subParts[1] : "";
+                string parameters = parts.Length > 1 ? parts[1] : "";
 
-							// Execute method
-							method.Invoke(null, convertedParams);
-							stopwatch.Stop();
+                Type targetClass = prefix switch
+                {
+                    "t" => typeof(TerrainManager),
+                    "g" => typeof(GenerativeManager),
+                    "p" => typeof(PrefabManager),
+                    "m" => typeof(MapManager),
+                    "mm" => typeof(ModManager), // Added ModManager prefix
+                    _ => null
+                };
 
-							// Post success message with elapsed time
-							Post($"Method '{prefix}.{actualMethodName}' executed successfully in {stopwatch.ElapsedMilliseconds}ms.");
-							
-							ActivateConsole();
-							return;
-							
-					}
+                if (targetClass == null)
+                {
+                    Post($"Unknown command prefix: {prefix}");
+                    ActivateConsole();
+                    return;
+                }
 
-			}
-			catch (System.FormatException)
-				{
-					Post($"Parameter conversion failed. Check parameter types.");
-					stopwatch.Stop();
-					ActivateConsole();
-					return;
-				}
-			catch (System.Reflection.TargetParameterCountException)
-				{
-					Post($"Incorrect number of parameters for the method.");
-					stopwatch.Stop();
-					ActivateConsole();
-					return;
-				}
-			catch (System.Reflection.TargetInvocationException e)
-				{
-					Post($"An error occurred while executing the method: {e.InnerException?.Message}");
-					stopwatch.Stop();
-					ActivateConsole();
-					return;
-				}
-			catch (Exception e)
-				{
-					Post($"An unexpected error occurred: {e.Message}");
-					stopwatch.Stop();
-					ActivateConsole();
-					return;
-				}
-			
-		Post("Arglebargle glop-glyf?");
-		ActivateConsole();
+                if (string.IsNullOrEmpty(actualMethodName))
+                {
+                    Post($"Method name required after prefix '{prefix}'. Use 'help /{prefix}' for available methods.");
+                    ActivateConsole();
+                    return;
+                }
+
+                MethodInfo method = targetClass.GetMethod(actualMethodName, BindingFlags.Public | BindingFlags.Static);
+                if (method == null)
+                {
+                    Post($"Method '{actualMethodName}' not found in {targetClass.Name}.");
+                    ActivateConsole();
+                    return;
+                }
+
+                object[] convertedParams = parameters.Length > 0 ? ConvertParameters(method.GetParameters(), parameters.Split(',')) : new object[0];
+
+                object result = method.Invoke(null, convertedParams);
+                stopwatch.Stop();
+
+                if (result != null)
+                {
+                    Post($"Result: {result}");
+                }
+                Post($"Method '{prefix}.{actualMethodName}' executed successfully in {stopwatch.ElapsedMilliseconds}ms.");
+                ActivateConsole();
+                return;
+            }
+        }
+        catch (System.FormatException)
+        {
+            Post($"Parameter conversion failed. Check parameter types.");
+            stopwatch.Stop();
+            ActivateConsole();
+            return;
+        }
+        catch (System.Reflection.TargetParameterCountException)
+        {
+            Post($"Incorrect number of parameters for the method.");
+            stopwatch.Stop();
+            ActivateConsole();
+            return;
+        }
+        catch (System.Reflection.TargetInvocationException e)
+        {
+            Post($"An error occurred while executing the method: {e.InnerException?.Message}");
+            stopwatch.Stop();
+            ActivateConsole();
+            return;
+        }
+        catch (Exception e)
+        {
+            Post($"An unexpected error occurred: {e.Message}");
+            stopwatch.Stop();
+            ActivateConsole();
+            return;
+        }
+
+        Post("Arglebargle glop-glyf?");
+        ActivateConsole();
     }
 	
 	private void OnEnable(){
@@ -644,115 +640,107 @@ public class ConsoleWindow : MonoBehaviour
 		return layer;
 	}
 
-private void ListMethods(string command = "")
-{
-    Post("");
-    Post("----------------------------");
-    Post("Rust Mapper Platinum Edition");
-    Post("============================");
-
-    if (string.IsNullOrEmpty(command))
+    private void ListMethods(string command = "")
     {
-        Post("Commands:");
-		Post("dir - lists user scripts");
-		Post("run - execute script");
-		Post("");
-		Post("Additional help:");
-        Post("/t - heightmap related");
-        Post("/g - GenerativeManager");
-        Post("/p - PrefabManager");
-		Post("/m - MapManager");
-        Post("/layers - List of layer keywords");
-        Post("Use 'help /prefix' to see methods for a specific module.");
-    }
-    else
-    {
-        string prefix = command.TrimStart('/').ToLower();
-        Type classType = prefix switch
+        Post("");
+        Post("----------------------------");
+        Post("Rust Mapper Platinum Edition");
+        Post("============================");
+
+        if (string.IsNullOrEmpty(command))
         {
-            "t" => typeof(TerrainManager),
-            "g" => typeof(GenerativeManager),
-            "p" => typeof(PrefabManager),
-			"m" => typeof(MapManager),
-            "layers" => null, // Handled separately for listing keywords
-            _ => null
-        };
-
-        if (classType != null)
-        {
-            Post($"Available methods for {classType.Name}:");
-            System.Reflection.MethodInfo[] methods = classType.GetMethods(
-                System.Reflection.BindingFlags.Public | 
-                System.Reflection.BindingFlags.Static);
-
-            foreach (var method in methods)
-            {
-                if (!method.IsSpecialName && Attribute.IsDefined(method, typeof(ConsoleCommandAttribute)))
-                {
-                    var commandAttribute = (ConsoleCommandAttribute)Attribute.GetCustomAttribute(method, typeof(ConsoleCommandAttribute));
-                    string methodSignature = $"{prefix.ToLower()}.{method.Name} ";
-                    foreach (var param in method.GetParameters())
-                    {
-                        methodSignature += $"{param.ParameterType.Name}:{param.Name}, ";
-                    }
-                    if (method.GetParameters().Length > 0)
-                    {
-                        methodSignature = methodSignature.Remove(methodSignature.Length - 2); // Remove last ", "
-                    }
-                    Post($"{methodSignature} - {commandAttribute.Description}");
-                }
-            }
-
-            // Special handling for PrefabManager (/p) to include keyword explanation
-            if (prefix == "p")
-            {
-                Post("");
-                Post("prefabs parameter keywords:");
-                Post("'all': Operate on all prefabs managed by PrefabManager.");
-                Post("'selection': Operate only on currently selected prefabs.");
-            }
-
-            // Special handling for GenerativeManager (/g) - console variables
-            if (prefix == "g")
-            {
-                Post("");
-                Post("Accessible console variables for GenerativeManager:");
-                foreach (var variable in consoleVariables)
-                {
-                    var type = variable.Value.GetType();
-                    var attribute = (ConsoleVariableAttribute)Attribute.GetCustomAttribute(type, typeof(ConsoleVariableAttribute));
-                    if (attribute != null)
-                    {
-                        Post($"{variable.Key} - {attribute.Description}");
-                    }
-                }
-            }
-        }
-        else if (prefix == "layers")
-        {
-            Post("Available layer keywords:");
-            
-            // List all TerrainSplat (Ground) keywords
-            Post("Ground Layers:");
-            Post("dirt, snow, sand, rock, grass, forest, stones, gravel");
-
-            // List all TerrainBiome keywords
-            Post("Biome Layers:");
-            Post("arid, temperate, tundra, arctic");
-
-            // List all TerrainTopology keywords
-            Post("Topology Layers:");
-            Post("field, cliff, summit, beach, foresttopo, ocean, oceanside");
-			Post("riverside, lakeside, roadside, railside, swamp, river");
-			Post("lake, offshore, rail, building, cliffside, mountain");
-			Post("clutter, alt, tier0, tier1, tier2, mainland, hilltop");
+            Post("Commands:");
+            Post("dir - lists user scripts");
+            Post("run - execute script");
+            Post("");
+            Post("Additional help:");
+            Post("/t - heightmap related");
+            Post("/g - GenerativeManager");
+            Post("/p - PrefabManager");
+            Post("/m - MapManager");
+            Post("/mm - ModManager"); // Added ModManager to help
+            Post("/layers - List of layer keywords");
+            Post("Use 'help /prefix' to see methods for a specific module.");
         }
         else
         {
-            Post($"Module '{prefix}' not recognized. Use 'help' to see available modules.");
+            string prefix = command.TrimStart('/').ToLower();
+            Type classType = prefix switch
+            {
+                "t" => typeof(TerrainManager),
+                "g" => typeof(GenerativeManager),
+                "p" => typeof(PrefabManager),
+                "m" => typeof(MapManager),
+                "mm" => typeof(ModManager), // Added ModManager to help switch
+                "layers" => null,
+                _ => null
+            };
+
+            if (classType != null)
+            {
+                Post($"Available methods for {classType.Name}:");
+                MethodInfo[] methods = classType.GetMethods(BindingFlags.Public | BindingFlags.Static);
+
+                foreach (var method in methods)
+                {
+                    if (!method.IsSpecialName && Attribute.IsDefined(method, typeof(ConsoleCommandAttribute)))
+                    {
+                        var commandAttribute = (ConsoleCommandAttribute)Attribute.GetCustomAttribute(method, typeof(ConsoleCommandAttribute));
+                        string methodSignature = $"{prefix.ToLower()}.{method.Name} ";
+                        foreach (var param in method.GetParameters())
+                        {
+                            methodSignature += $"{param.ParameterType.Name}:{param.Name}, ";
+                        }
+                        if (method.GetParameters().Length > 0)
+                        {
+                            methodSignature = methodSignature.Remove(methodSignature.Length - 2);
+                        }
+                        Post($"{methodSignature} - {commandAttribute.Description}");
+                    }
+                }
+
+                if (prefix == "p")
+                {
+                    Post("");
+                    Post("prefabs parameter keywords:");
+                    Post("'all': Operate on all prefabs managed by PrefabManager.");
+                    Post("'selection': Operate only on currently selected prefabs.");
+                }
+
+                if (prefix == "g")
+                {
+                    Post("");
+                    Post("Accessible console variables for GenerativeManager:");
+                    foreach (var variable in consoleVariables)
+                    {
+                        var type = variable.Value.GetType();
+                        var attribute = (ConsoleVariableAttribute)Attribute.GetCustomAttribute(type, typeof(ConsoleVariableAttribute));
+                        if (attribute != null)
+                        {
+                            Post($"{variable.Key} - {attribute.Description}");
+                        }
+                    }
+                }
+            }
+            else if (prefix == "layers")
+            {
+                Post("Available layer keywords:");
+                Post("Ground Layers:");
+                Post("dirt, snow, sand, rock, grass, forest, stones, gravel");
+                Post("Biome Layers:");
+                Post("arid, temperate, tundra, arctic");
+                Post("Topology Layers:");
+                Post("field, cliff, summit, beach, foresttopo, ocean, oceanside");
+                Post("riverside, lakeside, roadside, railside, swamp, river");
+                Post("lake, offshore, rail, building, cliffside, mountain");
+                Post("clutter, alt, tier0, tier1, tier2, mainland, hilltop");
+            }
+            else
+            {
+                Post($"Module '{prefix}' not recognized. Use 'help' to see available modules.");
+            }
         }
     }
-}
 
 	private void InitializeConsoleVariables()
 	{

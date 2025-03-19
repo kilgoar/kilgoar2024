@@ -13,9 +13,9 @@ using EasyRoads3Dv3;
 
 public static class PathManager
 {
-    private static ERRoadNetwork _roadNetwork;
-    private static int _roadIDCounter = 1;
-	private static Transform roadTransform;
+    public static ERRoadNetwork _roadNetwork;
+    public static int _roadIDCounter = 1;
+	public static Transform roadTransform;
 	public static GameObject NodePrefab { get; private set; }
 	public static NodeCollection CurrentNodeCollection { get; private set; } // New field for current NodeCollection
 

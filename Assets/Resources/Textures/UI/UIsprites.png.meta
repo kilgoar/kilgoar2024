@@ -1796,7 +1796,7 @@ TextureImporter:
         width: 40
         height: 40
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1804,6 +1804,48 @@ TextureImporter:
       bones: []
       spriteID: fd04942961237e9488bc01ae5ae145eb
       internalID: 935141968
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pluginGreen
+      rect:
+        serializedVersion: 2
+        x: 986
+        y: 969
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fc6b744e859f00948b7ca6ed29671721
+      internalID: -1728604055
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: plugin
+      rect:
+        serializedVersion: 2
+        x: 1033
+        y: 970
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9e8632cc6bbd85049a21c3bd9b6635a9
+      internalID: -946144401
       vertices: []
       indices: 
       edges: []
@@ -1879,6 +1921,8 @@ TextureImporter:
       painter white: -97966464
       paths: -1829354638
       pathsGreen: -1432066
+      plugin: -946144401
+      pluginGreen: -1728604055
       plus sign blue: -981460359
       prefabList: -1071875092
       prefabListGreen: 1569333959

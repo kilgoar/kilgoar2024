@@ -3,6 +3,7 @@ using EasyRoads3Dv3;
 using System.Linq;
 using static WorldSerialization;
 using System.Collections.Generic;
+using UIRecycleTreeNamespace;
 
 public class NodeCollection : MonoBehaviour
 {
@@ -37,41 +38,13 @@ public class NodeCollection : MonoBehaviour
 
     private void Start()
     {
-        if (pathData == null)
-        {
-            pathDataHolder = FindPathDataHolder();
-            modularRoad = FindModularRoad();
-
-            if (pathDataHolder == null)
-            {
-                Debug.LogError($"NodeCollection on {gameObject.name} could not find PathDataHolder in parent hierarchy.");
-                return;
-            }
-
-            if (modularRoad == null)
-            {
-                Debug.LogError($"NodeCollection on {gameObject.name} could not find ERModularRoad in parent hierarchy.");
-                return;
-            }
-
-            if (road == null)
-            {
-                Debug.LogError($"NodeCollection on {gameObject.name} was not initialized with an ERRoad.");
-                return;
-            }
-
-            pathData = pathDataHolder.pathData;
-            Debug.Log($"Start: Set pathData from PathDataHolder. road: {(road != null ? road.GetName() : "null")}, modularRoad: {(modularRoad != null ? modularRoad.name : "null")}");
-        }
-        else
-        {
             modularRoad = FindModularRoad();
             if (modularRoad == null)
             {
                 Debug.LogError($"NodeCollection on {gameObject.name} has pathData but could not find ERModularRoad in parent hierarchy.");
             }
-            Debug.Log($"Start: pathData was set externally. road: {(road != null ? road.GetName() : "null")}, modularRoad: {(modularRoad != null ? modularRoad.name : "null")}");
-        }
+            Debug.Log($"NodeCollection's pathData set. road: {(road != null ? road.GetName() : "null")}, modularRoad: {(modularRoad != null ? modularRoad.name : "null")}");
+        
     }
 
     private PathDataHolder FindPathDataHolder()
@@ -86,7 +59,7 @@ public class NodeCollection : MonoBehaviour
         return parent != null ? parent.GetComponent<ERModularRoad>() : null;
     }
 
-	 public void PopulateNodes()
+	public void PopulateNodes()
 	{
 		populating = true;
 		try // Use try-finally to ensure populating is reset
@@ -112,6 +85,7 @@ public class NodeCollection : MonoBehaviour
 				if (node != null && node.TryGetComponent<PathNode>(out PathNode pathNode))
 				{
 					pathNode.OnTransformChanged -= HandleNodeTransformChanged;
+					pathNode.OnNodeDestroyed -= HandleNodeDestroyed;
 				}
 			}
 
@@ -158,15 +132,17 @@ public class NodeCollection : MonoBehaviour
 			nodeTransforms = newNodeTransforms;
 
 			// Subscribe events to all nodes after population
-			foreach (Transform node in nodeTransforms)
-			{
-				if (node.TryGetComponent<PathNode>(out PathNode pathNode))
-				{
-					pathNode.OnTransformChanged += HandleNodeTransformChanged;
-				}
-			}
+            foreach (Transform node in nodeTransforms)
+            {
+                if (node.TryGetComponent<PathNode>(out PathNode pathNode))
+                {
+                    pathNode.OnTransformChanged -= HandleNodeTransformChanged; // Ensure no duplicates
+                    pathNode.OnTransformChanged += HandleNodeTransformChanged;
+                    pathNode.OnNodeDestroyed -= HandleNodeDestroyed; // Ensure no duplicates
+                    pathNode.OnNodeDestroyed += HandleNodeDestroyed; // Subscribe to destruction
+                }
+            }
 
-			Debug.Log($"Populated {nodeTransforms.Count} nodes from pathData.nodes.");
 
 			UpdateRoadMarkers();
 			SetRoadMaterialToGold();
@@ -217,6 +193,7 @@ public class NodeCollection : MonoBehaviour
         if (subscribeEvents)
         {
             pathNode.OnTransformChanged += HandleNodeTransformChanged;
+			pathNode.OnNodeDestroyed += HandleNodeDestroyed;
         }
 
         return sphereTransform;
@@ -248,6 +225,88 @@ public class NodeCollection : MonoBehaviour
         UpdatePathData();
         UpdateRoadMarkers();
     }
+	
+	private void RemoveFromTree()
+	{
+		if (ItemsWindow.Instance == null || ItemsWindow.Instance.tree == null)
+		{
+			Debug.LogWarning("ItemsWindow or its tree is null. Cannot remove NodeCollection from tree.");
+			return;
+		}
+
+		Debug.Log($"Removing NodeCollection '{gameObject.name}' from tree. Nodes before: {ItemsWindow.Instance.tree.nodesCount}");
+
+		Node treeNode = ItemsWindow.Instance.tree.FindFirstNodeByDataRecursive(gameObject);
+		if (treeNode != null)
+		{
+			// Clear children
+			int childCount = treeNode.nodes.Count;
+			treeNode.nodes.Clear();
+			Debug.Log($"Cleared {childCount} children from '{gameObject.name}'.");
+
+			// Remove the NodeCollection node
+			bool removed = false;
+			if (treeNode.parentNode != null)
+			{
+				removed = treeNode.parentNode.nodes.RemoveWithoutNotify(treeNode);
+				Debug.Log($"Removed '{gameObject.name}' from parent '{treeNode.parentNode.name}': {(removed ? "Success" : "Failed")}");
+			}
+			else
+			{
+				removed = ItemsWindow.Instance.tree.nodes.RemoveWithoutNotify(treeNode);
+				Debug.Log($"Removed '{gameObject.name}' from tree root: {(removed ? "Success" : "Failed")}");
+			}
+
+			if (!removed)
+			{
+				Debug.LogWarning($"Failed to remove '{gameObject.name}' cleanly from tree.");
+			}
+		}
+		else
+		{
+			Debug.LogWarning($"NodeCollection '{gameObject.name}' not found in tree.");
+		}
+
+		//PrefabManager.NotifyItemsChanged();
+	}
+
+	
+	private void HandleNodeDestroyed(PathNode destroyedNode)
+	{
+		if (destroyedNode == null || !nodeTransforms.Contains(destroyedNode.transform)) return;
+
+		int index = nodeTransforms.IndexOf(destroyedNode.transform);
+		nodeTransforms.RemoveAt(index);
+
+		if (nodeTransforms.Count > 0)
+		{
+			int neighborIndex = index >= nodeTransforms.Count ? index - 1 : index;
+			Transform neighborNode = nodeTransforms[neighborIndex];
+			if (neighborNode != null)
+			{
+				CameraManager.Instance.Unselect();
+				CameraManager.Instance.SelectPrefabWithoutNotify(neighborNode.gameObject);
+			}
+			UpdatePathData();
+			UpdateRoadMarkers();
+		}
+		else
+		{
+			Transform roadObject = transform.parent;
+			if (roadObject != null)
+			{
+				CameraManager.Instance.DepopulateNodesForRoad(roadObject.gameObject);
+				Object.Destroy(roadObject.gameObject);
+			}
+			else
+			{
+				Object.Destroy(gameObject);
+			}
+			CameraManager.Instance.Unselect();
+
+			//RemoveFromTree(); // Use the factored-out method
+		}
+	}
 
     public void UpdatePathData()
     {
@@ -284,7 +343,6 @@ public class NodeCollection : MonoBehaviour
 
         if (markerCount != newPositions.Length)
         {
-            Debug.Log($"Marker count mismatch: ERRoad has {markerCount} markers, nodeTransforms has {newPositions.Length}. Adjusting markers...");
             while (markerCount > newPositions.Length)
             {
                 road.DeleteMarker(markerCount - 1);
@@ -300,8 +358,6 @@ public class NodeCollection : MonoBehaviour
         road.ClosedTrack(false);
         road.SetMarkerPositions(newPositions);
         road.Refresh();
-
-        Debug.Log($"Updated ERRoad '{road.GetName()}' with {newPositions.Length} markers.");
     }
 
     public void RemoveNode(Transform nodeTransform)
@@ -477,16 +533,6 @@ public class NodeCollection : MonoBehaviour
         UpdateRoadMarkers();
     }
 
-    private void OnDestroy()
-    {
-        foreach (var node in nodeTransforms)
-        {
-            if (node.TryGetComponent<PathNode>(out var pathNode))
-                pathNode.OnTransformChanged -= HandleNodeTransformChanged;
-        }
-
-        RevertRoadMaterial();
-    }
 
     private void RevertRoadMaterial()
     {
@@ -512,6 +558,21 @@ public class NodeCollection : MonoBehaviour
             }
         }
     }
+	
+	private void OnDestroy()
+	{
+		RevertRoadMaterial();
+		foreach (Transform node in nodeTransforms)
+		{
+			if (node != null && node.TryGetComponent<PathNode>(out PathNode pathNode))
+			{
+				pathNode.OnTransformChanged -= HandleNodeTransformChanged;
+				pathNode.OnNodeDestroyed -= HandleNodeDestroyed;
+			}
+		}
+		
+		
+	}
 
     public IReadOnlyList<Transform> GetNodes()
     {

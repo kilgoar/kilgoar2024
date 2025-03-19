@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using EasyRoads3Dv3;
@@ -8,7 +9,6 @@ using static WorldSerialization;
 
 public class PathWindow : MonoBehaviour
 {
-    // UI Elements for PathData properties
     public Text nameField;
     public InputField widthField;
     public InputField innerPaddingField;
@@ -18,10 +18,12 @@ public class PathWindow : MonoBehaviour
     public Dropdown splatDropdown;
     public Dropdown topologyDropdown;
 
-    private PathDataHolder currentPathHolder; // Reference to the selected path's data holder
-    private ERRoad currentRoad; // Reference to the associated ERRoad
+    private PathDataHolder currentPathHolder;
+    private ERRoad currentRoad;
     private List<TerrainSplat.Enum> splatEnums = new List<TerrainSplat.Enum>();
     private List<TerrainTopology.Enum> topologyEnums = new List<TerrainTopology.Enum>();
+	
+
 
     public static PathWindow Instance { get; private set; }
 
@@ -37,32 +39,112 @@ public class PathWindow : MonoBehaviour
             Destroy(gameObject);
         }
     }
-
-    void Start()
+	
+	void Start()
     {
-        // Populate dropdowns with enum values
         PopulateDropdowns();
+        // Subscribe to selection changes
+        if (CameraManager.Instance != null)
+        {
+            CameraManager.Instance.OnSelectionChanged += UpdateData;
+        }
     }
+
+    void OnDestroy()
+    {
+        // Unsubscribe to avoid memory leaks
+        if (CameraManager.Instance != null)
+        {
+            CameraManager.Instance.OnSelectionChanged -= UpdateData;
+        }
+    }
+
+    public void UpdateData()
+    {
+
+        if (CameraManager.Instance._selectedRoad != null)
+        {
+            PathData pathData = CameraManager.Instance._selectedRoad;
+            GameObject roadObject = null;
+
+            PathDataHolder[] pathHolders = PathManager.CurrentMapPaths;
+            foreach (var holder in pathHolders)
+            {
+                if (holder != null && holder.pathData == pathData)
+                {
+                    roadObject = holder.gameObject;
+                    break;
+                }
+            }
+
+            if (roadObject != null)
+            {
+                if (!gameObject.activeSelf && AppManager.Instance != null)
+                {
+                    Debug.Log($"Activating PathWindow for road: {roadObject.name}");
+                    AppManager.Instance.ActivateWindow(9);
+                }
+                SetSelection(roadObject);
+            }
+            else
+            {
+                Debug.LogWarning($"Could not find road object for PathData: {pathData.name}");
+                ClearUI();
+            }
+        }
+        else if (CameraManager.Instance._selectedObjects.Count > 0)
+        {
+            // Check if a node or NodeCollection is selected
+            GameObject selectedObject = CameraManager.Instance._selectedObjects[CameraManager.Instance._selectedObjects.Count - 1];
+            if (selectedObject.CompareTag("Node") || selectedObject.CompareTag("NodeParent"))
+            {
+                PathDataHolder pathHolder = selectedObject.GetComponentInParent<PathDataHolder>();
+                if (pathHolder != null)
+                {
+                    CameraManager.Instance._selectedRoad = pathHolder.pathData;
+                    SetSelection(pathHolder.gameObject);
+                    return;
+                }
+            }
+            ClearUI();
+        }
+        else
+        {
+            ClearUI();
+        }
+    }
+
 
     void OnEnable()
     {
-        // Switch to stylus 3 for path editing
         CoroutineManager.Instance.ChangeStylus(3);
         Debug.Log("Path window enabled");
-
-        // Populate UI if a path is already selected
-        UpdateData();
+        UpdateData(); // Reflect current selection when activated
     }
 
-    void OnDisable()
+void OnDisable()
+{
+    CoroutineManager.Instance.ChangeStylus(1);
+    Debug.Log("Path window disabled");
+
+    if (CameraManager.Instance != null && CameraManager.Instance._selectedRoad != null)
     {
-        // Revert stylus to default (1)
-        CoroutineManager.Instance.ChangeStylus(1);
-        Debug.Log("Path window disabled");
-        DestroyListeners();
+        GameObject currentRoad = PathManager.CurrentMapPaths.FirstOrDefault(h => h?.pathData == CameraManager.Instance._selectedRoad)?.gameObject;
+        if (currentRoad != null)
+        {
+            CameraManager.Instance.DepopulateNodesForRoad(currentRoad);
+        }
+        CameraManager.Instance._selectedRoad = null;
+        CameraManager.Instance._selectedObjects.Clear();
+        CameraManager.Instance.NotifySelectionChanged();
+        CameraManager.Instance.UpdateGizmoState();
+        Debug.Log("Selected road unselected, nodes depopulated, and gizmos updated.");
     }
 
-    // Initialize UI with PathData from a selected GameObject
+    DestroyListeners();
+}
+
+
     public void SetSelection(GameObject go)
     {
         if (go == null)
@@ -84,37 +166,22 @@ public class PathWindow : MonoBehaviour
         RetrievePathData(currentPathHolder.pathData);
     }
 
-    // Update UI based on current selection in CameraManager
-    public void UpdateData()
-    {
-        if (CameraManager.Instance._selectedRoad !=null)
-        {
-			RetrievePathData(CameraManager.Instance._selectedRoad);
-        }
-        else
-        {
-            ClearUI();
-        }
-    }
-
-    // Populate UI fields with PathData values
     private void RetrievePathData(PathData pathData)
     {
         DestroyListeners();
 
         nameField.text = pathData.name;
-        widthField.text = pathData.width.ToString("F2");
-        innerPaddingField.text = pathData.innerPadding.ToString("F2");
-        outerPaddingField.text = pathData.outerPadding.ToString("F2");
-        innerFadeField.text = pathData.innerFade.ToString("F2");
-        outerFadeField.text = pathData.outerFade.ToString("F2");
+        widthField.text = pathData.width.ToString();
+        innerPaddingField.text = pathData.innerPadding.ToString();
+        outerPaddingField.text = pathData.outerPadding.ToString();
+        innerFadeField.text = pathData.innerFade.ToString();
+        outerFadeField.text = pathData.outerFade.ToString();
         splatDropdown.value = splatEnums.IndexOf((TerrainSplat.Enum)pathData.splat);
         topologyDropdown.value = topologyEnums.IndexOf((TerrainTopology.Enum)pathData.topology);
 
         CreateListeners();
     }
 
-    // Clear UI fields when no path is selected
     private void ClearUI()
     {
         DestroyListeners();
@@ -131,7 +198,6 @@ public class PathWindow : MonoBehaviour
         currentRoad = null;
     }
 
-    // Update PathData and apply to the road
     public void SendPathData()
     {
         if (currentPathHolder == null || currentRoad == null)
@@ -150,11 +216,9 @@ public class PathWindow : MonoBehaviour
         data.splat = (int)splatEnums[splatDropdown.value];
         data.topology = (int)topologyEnums[topologyDropdown.value];
 
-        // Update the road configuration
         PathManager.ConfigureRoad(currentRoad, data);
         currentRoad.Refresh();
 
-        // Update NodeCollection if present
         NodeCollection nodeCollection = currentPathHolder.GetComponent<NodeCollection>();
         if (nodeCollection != null)
         {
@@ -162,10 +226,10 @@ public class PathWindow : MonoBehaviour
             nodeCollection.UpdateRoadMarkers();
         }
 
+        CameraManager.Instance._selectedRoad = data;
         Debug.Log($"Updated path '{data.name}' with new data.");
     }
 
-    // Populate dropdowns with TerrainSplat and TerrainTopology enums
     private void PopulateDropdowns()
     {
         splatDropdown.options.Clear();
@@ -185,7 +249,6 @@ public class PathWindow : MonoBehaviour
         topologyDropdown.RefreshShownValue();
     }
 
-    // Add listeners to UI elements
     private void CreateListeners()
     {
         widthField.onEndEdit.AddListener(text => SendPathData());
@@ -197,7 +260,6 @@ public class PathWindow : MonoBehaviour
         topologyDropdown.onValueChanged.AddListener(value => SendPathData());
     }
 
-    // Remove all listeners from UI elements
     private void DestroyListeners()
     {
         widthField.onEndEdit.RemoveAllListeners();
