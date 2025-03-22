@@ -35,8 +35,27 @@ public class PostBuildProcessor
         SettingsManager.CopyDirectory("Custom", "E:/RustMapper/Custom");
 		SettingsManager.CopyDirectory("HarmonyMods", "E:/RustMapper/HarmonyMods");
         SettingsManager.CopyEditorSettings("E:/RustMapper/EditorSettings.json");
+		
+		try
+        {
+            if (File.Exists("unity default resources"))
+            {
+                File.Copy("unity default resources", "E:/RustMapper/RustMapper_Data/Resources/unity default resources", true);
+                UnityEngine.Debug.Log("Successfully copied splash screen");
+            }
+            else
+            {
+                UnityEngine.Debug.LogError("Source unity default resources not found");
+            }
+        }
+        catch (Exception ex)
+        {
+            UnityEngine.Debug.LogError($"Failed to copy unity default resources: {ex.Message}");
+        }
+		
+		//we need to copy a file, full path "unity default resources"  to "E:/RustMapper/RustMapper_Data/Resources/" and overwrite the unity default resources there already
+		
 		RemoveDirectory("E:/RustMapper/RustMapper_BurstDebugInformation_DoNotShip");
-		//SetRunAsAdministrator("E:/RustMapper/RustMapper.exe");
     }
 	
 	// yeah this doesn't work

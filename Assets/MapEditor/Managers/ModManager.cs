@@ -75,6 +75,46 @@ public static class ModManager
         }
     }
 
+    public static Texture2D LoadTexture(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath))
+            {
+                Debug.LogError($"Texture file not found at path: {filePath}");
+                return null;
+            }
+
+            byte[] pngBytes = File.ReadAllBytes(filePath);
+            Texture2D texture = new Texture2D(2, 2);
+            if (texture.LoadImage(pngBytes))
+            {
+                return texture;
+            }
+            else
+            {
+                UnityEngine.Object.Destroy(texture);
+                Debug.LogError($"Failed to load texture data from: {filePath}");
+                return null;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error loading texture from {filePath}: {e.Message}");
+            return null;
+        }
+    }
+
+    public static Sprite CreateSprite(Texture2D texture)
+    {
+        if (texture == null)
+        {
+            Debug.LogError("Cannot create sprite from null texture.");
+            return null;
+        }
+
+        return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+    }
 
 [ConsoleCommand("Sample code for programmatic window creation")]
 public static TemplateWindow CreateSampleWindow()
@@ -93,7 +133,8 @@ public static TemplateWindow CreateSampleWindow()
     // - height: The height of the rectangle in pixels.
     TemplateWindow sampleWindow = AppManager.Instance.CreateWindow(
         titleText: "Sample Plugin Window",
-        rect: new Rect(300, -150, 647, 400) //(1 + Math.Sqrt(5)) / 2; what ???
+        rect: new Rect(300, -150, 647, 400),
+		Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "HarmonyMods", "sampleIcon.png")
     );
 
     if (sampleWindow != null)
@@ -122,7 +163,7 @@ public static TemplateWindow CreateSampleWindow()
 
         Text sampleLabel = AppManager.Instance.CreateLabelText(
             sampleWindow.transform,
-            new Rect(300, -160, 300, 22),
+            new Rect(250, -100, 300, 50),
             "Just TRY to label me"
         );
 
@@ -140,18 +181,19 @@ public static TemplateWindow CreateSampleWindow()
 
         Dropdown sampleDropdown = AppManager.Instance.CreateDropdown(
             sampleWindow.transform,
-            new Rect(20, -220, 300, 25)
+            new Rect(20, -220, 620, 40)
         );
         sampleDropdown.options.Clear();
         sampleDropdown.options.Add(new Dropdown.OptionData("How DARE you"));
         sampleDropdown.options.Add(new Dropdown.OptionData("Monkey suits"));
         sampleDropdown.options.Add(new Dropdown.OptionData("Gingerbreads"));
+		sampleDropdown.options.Add(new Dropdown.OptionData("Unreasonably long dropdown entry pushing the limits of description for a user interface"));
         sampleDropdown.value = 0;
         sampleDropdown.onValueChanged.AddListener((value) => Debug.Log($"Dropdown value changed to: {sampleDropdown.options[value].text}"));
 
         InputField sampleInput = AppManager.Instance.CreateInputField(
             sampleWindow.transform,
-            new Rect(20, -290, 300, 25),
+            new Rect(20, -290, 620, 40),
             "This could be your next hell project"
         );
         sampleInput.onValueChanged.AddListener((value) => Debug.Log($"Input field value changed to: {value}"));

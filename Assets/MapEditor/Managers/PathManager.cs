@@ -72,7 +72,7 @@ public static class PathManager
 		NodePrefab = Resources.Load<GameObject>("Prefabs/NodeSphere");
     }
 
-	public static void SpawnPath(PathData pathData)
+	public static void SpawnPath(PathData pathData, bool fresh = false)
 	{
 		if (_roadNetwork == null)
 		{
@@ -93,7 +93,12 @@ public static class PathManager
 		}
 
 		// Configure the road
-		ConfigureRoad(newRoad, pathData);
+		if(!fresh){
+			ConfigureRoad(newRoad, pathData);
+		}
+		else{
+			ConfigureNewRoad(newRoad, pathData);
+		}
 
 		// Set up the GameObject hierarchy
 		GameObject roadObject = newRoad.gameObject;
@@ -109,6 +114,174 @@ public static class PathManager
 		roadObject.tag = "Path";
 		roadObject.SetLayerRecursively(9); // Paths layer
 	}
+	
+	public static GameObject CreatePathAtPosition(Vector3 startPosition)
+    {
+        if (_roadNetwork == null)
+        {
+            Debug.LogError("RoadNetwork not initialized.");
+            return null;
+        }
+
+        // Define two initial nodes
+		Vector3 offset = PathParent.transform.position;
+        Vector3 firstNodePosition = startPosition - offset;
+        Vector3 secondNodePosition = startPosition + (Vector3.right * 10f) - offset; // Default offset along X-axis
+
+
+        // Build newPathData from PathWindow UI fields
+        PathData newPathData = new PathData
+        {
+            width = float.TryParse(PathWindow.Instance.widthField.text, out float width) ? width : 10f,
+            innerPadding = float.TryParse(PathWindow.Instance.innerPaddingField.text, out float innerPadding) ? innerPadding : 1f,
+            outerPadding = float.TryParse(PathWindow.Instance.outerPaddingField.text, out float outerPadding) ? outerPadding : 1f,
+            innerFade = float.TryParse(PathWindow.Instance.innerFadeField.text, out float innerFade) ? innerFade : 1f,
+            outerFade = float.TryParse(PathWindow.Instance.outerFadeField.text, out float outerFade) ? outerFade : 8f,
+            splat = (int)PathWindow.Instance.splatEnums[PathWindow.Instance.splatDropdown.value],
+            topology = (int)PathWindow.Instance.topologyEnums[PathWindow.Instance.topologyDropdown.value],
+            spline = false, // Default, could add a UI toggle if needed
+            terrainOffset = 0f, // Default, could add a UI field if needed
+            start = false, // Default
+            end = false, // Default
+            nodes = new VectorData[]
+            {
+                new VectorData { x = firstNodePosition.x, y = firstNodePosition.y, z = firstNodePosition.z },
+                new VectorData { x = secondNodePosition.x, y = secondNodePosition.y, z = secondNodePosition.z }
+            }
+        };
+
+        // Determine road type and name from template or defaults
+        string roadTypePrefix = InferRoadTypePrefix(newPathData);
+        newPathData.name = $"{roadTypePrefix} {_roadIDCounter++}";
+
+        // Spawn the path
+        SpawnPath(newPathData);
+        GameObject newRoadObject = CurrentMapPaths.Last().gameObject;
+
+        Debug.Log($"Created new road '{newPathData.name}' with nodes at {firstNodePosition} and {secondNodePosition}");
+
+        return newRoadObject;
+    }
+	
+    private static string InferRoadTypePrefix(PathData pathData)
+    {
+        if (pathData.topology == (int)TerrainTopology.Enum.River) return "River";
+        if (pathData.width == 0f) return "Powerline";
+        if (pathData.topology == (int)TerrainTopology.Enum.Rail) return "Rail";
+        return "Road";
+    }
+
+    public static void ReconfigureRoad(ERRoad road, PathData pathData)
+    {
+        if (road == null || pathData == null)
+        {
+            Debug.LogError("Road or PathData is null in ReconfigureRoad.");
+            return;
+        }
+
+        road.SetWidth(pathData.width);
+
+        ERModularRoad modularRoad = road.gameObject.GetComponent<ERModularRoad>();
+        if (modularRoad == null)
+        {
+            Debug.LogError($"ERModularRoad component not found on road '{pathData.name}'.");
+            return;
+        }
+
+        modularRoad.roadWidth = pathData.width;
+        modularRoad.indent = pathData.innerPadding;
+        modularRoad.surrounding = pathData.outerPadding;
+        modularRoad.fadeInDistance = pathData.innerFade;
+        modularRoad.fadeOutDistance = pathData.outerFade;
+        modularRoad.splatIndex = pathData.splat;
+
+        // Refresh the road to apply changes
+        road.Refresh();
+    }
+
+    public static void ConfigureNewRoad(ERRoad road, PathData pathData)
+    {
+        if (road == null || pathData == null)
+        {
+            Debug.LogError("Road or PathData is null in ConfigureNewRoad.");
+            return;
+        }
+
+        if (PathWindow.Instance == null)
+        {
+            Debug.LogError("PathWindow.Instance is null. Cannot access RoadType for new road configuration.");
+            return;
+        }
+
+        // Get the selected RoadType directly from the dropdown
+        PathWindow.RoadType selectedRoadType = PathWindow.Instance.roadTypeEnums[PathWindow.Instance.roadTypeDropdown.value];
+
+        // Set basic road properties directly from PathData
+        road.SetName(pathData.name);
+        road.SetWidth(pathData.width);
+        road.SetMarkerControlType(0, pathData.spline ? ERMarkerControlType.Spline : ERMarkerControlType.StraightXZ);
+        road.ClosedTrack(false);
+
+        // Get the ERModularRoad component
+        ERModularRoad modularRoad = road.gameObject.GetComponent<ERModularRoad>();
+        if (modularRoad == null)
+        {
+            Debug.LogError($"ERModularRoad component not found on road '{pathData.name}'.");
+            return;
+        }
+
+        // Apply all settings from PathData directly
+        modularRoad.roadWidth = pathData.width;
+        modularRoad.indent = pathData.innerPadding;
+        modularRoad.surrounding = pathData.outerPadding;
+        modularRoad.fadeInDistance = pathData.innerFade;
+        modularRoad.fadeOutDistance = pathData.outerFade;
+        modularRoad.splatIndex = pathData.splat;
+        modularRoad.terrainContoursOffset = pathData.terrainOffset;
+        modularRoad.startConnectionFlag = pathData.start;
+        modularRoad.endConnectionFlag = pathData.end;
+
+        // Get available road types from the network
+        ERRoadType[] roadTypes = _roadNetwork.GetRoadTypes();
+        int roadTypeIndex = (roadTypes != null && roadTypes.Length > 1) ? 1 : 0; // Default to visible style
+        bool isVisible = true;
+
+        // Configure visibility and lanes based on the explicit RoadType from the dropdown
+        switch (selectedRoadType)
+        {
+            case PathWindow.RoadType.River:
+            case PathWindow.RoadType.Powerline:
+            case PathWindow.RoadType.Trail: // Trails are invisible as per your comment
+                isVisible = false;
+                roadTypeIndex = (roadTypes != null && roadTypes.Length > 0) ? 0 : 0; // Transparent style
+                modularRoad.lanes = 0; // No lanes for invisible types
+                break;
+            case PathWindow.RoadType.Road:
+                modularRoad.lanes = pathData.width >= 12 ? 2 : 1; // Adjust lanes based on width
+                break;
+            case PathWindow.RoadType.CircleRoad:
+                modularRoad.lanes = 2; // CircleRoad always 2 lanes
+                break;
+            case PathWindow.RoadType.Rail:
+                modularRoad.lanes = 0; // Rail has no lanes
+                break;
+        }
+
+        // Apply the road type (visible or invisible)
+        if (roadTypes != null && roadTypes.Length > roadTypeIndex)
+        {
+            road.SetRoadType(roadTypes[roadTypeIndex]);
+        }
+
+        // Ensure width is set again after road type (some road types may override it)
+        road.SetWidth(pathData.width);
+        modularRoad.roadWidth = pathData.width;
+
+        // Refresh the road to apply changes
+        road.Refresh();
+
+        Debug.Log($"Configured new road '{pathData.name}' with width={pathData.width}, splat={pathData.splat}, topology={pathData.topology}, visible={isVisible}, roadType={selectedRoadType}");
+    }
 	
     public static void ConfigureRoad(ERRoad road, PathData pathData)
     {
@@ -141,19 +314,25 @@ public static class PathManager
                 }
                 break;
 
-            case "road":
-                if (roadTypes != null && roadTypes.Length > 1)
-                {
-                    road.SetRoadType(roadTypes[1]); // Visible "good" style
-                    modularRoad.lanes = pathData.width >= 10 ? 2 : 1;
-                }
-                break;
+			case "road":
+				if (roadTypes != null && roadTypes.Length > 1)
+				{
+					road.SetRoadType(roadTypes[1]); // Visible style
+					// Make trails invisible
+					if (pathData.width == 4f)
+					{
+						isVisible = false;
+						road.SetRoadType(roadTypes[0]); // Transparent style for trails
+					}
+					modularRoad.lanes = pathData.width >= 12 ? 2 : 1;
+				}
+				break;
 
             case "rail":
                 if (roadTypes != null && roadTypes.Length > 1)
                 {
                     road.SetRoadType(roadTypes[1]); // Visible style
-                    modularRoad.roadWidth = 2f; // Fixed width for rails
+                    //modularRoad.roadWidth = 2f; // Fixed width for rails
                     modularRoad.lanes = 0;
                 }
                 break;
@@ -167,6 +346,7 @@ public static class PathManager
                 break;
         }
 
+		road.SetWidth(pathData.width);
         modularRoad.roadWidth = pathData.width;
         modularRoad.indent = pathData.innerPadding;
         modularRoad.surrounding = pathData.outerPadding;
@@ -176,6 +356,8 @@ public static class PathManager
         modularRoad.splatIndex = pathData.splat;
         modularRoad.startConnectionFlag = pathData.start;
         modularRoad.endConnectionFlag = pathData.end;
+		
+		road.Refresh();
     }
 
 

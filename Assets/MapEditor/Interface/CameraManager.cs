@@ -449,7 +449,8 @@ public void InitializeGizmos()
 		}
 		return hitObject;
 	}
-
+	
+	
 public void SelectPath()
 {
     if (Keyboard.current.altKey.isPressed) { return; }
@@ -460,7 +461,8 @@ public void SelectPath()
 
     if (hits.Length == 0)
     {
-        return; // No path hit, do nothing
+		ClearAndDepopulateSelection();
+        return;
     }
 
     Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
@@ -477,14 +479,19 @@ public void SelectPath()
     else if (hitPathObject.CompareTag("Path"))
     {
         roadObject = hitPathObject;
-    }
-    else
+    }    
+	else
     {
-        return; // Non-path object hit, do nothing
+        ClearAndDepopulateSelection(); // unlikely this could ever happen
+        return;
     }
+   
+
+   
 
     if (roadObject == null)
     {
+		ClearAndDepopulateSelection();
         Debug.LogWarning("Could not resolve road object from hit.");
         return;
     }
@@ -497,79 +504,95 @@ public void SelectPath()
         return;
     }
 
-    // Find the corresponding tree node for the road
-    Node pathNode = ItemsWindow.Instance?.tree.FindFirstNodeByDataRecursive(roadObject);
-    if (pathNode == null)
-    {
-        Debug.LogWarning($"No tree node found for road '{roadObject.name}'.");
-        return;
-    }
-
     // Handle node selection
     if (nodeObject != null)
     {
-        // Find the node in the tree
-        Node nodeInTree = ItemsWindow.Instance?.tree.FindFirstNodeByDataRecursive(nodeObject);
-        if (nodeInTree == null)
+        if (Keyboard.current.leftShiftKey.isPressed)
         {
-            Debug.LogWarning($"No tree node found for node '{nodeObject.name}'. Populating road to sync tree.");
-            ItemsWindow.Instance.SelectRoad(pathNode, roadObject);
-            ItemsWindow.Instance.PopulateList();
-            nodeInTree = ItemsWindow.Instance?.tree.FindFirstNodeByDataRecursive(nodeObject);
-        }
-
-        if (nodeInTree != null)
-        {
-            if (Keyboard.current.leftShiftKey.isPressed)
+            // Multi-selection: toggle node inclusion
+            if (_selectedObjects.Contains(nodeObject))
             {
-                // Multi-selection: toggle node inclusion
-                if (_selectedObjects.Contains(nodeObject))
-                {
-                    _selectedObjects.Remove(nodeObject);
-                    EmissionHighlight(GetRenderers(nodeObject), false);
-                    nodeInTree.SetCheckedWithoutNotify(false);
-                }
-                else
-                {
-                    _selectedObjects.Add(nodeObject);
-                    EmissionHighlight(GetRenderers(nodeObject), true);
-                    nodeInTree.SetCheckedWithoutNotify(true);
-                }
+                _selectedObjects.Remove(nodeObject);
+                EmissionHighlight(GetRenderers(nodeObject), false);
             }
             else
             {
-                // Single selection: clear all and select this node
-                Unselect();
-                ItemsWindow.Instance?.UnselectAllInTree();
                 _selectedObjects.Add(nodeObject);
                 EmissionHighlight(GetRenderers(nodeObject), true);
-                nodeInTree.SetCheckedWithoutNotify(true);
-                ItemsWindow.Instance.FocusList(nodeInTree); // Focus the selected node in the tree
             }
         }
         else
         {
-            Debug.LogWarning($"Failed to find tree node for '{nodeObject.name}' after sync.");
+            // Single selection: clear all and select this node
+            Unselect();
+            _selectedObjects.Add(nodeObject);
+            EmissionHighlight(GetRenderers(nodeObject), true);
+        }
+
+        // Sync with ItemsWindow if active
+        if (ItemsWindow.Instance != null)
+        {
+            Node nodeInTree = ItemsWindow.Instance.tree?.FindFirstNodeByDataRecursive(nodeObject);
+            if (nodeInTree != null)
+            {
+                nodeInTree.SetCheckedWithoutNotify(_selectedObjects.Contains(nodeObject));
+                ItemsWindow.Instance.FocusList(nodeInTree);
+            }
+            else
+            {
+                // Populate the road in the tree if not already present
+                ItemsWindow.Instance.PopulateList();
+                nodeInTree = ItemsWindow.Instance.tree?.FindFirstNodeByDataRecursive(nodeObject);
+                if (nodeInTree != null)
+                {
+                    nodeInTree.SetCheckedWithoutNotify(true);
+                    ItemsWindow.Instance.FocusList(nodeInTree);
+                }
+            }
         }
     }
     // Handle road selection
-    else if (CameraManager.Instance._selectedRoad != null && pathDataHolder.pathData == CameraManager.Instance._selectedRoad)
+    else if (_selectedRoad != null && pathDataHolder.pathData == _selectedRoad)
     {
-        pathNode.isChecked = false;
-        return; // Same road already selected, do nothing
+        // Deselect the road if clicked again
+		ClearAndDepopulateSelection();
     }
     else
     {
         // Clear previous selection and select the road
         Unselect();
-        ItemsWindow.Instance?.UnselectAllInTree();
-        ItemsWindow.Instance?.ClearRoads();
-        ItemsWindow.Instance.SelectRoad(pathNode, roadObject);
-        ItemsWindow.Instance.PopulateList();
+        _selectedRoad = pathDataHolder.pathData;
+
+        // Populate nodes and select the first one
+        GameObject firstNode = PopulateNodesForRoad(roadObject);
+        if (firstNode != null)
+        {
+            _selectedObjects.Add(firstNode);
+            EmissionHighlight(GetRenderers(firstNode), true);
+        }
+
+        // Sync with ItemsWindow if active
+        if (ItemsWindow.Instance != null)
+        {
+            ItemsWindow.Instance.PopulateList(); // Ensure the tree reflects the new road and nodes
+            Node pathNode = ItemsWindow.Instance.tree?.FindFirstNodeByDataRecursive(roadObject);
+            if (pathNode != null)
+            {
+                pathNode.isChecked = false; // Road itself isn’t "checked," nodes are
+                Node firstNodeInTree = ItemsWindow.Instance.tree.FindFirstNodeByDataRecursive(firstNode);
+                if (firstNodeInTree != null)
+                {
+                    firstNodeInTree.SetCheckedWithoutNotify(true);
+                    ItemsWindow.Instance.FocusList(firstNodeInTree);
+                }
+            }
+        }
     }
 
     UpdateGizmoState();
     NotifySelectionChanged();
+
+    // Update PathWindow regardless of ItemsWindow state
     if (PathWindow.Instance != null)
     {
         Debug.Log("SelectPath: Updating PathWindow");
@@ -888,84 +911,64 @@ public void SelectPrefab()
     }
 }
 		
-	public void PaintNodes()
-	{
-		if (Keyboard.current.altKey.isPressed)
-		{
-			RaycastHit localHit;
-			if (Physics.Raycast(cam.ScreenPointToRay(mouse.position.ReadValue()), out localHit, Mathf.Infinity, layerMask))
-			{
-				if (PathWindow.Instance != null && PathWindow.Instance.gameObject.activeInHierarchy)
-				{
-					if (CameraManager.Instance._selectedRoad == null)
-					{
-						// No path selected, create a new road
-						PathData newPathData = new PathData
-						{
-							name = $"Road {PathManager._roadIDCounter++}", // Assuming _roadIDCounter is public or accessible
-							width = 10f,
-							innerPadding = 0f,
-							outerPadding = 0f,
-							innerFade = 0f,
-							outerFade = 0f,
-							splat = (int)TerrainSplat.Enum.Dirt,
-							topology = (int)TerrainTopology.Enum.Road,
-							nodes = new VectorData[] { new VectorData { x = localHit.point.x, y = localHit.point.y, z = localHit.point.z } }
-						};
+public void PaintNodes()
+{
+    if (Keyboard.current.altKey.isPressed)
+    {
+        RaycastHit localHit;
+        if (Physics.Raycast(cam.ScreenPointToRay(mouse.position.ReadValue()), out localHit, Mathf.Infinity, layerMask))
+        {
+            // Check if we have an active road selection via CurrentNodeCollection
+            if (PathManager.CurrentNodeCollection == null)
+            {
 
-						PathManager.SpawnPath(newPathData);
-						GameObject newRoadObject = PathManager.CurrentMapPaths.Last().gameObject;
+                GameObject newRoadObject = PathManager.CreatePathAtPosition(localHit.point);
+                if (newRoadObject != null)
+                {
+                    // Clear previous selection and set up the new road
+                    Unselect();
+                    GameObject firstNode = PopulateNodesForRoad(newRoadObject);
+                    _selectedObjects.Add(firstNode);
+                    _selectedRoad = newRoadObject.GetComponent<PathDataHolder>().pathData;
 
-						Unselect();
-						GameObject firstNode = PopulateNodesForRoad(newRoadObject);
-						_selectedObjects.Add(firstNode);
-						_selectedRoad = newPathData;
+					NodeCollection nodeCollection = PathManager.CurrentNodeCollection;
+                        if (nodeCollection != null && nodeCollection.GetNodes().Count >= 2)
+                        {
+                            Transform secondNode = nodeCollection.GetNodes()[1]; // Second node
+                            if (secondNode != null)
+                            {
+                                _selectedObjects.Add(secondNode.gameObject);
+                                EmissionHighlight(GetRenderers(secondNode.gameObject), true);
+                            }
+                        }
 
-						UpdateItemsWindow();
-						UpdateGizmoState();
-						PathWindow.Instance.SetSelection(newRoadObject);
+                    // Sync UI and gizmos
+                    UpdateItemsWindow();
+                    UpdateGizmoState();
+                    PathWindow.Instance.SetSelection(newRoadObject);
 
-						Debug.Log($"Created new road '{newPathData.name}' at {localHit.point}");
-					}
-					else
-					{
-						// Path selected, add node to existing road
-						NodeCollection nodeCollection = PathManager.CurrentNodeCollection;
-						if (nodeCollection == null)
-						{
-							// Shouldn’t happen since a road is selected, but populate if missing
-							GameObject roadObject = null;
-							foreach (var holder in PathManager.CurrentMapPaths)
-							{
-								if (holder.pathData == _selectedRoad)
-								{
-									roadObject = holder.gameObject;
-									break;
-								}
-							}
-							if (roadObject != null)
-							{
-								PopulateNodesForRoad(roadObject);
-								nodeCollection = PathManager.CurrentNodeCollection;
-							}
-						}
-
-						if (nodeCollection != null)
-						{
-							Vector3 hitPoint = localHit.point;
-							nodeCollection.AddNodeAtPosition(hitPoint, _selectedObjects);
-							UpdateItemsWindow();
-							UpdateGizmoState();
-						}
-						else
-						{
-							Debug.LogWarning("Failed to find or create NodeCollection for selected road.");
-						}
-					}
-				}
-			}
-		}
-	}
+                    Debug.Log($"Created new road '{_selectedRoad.name}' at {localHit.point} with properties from potentialPathData.");
+                }
+            }
+            else
+            {
+                // Active road selection exists, add node to it
+                NodeCollection nodeCollection = PathManager.CurrentNodeCollection;
+                if (nodeCollection != null)
+                {
+                    Vector3 hitPoint = localHit.point;
+                    nodeCollection.AddNodeAtPosition(hitPoint, _selectedObjects);
+                    UpdateItemsWindow();
+                    UpdateGizmoState();
+                }
+                else
+                {
+                    Debug.LogWarning("NodeCollection is null despite being checked earlier. This should not happen.");
+                }
+            }
+        }
+    }
+}
 	
 
 	
@@ -999,11 +1002,11 @@ public void SelectPrefab()
 			_workGizmo.SetTargetObjects(new List<GameObject>());
 		}
 
-		// update active path window
 		if (PathWindow.Instance != null)
 		{
-			Debug.Log("Unselect: Road was selected, updating PathWindow");
-			PathWindow.Instance.UpdateData();
+			Debug.Log("Unselect: Road was selected, resetting PathWindow");
+			PathWindow.Instance.ClearUI(); // Reset potentialPathData and sync UI
+			PathWindow.Instance.UpdateData(); // Ensure UI reflects the no-selection state
 		}
 		
 		OnSelectionChanged?.Invoke();

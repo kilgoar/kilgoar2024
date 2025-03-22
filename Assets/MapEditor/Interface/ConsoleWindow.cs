@@ -198,6 +198,8 @@ public class ConsoleWindow : MonoBehaviour
         if (trimmedCommand == "loadmods")
         {
             PostMultiLine(HarmonyLoader.LoadHarmonyMods(Path.Combine(SettingsManager.AppDataPath(), "HarmonyMods")));
+			PostMultiLine(HarmonyLoader.LoadHarmonyMods(Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "HarmonyMods")));
+
             ActivateConsole();
             return;
         }

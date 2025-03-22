@@ -1,3 +1,4 @@
+using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -222,33 +223,110 @@ public class MenuManager : MonoBehaviour, IDragHandler, IPointerDownHandler
         }
     }
 
-    public Toggle CreateWindowToggle()
+
+
+public Toggle CreateCustomToggle(string iconPath = null)
+{
+    if (templateTogglePrefab == null)
     {
+        LoadTemplateTogglePrefab();
         if (templateTogglePrefab == null)
         {
-            LoadTemplateTogglePrefab();
-            if (templateTogglePrefab == null)
+            Debug.LogError("Failed to load TemplateToggle prefab.");
+            return null;
+        }
+    }
+
+    // Instantiate the toggle under MenuPanel
+    Toggle newToggle = Instantiate(templateTogglePrefab, MenuPanel.transform);
+
+    // Position before menucontrols
+    Transform menuControls = MenuPanel.transform.Find("menucontrols");
+    if (menuControls != null)
+    {
+        newToggle.transform.SetSiblingIndex(menuControls.GetSiblingIndex());
+    }
+    else
+    {
+        Debug.LogWarning("No 'menucontrols' child found in MenuPanel; toggle added as last sibling.");
+        newToggle.transform.SetAsLastSibling();
+    }
+
+    // Load and apply custom icon if iconPath is provided
+    if (!string.IsNullOrEmpty(iconPath))
+    {
+        Texture2D texture = ModManager.LoadTexture(iconPath);
+        if (texture != null)
+        {
+            Sprite iconSprite = ModManager.CreateSprite(texture);
+
+            // Find Background and Checkmark images
+            Image backgroundImage = newToggle.transform.Find("Background")?.GetComponent<Image>();
+            Image checkmarkImage = newToggle.transform.Find("Background/Checkmark")?.GetComponent<Image>();
+
+            if (backgroundImage == null || checkmarkImage == null)
             {
+                Debug.LogError("Toggle prefab is missing Background or Checkmark Image components.");
+                Destroy(newToggle.gameObject);
                 return null;
             }
+
+            // Assign the sprite
+            backgroundImage.sprite = iconSprite;
+            checkmarkImage.sprite = iconSprite;
+
+            // Define and apply colors
+            Color activeColor = new Color32(0x72, 0x8D, 0x44, 0xFF); // #728d44
+            Color inactiveColor = new Color32(0x8F, 0x8F, 0x8F, 0xFF); // #d9d9d9
+
+            backgroundImage.color = inactiveColor; // Inactive state
+            checkmarkImage.color = activeColor;    // Active state
+
+            // Sync visibility with toggle state
+            newToggle.onValueChanged.AddListener((isOn) =>
+            {
+                checkmarkImage.enabled = isOn;
+                backgroundImage.enabled = !isOn;
+            });
+
+            // Set initial state
+            checkmarkImage.enabled = newToggle.isOn;
+            backgroundImage.enabled = !newToggle.isOn;
         }
+        else
+        {
+            Debug.LogError($"Failed to load texture from path: {iconPath}");
+            // Still return the toggle with default prefab settings
+        }
+    }
 
-        Toggle newToggle = Instantiate(templateTogglePrefab, MenuPanel.transform);
+    return newToggle;
+}
 
-        // Find the menucontrols child and set the toggle as the last sibling before it
+// In MenuManager.cs
+public Toggle CreateWindowToggle(string iconPath)
+{
+    
+    // Use CreateCustomToggle with the icon path
+    Toggle newToggle = CreateCustomToggle(iconPath);
+
+    if (newToggle != null)
+    {
+        // Ensure the toggle is placed correctly in the MenuPanel hierarchy
         Transform menuControls = MenuPanel.transform.Find("menucontrols");
         if (menuControls != null)
         {
-            newToggle.transform.SetSiblingIndex(menuControls.GetSiblingIndex());
+            newToggle.transform.SetSiblingIndex(menuControls.GetSiblingIndex()-1);
         }
         else
         {
             Debug.LogWarning("No 'menucontrols' child found in MenuPanel; toggle added as last sibling.");
             newToggle.transform.SetAsLastSibling();
         }
-
-        return newToggle;
     }
+
+    return newToggle;
+}
 
     public void CloseApplication()
     {

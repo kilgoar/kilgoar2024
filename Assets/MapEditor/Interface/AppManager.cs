@@ -263,7 +263,7 @@ public class AppManager : MonoBehaviour
         ActivateRecycleTree(index, adjustedScale);
     }
 
-	private void ActivateRecycleTree(int index, Vector3 adjustedScale)
+	public void ActivateRecycleTree(int index, Vector3 adjustedScale)
 	{
 		// Validate RecycleTrees list and index
 		if (RecycleTrees == null || index < 0 || index >= RecycleTrees.Count)
@@ -298,7 +298,8 @@ public class AppManager : MonoBehaviour
     {
         if (index >= 0 && index < windowPanels.Count)        {
             windowPanels[index].SetActive(false);
-            windowToggles[index].SetIsOnWithoutNotify(false);
+			windowToggles[index].isOn = false; 
+            //windowToggles[index].SetIsOnWithoutNotify(false);
 
             if (index < RecycleTrees.Count && RecycleTrees[index] != null)            {
                 RecycleTrees[index].gameObject.SetActive(false);
@@ -441,7 +442,7 @@ public class AppManager : MonoBehaviour
         }
     }
 
-     public TemplateWindow CreateWindow(string titleText, Rect rect)
+    public TemplateWindow CreateWindow(string titleText, Rect rect, string iconPath)
     {
         if (Instance == null)
         {
@@ -464,11 +465,11 @@ public class AppManager : MonoBehaviour
             return null;
         }
 
-        // Instantiate the window under the child Canvas
+        // Instantiate the window 
         TemplateWindow newWindow = Instantiate(templateWindowPrefab, uiCanvas.transform);
         RectTransform windowRect = newWindow.GetComponent<RectTransform>();
 
-        // Clean up non-essential children
+        //  (empties the template of sub templates)
         CleanUpNonEssentialChildren(newWindow);
 
         // Configure the remaining essential components
@@ -495,10 +496,12 @@ public class AppManager : MonoBehaviour
         WindowManager windowManager = newWindow.gameObject.AddComponent<WindowManager>();
         ConfigureWindowManager(windowManager, newWindow);
 
+		CustomizeCloseButton(newWindow.close, iconPath);
+
         // Create a toggle in MenuManager and replace the window's toggle
         if (MenuManager.Instance != null)
         {
-            Toggle newToggle = MenuManager.Instance.CreateWindowToggle();
+            Toggle newToggle = MenuManager.Instance.CreateWindowToggle(iconPath);
             if (newToggle != null)
             {
                 newWindow.toggle = newToggle;
@@ -518,8 +521,7 @@ public class AppManager : MonoBehaviour
         return newWindow;
     }
 
-    // New method to remove non-essential children
-    private void CleanUpNonEssentialChildren(TemplateWindow newWindow)
+    public void CleanUpNonEssentialChildren(TemplateWindow newWindow)
     {
         // Define essential GameObjects to keep
         List<GameObject> essentialObjects = new List<GameObject>
@@ -547,8 +549,7 @@ public class AppManager : MonoBehaviour
         }
     }
 
-    // Updated method to configure the WindowManager
-    private void ConfigureWindowManager(WindowManager windowManager, TemplateWindow newWindow)
+    public void ConfigureWindowManager(WindowManager windowManager, TemplateWindow newWindow)
     {
         windowManager.WindowsPanel = newWindow.gameObject; // The window itself is the panel
         windowManager.Window = newWindow.gameObject;       // Same GameObject for simplicity
@@ -592,6 +593,52 @@ public class AppManager : MonoBehaviour
             menuPanel.transform.SetAsLastSibling();
         }
     }
+	
+
+	public void CustomizeCloseButton(Button closeButton, string iconPath)
+	{
+		if (closeButton == null)
+		{
+			Debug.LogWarning("Close button is null. Cannot customize.");
+			return;
+		}
+
+		Image buttonImage = closeButton.GetComponent<Image>();
+		if (buttonImage == null)
+		{
+			Debug.LogWarning("Close button has no Image component to customize.");
+			return;
+		}
+
+		// Define the green color used in the toggle's active state
+		Color greenColor = new Color32(0x72, 0x8D, 0x44, 0xFF); // #728d44
+
+		if (string.IsNullOrEmpty(iconPath))
+		{
+			Debug.LogWarning("iconPath is empty. Applying green color to close button.");
+			buttonImage.color = greenColor; // Default to green if no iconPath
+			return;
+		}
+
+		// Load the sprite from the iconPath using ModManager
+		Texture2D texture = ModManager.LoadTexture(iconPath);
+		if (texture != null)
+		{
+			Sprite newSprite = ModManager.CreateSprite(texture);
+			if (newSprite != null)
+			{
+				buttonImage.sprite = newSprite;
+				buttonImage.type = Image.Type.Simple; // Adjust as needed (e.g., Sliced for 9-slice sprites)
+				buttonImage.color = greenColor; // Apply the green color to tint the sprite
+			}
+		}
+		else
+		{
+			// Fallback: Use the green color if sprite loading fails
+			Debug.LogWarning($"Failed to load sprite from {iconPath}. Applying green color.");
+			buttonImage.color = greenColor;
+		}
+	}
 
     // UI Element Creation Methods
     public Toggle CreateToggle(Transform parent, Rect rect, string text = "")
