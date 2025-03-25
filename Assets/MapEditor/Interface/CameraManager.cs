@@ -232,6 +232,14 @@ public void InitializeGizmos()
 		
 		SetRenderLimit();
 	}
+	
+	public void SetGizmoEnabled(bool enabled)
+    {
+        if (_workGizmo != null)
+        {
+            _workGizmo.Gizmo.SetEnabled(enabled);
+        }
+    }
 
     void Update()
     {
@@ -242,6 +250,15 @@ public void InitializeGizmos()
 		if (LoadScreen.Instance.isEnabled){
 			return;
 		}
+		
+		if (Keyboard.current.altKey.isPressed)
+			{
+				SetGizmoEnabled(false);
+			}
+		else
+			{
+				UpdateGizmoState(); // Re-enable gizmo based on selection when Alt is not pressed
+			}
 		
 
 		//right click down (rotate cam)
@@ -970,7 +987,41 @@ public void PaintNodes()
     }
 }
 	
+    public void DragNodes()
+    {
+        RaycastHit localHit;
+        Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
 
+        if (Physics.Raycast(ray, out localHit, Mathf.Infinity, layerMask))
+        {
+            Vector3 hitPoint = localHit.point;
+
+            if (PathManager.CurrentNodeCollection == null)
+            {
+                // Create a new road if no collection exists (only once)
+                GameObject newRoadObject = PathManager.CreatePathAtPosition(hitPoint);
+                if (newRoadObject != null)
+                {
+                    Unselect();
+                    GameObject firstNode = PopulateNodesForRoad(newRoadObject);
+                    _selectedObjects.Add(firstNode);
+                    _selectedRoad = newRoadObject.GetComponent<PathDataHolder>().pathData;
+
+                    UpdateItemsWindow();
+                    UpdateGizmoState();
+                    PathWindow.Instance.SetSelection(newRoadObject);
+                }
+            }
+            else
+            {
+                NodeCollection nodeCollection = PathManager.CurrentNodeCollection;
+                nodeCollection.AddNodeAtPosition(hitPoint, _selectedObjects, 25f);
+                    UpdateItemsWindow();
+                    UpdateGizmoState();
+                
+            }
+        }
+	}
 	
 	public void Unselect(GameObject obj)
 	{

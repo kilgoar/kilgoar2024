@@ -14,10 +14,6 @@ using UIRecycleTreeNamespace;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using UnityEngine;
-
 public class Vector3ContractResolver : DefaultContractResolver
 {
     protected override JsonProperty CreateProperty(System.Reflection.MemberInfo member, MemberSerialization memberSerialization)

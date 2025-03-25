@@ -15,9 +15,12 @@ public class PathWindow : MonoBehaviour
     public InputField outerPaddingField;
     public InputField innerFadeField;
     public InputField outerFadeField;
+	public InputField terrainOffsetField;
     public Dropdown splatDropdown;
     public Dropdown topologyDropdown;
 	public Dropdown roadTypeDropdown; 
+	
+	public Button ApplyLayers;
 
     public PathDataHolder currentPathHolder;
 	public PathData potentialPathData;
@@ -74,16 +77,18 @@ private void Start()
     UpdateUIFromPotentialData(); // Sync UI with initial potentialPathData
     
     CreateListeners(); // Create listeners once at start
+	ApplyLayers.onClick.AddListener(ApplyTerrainAndSplat);
 }
 
-    private void OnDestroy()
-    {
-        if (CameraManager.Instance != null)
-        {
-            CameraManager.Instance.OnSelectionChanged -= UpdateData;
-        }
-        DestroyListeners(); // Clean up all listeners
-    }
+	private void OnDestroy()
+	{
+		if (CameraManager.Instance != null)
+		{
+			CameraManager.Instance.OnSelectionChanged -= UpdateData;
+		}
+		DestroyListeners(); // Clean up all listeners
+		ApplyLayers.onClick.RemoveListener(ApplyTerrainAndSplat); // Add this line
+	}
 
     public void UpdateData()
     {
@@ -139,6 +144,25 @@ private void Start()
         }
     }
 
+	public void ApplyTerrainAndSplat()
+	{
+		if (currentPathHolder == null || currentRoad == null)
+		{
+			Debug.LogWarning("No valid path selected to apply terrain and splat settings.");
+			return;
+		}
+
+		// Update the PathData from the UI first
+		UpdatePathDataFromUI();
+
+		// Apply terrain smoothing (heightmap indent)
+		PathManager.UpdateTerrainHeightmap(currentRoad, currentPathHolder.pathData);
+		// Apply splatmap settings
+		PathManager.PaintRoadLayers(currentRoad, currentPathHolder.pathData, strength: 1f); // Adjust strength as needed
+
+		Debug.Log($"Applied terrain smoothing and splatmap settings to '{currentRoad.GetName()}'.");
+	}
+
     public void SetSelection(GameObject go)
     {
         if (go == null)
@@ -172,7 +196,7 @@ private void Start()
 		outerFadeField.text = potentialPathData.outerFade.ToString();
 		splatDropdown.value = splatEnums.IndexOf((TerrainSplat.Enum)potentialPathData.splat);
 		topologyDropdown.value = topologyEnums.IndexOf((TerrainTopology.Enum)potentialPathData.topology);
-
+		terrainOffsetField.text = potentialPathData.terrainOffset.ToString();
 		splatDropdown.RefreshShownValue();
 		topologyDropdown.RefreshShownValue();
 	}
@@ -183,10 +207,13 @@ private void Start()
         string prefix = roadType.ToString();
  
         potentialPathData.name = $"New {prefix}";
-
-        switch (roadType)
+		
+		potentialPathData.terrainOffset = 0f;
+        
+		switch (roadType)
         {
             case RoadType.River:
+				potentialPathData.terrainOffset = 2f;
                 potentialPathData.width = 36f;
 				potentialPathData.innerPadding = 1f;
 				potentialPathData.outerPadding = 1f;
@@ -246,6 +273,7 @@ private void Start()
 
     public void RetrievePathData(PathData pathData)
     {
+		terrainOffsetField.text = pathData.terrainOffset.ToString();
         nameField.text = pathData.name;
         widthField.text = pathData.width.ToString();
         innerPaddingField.text = pathData.innerPadding.ToString();
@@ -284,8 +312,10 @@ private void Start()
             data.outerFade = float.TryParse(outerFadeField.text, out float outerFade) ? outerFade : data.outerFade;
             data.splat = (int)splatEnums[splatDropdown.value];
             data.topology = (int)topologyEnums[topologyDropdown.value];
-
-            PathManager.ReconfigureRoad(currentRoad, data);
+			
+			data.terrainOffset = float.TryParse(terrainOffsetField.text, out float terrainOffset) ? terrainOffset : data.terrainOffset;
+            
+			PathManager.ReconfigureRoad(currentRoad, data);
 
             if (ItemsWindow.Instance != null)
             {
@@ -305,6 +335,9 @@ private void Start()
             potentialPathData.outerFade = float.TryParse(outerFadeField.text, out float outerFade) ? outerFade : potentialPathData.outerFade;
             potentialPathData.splat = (int)splatEnums[splatDropdown.value];
             potentialPathData.topology = (int)topologyEnums[topologyDropdown.value];
+			
+			potentialPathData.terrainOffset = float.TryParse(terrainOffsetField.text, out float terrainOffset) ? terrainOffset : potentialPathData.terrainOffset; // Added
+        
         }
     }
 
@@ -319,6 +352,7 @@ private void Start()
 
     public void CreateListeners()
     {
+		terrainOffsetField.onEndEdit.AddListener(text => UpdatePathDataFromUI()); 
         widthField.onEndEdit.AddListener(text => UpdatePathDataFromUI());
         innerPaddingField.onEndEdit.AddListener(text => UpdatePathDataFromUI());
         outerPaddingField.onEndEdit.AddListener(text => UpdatePathDataFromUI());
@@ -331,6 +365,7 @@ private void Start()
 
     public void DestroyListeners()
     {
+		terrainOffsetField.onEndEdit.RemoveAllListeners(); 
         widthField.onEndEdit.RemoveAllListeners();
         innerPaddingField.onEndEdit.RemoveAllListeners();
         outerPaddingField.onEndEdit.RemoveAllListeners();

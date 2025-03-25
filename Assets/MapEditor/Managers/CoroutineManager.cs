@@ -8,17 +8,17 @@ using RTG;
 
 public class CoroutineManager : MonoBehaviour
 {
-    private int currentStyle;
-    private static CoroutineManager _instance;
-    private bool _isInitialized = false;
-    private float nextCrumpetTime = 0f;
-    private Camera cam;
-    private Texture2D pointerTexture;
-    private Texture2D paintBrushTexture;
-    private InputAction mouseLeftClick;
-    private int heightTool;
-	private int layerMask = 1 << 10; // "Land" layer
-	private RaycastHit hit;
+    public int currentStyle;
+    public static CoroutineManager _instance;
+    public bool _isInitialized = false;
+    public float nextCrumpetTime = 0f;
+    public Camera cam;
+    public Texture2D pointerTexture;
+    public Texture2D paintBrushTexture;
+    public InputAction mouseLeftClick;
+    public int heightTool;
+	public int layerMask = 1 << 10; // "Land" layer
+	public RaycastHit hit;
 	
     public static CoroutineManager Instance
     {
@@ -92,7 +92,7 @@ public class CoroutineManager : MonoBehaviour
 		}
 	}
 
-    private bool OverUI()
+    public bool OverUI()
     {
 		if(EventSystem.current.IsPointerOverGameObject())
 		{
@@ -102,9 +102,11 @@ public class CoroutineManager : MonoBehaviour
 		return false;
     }
 
-    private void Update()
+    public void Update()
     {
         if (!OverUI()){
+				
+
 				
 				switch (currentStyle)
 				{
@@ -128,7 +130,7 @@ public class CoroutineManager : MonoBehaviour
 
     }
 
-    private void PathStylusMode()
+    public void PathStylusMode()
     {
         if (Mouse.current.rightButton.wasPressedThisFrame) return;
 
@@ -136,13 +138,18 @@ public class CoroutineManager : MonoBehaviour
         {
 			CameraManager.Instance.SelectPath();
 			CameraManager.Instance.PaintNodes();
+			return;
         }
 		
+		if (Keyboard.current.altKey.isPressed && Keyboard.current.shiftKey.isPressed && Mouse.current.leftButton.isPressed)
+        {
+            CameraManager.Instance.DragNodes();
+        }
 		
     }
 
 
-    private void ItemStylusMode()
+    public void ItemStylusMode()
     {
         if (Mouse.current.rightButton.wasPressedThisFrame) return;
 
@@ -166,7 +173,7 @@ public class CoroutineManager : MonoBehaviour
         }
     }
 
-    private void PaintBrushMode()
+    public void PaintBrushMode()
     {
 				
 		

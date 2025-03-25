@@ -9,6 +9,9 @@ public class PathNode : MonoBehaviour
     private Vector3 lastPosition;
     private Quaternion lastRotation;
     private Vector3 lastScale;
+	private float lastChangeTime;
+	private const float DEBOUNCE_DELAY = 0.1f; // Adjust as needed
+
 
     public void Initialize(NodeCollection collection)
     {
@@ -23,25 +26,20 @@ public class PathNode : MonoBehaviour
         lastScale = transform.localScale;
     }
 
-    private void FixedUpdate()
+
+private void Update()
+{
+    float distance = Vector3.Distance(transform.position, lastPosition);
+    if (distance < 0.001f)
+        return;
+
+    lastPosition = transform.position;
+    if (Time.time - lastChangeTime >= DEBOUNCE_DELAY)
     {
-        // Check for transform changes every frame
-        if (transform.position != lastPosition)
-        {
-            lastPosition = transform.position;
-            ReportTransformChange("Position");
-        }
-        if (transform.rotation != lastRotation)
-        {
-            lastRotation = transform.rotation;
-            ReportTransformChange("Rotation");
-        }
-        if (transform.localScale != lastScale)
-        {
-            lastScale = transform.localScale;
-            ReportTransformChange("Scale");
-        }
+        ReportTransformChange("Position");
+        lastChangeTime = Time.time;
     }
+}
 
     private void ReportTransformChange(string changedProperty)
     {
