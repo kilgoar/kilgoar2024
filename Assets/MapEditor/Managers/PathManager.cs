@@ -116,6 +116,7 @@ public static class PathManager
 
 
 
+
 public static void UpdateTerrainHeightmap(ERRoad road, PathData pathData)
 {
     if (_roadNetwork == null || TerrainManager.Land == null)
@@ -262,181 +263,169 @@ public static void UpdateTerrainHeightmap(ERRoad road, PathData pathData)
     TerrainManager.RegisterHeightMapUndo(TerrainManager.TerrainType.Land, $"Update Heightmap for '{road.GetName()}'");
     terrainData.SetHeights(xStartIndex, zStartIndex, heights);
     terrain.Flush();
+	
+	influenceMeshObj.SetActive(false);
     UnityEngine.Object.Destroy(influenceMeshObj);
 
     Debug.Log($"Updated terrain heightmap for road '{road.GetName()}' with width={roadWidth}, outerPadding={outerPadding}, outerFade={outerFade}, innerPadding={innerPadding}, innerFade={innerFade}, terrainOffset={terrainOffset}");
 }
 
-private static GameObject CreateInfluenceMesh(ERRoad road, PathData pathData)
-{
-    ERModularRoad modularRoad = road.gameObject.GetComponent<ERModularRoad>();
-    if (modularRoad == null)
-    {
-        Debug.LogWarning($"ERModularRoad component not found on road '{road.GetName()}'. Using fallback geometry.");
-    }
 
-    List<Vector3> roadPoints = new List<Vector3>();
-    if (modularRoad != null && modularRoad.soSplinePoints != null && modularRoad.soSplinePoints.Count > 0)
-    {
-        roadPoints.AddRange(modularRoad.soSplinePoints);
-    }
-    else
-    {
-        for (int i = 0; i < road.GetMarkerCount(); i++)
-        {
-            roadPoints.Add(road.GetMarkerPosition(i));
-        }
-    }
+	public static GameObject CreateInfluenceMesh(ERRoad road, PathData pathData)
+	{
+		ERModularRoad modularRoad = road.gameObject.GetComponent<ERModularRoad>();
+		if (modularRoad == null)
+		{
+			Debug.LogWarning($"ERModularRoad component not found on road '{road.GetName()}'. Using fallback geometry.");
+		}
 
-    if (roadPoints.Count < 2)
-    {
-        Debug.LogError($"Road '{road.GetName()}' has insufficient points ({roadPoints.Count}) for influence mesh creation.");
-        return null;
-    }
+		List<Vector3> roadPoints = new List<Vector3>();
+		if (modularRoad != null && modularRoad.soSplinePoints != null && modularRoad.soSplinePoints.Count > 0)
+		{
+			roadPoints.AddRange(modularRoad.soSplinePoints);
+		}
+		else
+		{
+			for (int i = 0; i < road.GetMarkerCount(); i++)
+			{
+				roadPoints.Add(road.GetMarkerPosition(i));
+			}
+		}
 
-    // Simplify road points
-    List<Vector3> simplifiedPoints = new List<Vector3> { roadPoints[0] };
-    float minSegmentLength = 0.1f;
-    for (int i = 1; i < roadPoints.Count; i++)
-    {
-        if (Vector3.Distance(roadPoints[i], simplifiedPoints[simplifiedPoints.Count - 1]) > minSegmentLength)
-        {
-            simplifiedPoints.Add(roadPoints[i]);
-        }
-    }
-    roadPoints = simplifiedPoints;
+		if (roadPoints.Count < 2)
+		{
+			Debug.LogError($"Road '{road.GetName()}' has insufficient points ({roadPoints.Count}) for influence mesh creation.");
+			return null;
+		}
 
-    if (roadPoints.Count < 2)
-    {
-        Debug.LogError($"Road '{road.GetName()}' has insufficient points after simplification ({roadPoints.Count}) for influence mesh creation.");
-        return null;
-    }
 
-    List<Vector3> vertices = new List<Vector3>();
-    List<Vector2> uvs = new List<Vector2>();
-    List<int> triangles = new List<int>();
-    float accumulatedLength = 0f;
+		List<Vector3> vertices = new List<Vector3>();
+		List<Vector2> uvs = new List<Vector2>();
+		List<int> triangles = new List<int>();
+		float accumulatedLength = 0f;
 
-    float outerPadding = Mathf.Max(pathData.outerPadding, 0f);
-    float outerFade = Mathf.Max(pathData.outerFade, 0f);
-    float innerPadding = Mathf.Max(pathData.innerPadding, 0f);
-    float innerFade = Mathf.Max(pathData.innerFade, 0f);
-    float roadWidth = pathData.width;
-    float halfRoadWidth = roadWidth * 0.5f;
+	 
+	float outerPadding = Mathf.Max(pathData.outerPadding, 0f);
+	float outerFade = Mathf.Max(pathData.outerFade, 0f);
+	float innerPadding = Mathf.Max(pathData.innerPadding, 0f);
+	float innerFade = Mathf.Max(pathData.innerFade, 0f);
+	float roadWidth = pathData.width;
+	float halfRoadWidth = roadWidth * 0.5f;
 
-    float totalOuterWidth = outerPadding + outerFade;
-    float totalInnerWidth = innerPadding + innerFade;
-    float totalWidthPerSide = halfRoadWidth + totalOuterWidth;
+	float totalOuterWidth = outerPadding + outerFade;
+	float totalInnerWidth = innerPadding + innerFade;
 
-    // UV proportions
-    float totalWidth = roadWidth + 2f * totalOuterWidth;
-    float uvOuterFade = outerFade / totalWidth;
-    float uvOuterPadding = (outerFade + outerPadding) / totalWidth;
-    float uvInnerFade = (totalOuterWidth + innerFade) / totalWidth;
-    float uvInnerPadding = (totalOuterWidth + innerFade + innerPadding) / totalWidth;
+	float effectiveOuterWidth = totalOuterWidth;
+	float totalWidthPerSide = halfRoadWidth + totalInnerWidth + effectiveOuterWidth;
 
-    List<int> segmentStartIndices = new List<int>();
+	// UV proportions
+	float totalWidth = roadWidth + 2f * (totalInnerWidth + effectiveOuterWidth);
+	float uvOuterFade = outerFade / totalWidth;
+	float uvOuterPadding = (outerFade + outerPadding) / totalWidth;
+	float uvInnerFade = (effectiveOuterWidth + innerFade) / totalWidth;
+	float uvInnerPadding = (effectiveOuterWidth + innerFade + innerPadding) / totalWidth;
 
-    for (int i = 0; i < roadPoints.Count; i++)
-    {
-        Vector3 point = roadPoints[i];
-        Vector3 nextPoint = (i < roadPoints.Count - 1) ? roadPoints[i + 1] : point;
-        Vector3 direction = (nextPoint - point).normalized;
-        if (direction == Vector3.zero) continue;
+	List<int> segmentStartIndices = new List<int>();
 
-        Vector3 right = Vector3.Cross(Vector3.up, direction).normalized;
+	for (int i = 0; i < roadPoints.Count; i++)
+	{
+		Vector3 point = roadPoints[i];
+		Vector3 nextPoint = (i < roadPoints.Count - 1) ? roadPoints[i + 1] : point;
+		Vector3 direction = (nextPoint - point).normalized;
+		if (direction == Vector3.zero) continue;
 
-        // Vertex positions
-        Vector3 leftOuterFade = point - right * totalWidthPerSide;
-        Vector3 leftOuterPadding = point - right * (halfRoadWidth + outerPadding);
-        Vector3 leftInnerPadding = point - right * (halfRoadWidth - innerPadding);
-        Vector3 leftInnerFade = point - right * (halfRoadWidth - innerPadding - innerFade);
-        Vector3 rightInnerFade = point + right * (halfRoadWidth - innerPadding - innerFade);
-        Vector3 rightInnerPadding = point + right * (halfRoadWidth - innerPadding);
-        Vector3 rightOuterPadding = point + right * (halfRoadWidth + outerPadding);
-        Vector3 rightOuterFade = point + right * totalWidthPerSide;
+		Vector3 right = Vector3.Cross(Vector3.up, direction).normalized;
 
-        leftOuterFade.y = point.y;
-        leftOuterPadding.y = point.y;
-        leftInnerPadding.y = point.y;
-        leftInnerFade.y = point.y;
-        rightInnerFade.y = point.y;
-        rightInnerPadding.y = point.y;
-        rightOuterPadding.y = point.y;
-        rightOuterFade.y = point.y;
+		// Vertex positions
+		Vector3 leftOuterEdge = point - right * totalWidthPerSide;
+		Vector3 leftOuterPadding = point - right * (halfRoadWidth + outerPadding);
+		Vector3 leftInnerPadding = point - right * (halfRoadWidth - innerPadding);
+		Vector3 leftInnerFade = point - right * (halfRoadWidth - innerPadding - innerFade);
+		Vector3 rightInnerFade = point + right * (halfRoadWidth - innerPadding - innerFade);
+		Vector3 rightInnerPadding = point + right * (halfRoadWidth - innerPadding);
+		Vector3 rightOuterPadding = point + right * (halfRoadWidth + outerPadding);
+		Vector3 rightOuterEdge = point + right * totalWidthPerSide;
 
-        segmentStartIndices.Add(vertices.Count);
+		leftOuterEdge.y = point.y;
+		leftOuterPadding.y = point.y;
+		leftInnerPadding.y = point.y;
+		leftInnerFade.y = point.y;
+		rightInnerFade.y = point.y;
+		rightInnerPadding.y = point.y;
+		rightOuterPadding.y = point.y;
+		rightOuterEdge.y = point.y;
 
-        vertices.Add(leftOuterFade);
-        vertices.Add(leftOuterPadding);
-        vertices.Add(leftInnerPadding);
-        vertices.Add(leftInnerFade);
-        vertices.Add(rightInnerFade);
-        vertices.Add(rightInnerPadding);
-        vertices.Add(rightOuterPadding);
-        vertices.Add(rightOuterFade);
+		segmentStartIndices.Add(vertices.Count);
 
-        if (i > 0) accumulatedLength += Vector3.Distance(point, roadPoints[i - 1]);
-        uvs.Add(new Vector2(0f, accumulatedLength));           // Left outer fade
-        uvs.Add(new Vector2(uvOuterFade, accumulatedLength));  // Left outer padding
-        uvs.Add(new Vector2(uvOuterPadding, accumulatedLength)); // Left inner padding
-        uvs.Add(new Vector2(uvInnerFade, accumulatedLength));    // Left inner fade
-        uvs.Add(new Vector2(1f - uvInnerFade, accumulatedLength)); // Right inner fade
-        uvs.Add(new Vector2(1f - uvOuterPadding, accumulatedLength)); // Right inner padding
-        uvs.Add(new Vector2(1f - uvOuterFade, accumulatedLength)); // Right outer padding
-        uvs.Add(new Vector2(1f, accumulatedLength));           // Right outer fade
-    }
+		vertices.Add(leftOuterEdge);
+		vertices.Add(leftOuterPadding);
+		vertices.Add(leftInnerPadding);
+		vertices.Add(leftInnerFade);
+		vertices.Add(rightInnerFade);
+		vertices.Add(rightInnerPadding);
+		vertices.Add(rightOuterPadding);
+		vertices.Add(rightOuterEdge);
 
-    for (int i = 0; i < segmentStartIndices.Count - 1; i++)
-    {
-        int baseIndex = segmentStartIndices[i];
-        int nextBaseIndex = segmentStartIndices[i + 1];
+		if (i > 0) accumulatedLength += Vector3.Distance(point, roadPoints[i - 1]);
+		uvs.Add(new Vector2(0f, accumulatedLength));           // Left outer edge
+		uvs.Add(new Vector2(uvOuterFade, accumulatedLength));  // Left outer padding (or topo edge if outerTopoWidth is used)
+		uvs.Add(new Vector2(uvOuterPadding, accumulatedLength)); // Left inner padding
+		uvs.Add(new Vector2(uvInnerFade, accumulatedLength));    // Left inner fade
+		uvs.Add(new Vector2(1f - uvInnerFade, accumulatedLength)); // Right inner fade
+		uvs.Add(new Vector2(1f - uvOuterPadding, accumulatedLength)); // Right inner padding
+		uvs.Add(new Vector2(1f - uvOuterFade, accumulatedLength)); // Right outer padding (or topo edge)
+		uvs.Add(new Vector2(1f, accumulatedLength));           // Right outer edge
+	}
 
-        triangles.Add(baseIndex);   triangles.Add(nextBaseIndex);  triangles.Add(baseIndex + 1);
-        triangles.Add(baseIndex + 1); triangles.Add(nextBaseIndex);  triangles.Add(nextBaseIndex + 1);
-        triangles.Add(baseIndex + 1); triangles.Add(nextBaseIndex + 1); triangles.Add(baseIndex + 2);
-        triangles.Add(baseIndex + 2); triangles.Add(nextBaseIndex + 1); triangles.Add(nextBaseIndex + 2);
-        triangles.Add(baseIndex + 2); triangles.Add(nextBaseIndex + 2); triangles.Add(baseIndex + 3);
-        triangles.Add(baseIndex + 3); triangles.Add(nextBaseIndex + 2); triangles.Add(nextBaseIndex + 3);
-        triangles.Add(baseIndex + 3); triangles.Add(nextBaseIndex + 3); triangles.Add(baseIndex + 4);
-        triangles.Add(baseIndex + 4); triangles.Add(nextBaseIndex + 3); triangles.Add(nextBaseIndex + 4);
-        triangles.Add(baseIndex + 4); triangles.Add(nextBaseIndex + 4); triangles.Add(baseIndex + 5);
-        triangles.Add(baseIndex + 5); triangles.Add(nextBaseIndex + 4); triangles.Add(nextBaseIndex + 5);
-        triangles.Add(baseIndex + 5); triangles.Add(nextBaseIndex + 5); triangles.Add(baseIndex + 6);
-        triangles.Add(baseIndex + 6); triangles.Add(nextBaseIndex + 5); triangles.Add(nextBaseIndex + 6);
-        triangles.Add(baseIndex + 6); triangles.Add(nextBaseIndex + 6); triangles.Add(baseIndex + 7);
-        triangles.Add(baseIndex + 7); triangles.Add(nextBaseIndex + 6); triangles.Add(nextBaseIndex + 7);
-    }
+		for (int i = 0; i < segmentStartIndices.Count - 1; i++)
+		{
+			int baseIndex = segmentStartIndices[i];
+			int nextBaseIndex = segmentStartIndices[i + 1];
 
-    if (vertices.Count == 0 || triangles.Count == 0)
-    {
-        Debug.LogError($"Influence mesh for '{road.GetName()}' has no valid vertices or triangles after processing.");
-        return null;
-    }
+			triangles.Add(baseIndex);   triangles.Add(nextBaseIndex);  triangles.Add(baseIndex + 1);
+			triangles.Add(baseIndex + 1); triangles.Add(nextBaseIndex);  triangles.Add(nextBaseIndex + 1);
+			triangles.Add(baseIndex + 1); triangles.Add(nextBaseIndex + 1); triangles.Add(baseIndex + 2);
+			triangles.Add(baseIndex + 2); triangles.Add(nextBaseIndex + 1); triangles.Add(nextBaseIndex + 2);
+			triangles.Add(baseIndex + 2); triangles.Add(nextBaseIndex + 2); triangles.Add(baseIndex + 3);
+			triangles.Add(baseIndex + 3); triangles.Add(nextBaseIndex + 2); triangles.Add(nextBaseIndex + 3);
+			triangles.Add(baseIndex + 3); triangles.Add(nextBaseIndex + 3); triangles.Add(baseIndex + 4);
+			triangles.Add(baseIndex + 4); triangles.Add(nextBaseIndex + 3); triangles.Add(nextBaseIndex + 4);
+			triangles.Add(baseIndex + 4); triangles.Add(nextBaseIndex + 4); triangles.Add(baseIndex + 5);
+			triangles.Add(baseIndex + 5); triangles.Add(nextBaseIndex + 4); triangles.Add(nextBaseIndex + 5);
+			triangles.Add(baseIndex + 5); triangles.Add(nextBaseIndex + 5); triangles.Add(baseIndex + 6);
+			triangles.Add(baseIndex + 6); triangles.Add(nextBaseIndex + 5); triangles.Add(nextBaseIndex + 6);
+			triangles.Add(baseIndex + 6); triangles.Add(nextBaseIndex + 6); triangles.Add(baseIndex + 7);
+			triangles.Add(baseIndex + 7); triangles.Add(nextBaseIndex + 6); triangles.Add(nextBaseIndex + 7);
+		}
 
-    GameObject meshObj = new GameObject($"InfluenceMesh_{road.GetName()}");
-    meshObj.transform.SetParent(road.gameObject.transform, false);
-    Mesh mesh = new Mesh
-    {
-        name = $"InfluenceMesh_{road.GetName()}",
-        vertices = vertices.ToArray(),
-        uv = uvs.ToArray(),
-        triangles = triangles.ToArray()
-    };
-    mesh.RecalculateNormals();
-    mesh.RecalculateBounds();
+		if (vertices.Count == 0 || triangles.Count == 0)
+		{
+			Debug.LogError($"Influence mesh for '{road.GetName()}' has no valid vertices or triangles.");
+			return null;
+		}
 
-    MeshFilter filter = meshObj.AddComponent<MeshFilter>();
-    filter.sharedMesh = mesh;
-    MeshCollider collider = meshObj.AddComponent<MeshCollider>();
-    collider.sharedMesh = mesh;
-    meshObj.layer = 30;
+		GameObject meshObj = new GameObject($"InfluenceMesh_{road.GetName()}");
+		meshObj.transform.SetParent(road.gameObject.transform, false);
+		Mesh mesh = new Mesh
+		{
+			name = $"InfluenceMesh_{road.GetName()}",
+			vertices = vertices.ToArray(),
+			uv = uvs.ToArray(),
+			triangles = triangles.ToArray()
+		};
+		mesh.RecalculateNormals();
+		mesh.RecalculateBounds();
 
-    Debug.Log($"Created influence mesh for '{road.GetName()}': {vertices.Count} vertices, bounds: {mesh.bounds}");
-    return meshObj;
-	
-	
-}public static void PaintRoadLayers(ERRoad road, PathData pathData, float strength = 1f)
+		MeshFilter filter = meshObj.AddComponent<MeshFilter>();
+		filter.sharedMesh = mesh;
+		MeshCollider collider = meshObj.AddComponent<MeshCollider>();
+		collider.sharedMesh = mesh;
+		meshObj.layer = 30;
+
+		return meshObj;
+	}
+
+public static void PaintRoadLayers(ERRoad road, WorldSerialization.PathData pathData, float strength = 1f, float outerTopoWidth = 0f, int outerTopology = -1)
 {
     Terrain terrain = TerrainManager.Land;
     if (terrain == null) { Debug.LogError("No active terrain found in the scene."); return; }
@@ -444,13 +433,13 @@ private static GameObject CreateInfluenceMesh(ERRoad road, PathData pathData)
     ERModularRoad modularRoad = road.gameObject.GetComponent<ERModularRoad>();
     if (modularRoad == null) { Debug.LogError($"ERModularRoad component not found on road '{road.GetName()}'."); return; }
 
-    GameObject influenceMeshObj = CreateInfluenceMesh(road, pathData);
-    if (influenceMeshObj == null) { Debug.LogError($"Failed to create influence mesh for road '{road.GetName()}'."); return; }
+    GameObject influenceMeshObj = CreateSplatTopologyMesh(road, pathData, outerTopoWidth);
+    if (influenceMeshObj == null) { Debug.LogError($"Failed to create splat/topology mesh for road '{road.GetName()}'."); return; }
 
+    // Splat and topology maps
     float[,,] groundMap = TerrainManager.GetSplatMap(TerrainManager.LayerType.Ground);
-	
-    int splatWidth = groundMap.GetLength(0); // x
-    int splatHeight = groundMap.GetLength(1); // z
+    int splatWidth = groundMap.GetLength(0);
+    int splatHeight = groundMap.GetLength(1);
     float splatSizeX = terrain.terrainData.size.x / splatWidth;
     float splatSizeZ = terrain.terrainData.size.z / splatHeight;
 
@@ -459,16 +448,22 @@ private static GameObject CreateInfluenceMesh(ERRoad road, PathData pathData)
 
     int splatIndex = TerrainSplat.TypeToIndex(pathData.splat);
     int topologyIndex = TerrainTopology.TypeToIndex(pathData.topology);
+    int outerTopologyIndex = (outerTopology != -1) ? TerrainTopology.TypeToIndex(outerTopology) : -1;
+
     if (splatIndex < 0 || splatIndex >= TerrainManager.LayerCount(TerrainManager.LayerType.Ground))
     { Debug.LogError($"Splat index {splatIndex} out of range."); UnityEngine.Object.Destroy(influenceMeshObj); return; }
     if (topologyIndex < 0 || topologyIndex >= TerrainTopology.COUNT)
     { Debug.LogError($"Topology index {topologyIndex} out of range."); UnityEngine.Object.Destroy(influenceMeshObj); return; }
+    if (outerTopology != -1 && (outerTopologyIndex < 0 || outerTopologyIndex >= TerrainTopology.COUNT))
+    { Debug.LogError($"Outer topology index {outerTopologyIndex} out of range."); UnityEngine.Object.Destroy(influenceMeshObj); return; }
 
     float[,,] topologyMap = TerrainManager.GetSplatMap(TerrainManager.LayerType.Topology, topologyIndex);
-    Vector3 terrainPos = terrain.transform.position;
+    float[,,] outerTopologyMap = (outerTopology != -1) ? TerrainManager.GetSplatMap(TerrainManager.LayerType.Topology, outerTopologyIndex) : null;
 
+    Vector3 terrainPos = terrain.transform.position;
     TerrainManager.RegisterSplatMapUndo($"Paint Road Layers '{road.GetName()}'");
 
+    // Calculate bounds
     Bounds bounds = influenceMeshObj.GetComponent<MeshCollider>().bounds;
     Vector3 boundsMin = bounds.min - terrainPos;
     Vector3 boundsMax = bounds.max - terrainPos;
@@ -500,21 +495,17 @@ private static GameObject CreateInfluenceMesh(ERRoad road, PathData pathData)
 
     float roadWidth = pathData.width;
     float halfRoadWidth = roadWidth * 0.5f;
-    float innerFade = Mathf.Max(pathData.innerFade, 0f);
-    float innerPadding = Mathf.Max(pathData.innerPadding, 0f);
-    float outerPadding = Mathf.Max(pathData.outerPadding, 0f);
-    float outerFade = Mathf.Max(pathData.outerFade, 0f);
-    float totalInnerWidth = innerFade + innerPadding;
-    float totalOuterWidth = outerPadding + outerFade;
-    float totalWidth = roadWidth + 2f * (totalInnerWidth + totalOuterWidth);
+    float blendWidth = 1f; // 1
+    float totalWidth = roadWidth + 2f * (blendWidth + outerTopoWidth);
 
-    float roadCoreEdge = halfRoadWidth;
-    float innerFadeEnd = halfRoadWidth + innerFade;
-    float innerPaddingEnd = innerFadeEnd + innerPadding;
+    // Define zones
+    float coreEdge = halfRoadWidth;
+    float blendEdge = halfRoadWidth + blendWidth;
+    float outerEdge = halfRoadWidth + blendWidth + outerTopoWidth;
 
-    for (int i = 0; i < width; i++) // x direction
+    for (int i = 0; i < width; i++)
     {
-        for (int j = 0; j < height; j++) // z direction
+        for (int j = 0; j < height; j++)
         {
             Vector3 rayOrigin = new Vector3(
                 terrainPos.x + (xStartIndex + i) * splatSizeX + splatSizeX * 0.5f,
@@ -526,19 +517,17 @@ private static GameObject CreateInfluenceMesh(ERRoad road, PathData pathData)
             if (Physics.Raycast(rayOrigin, Vector3.down, out hit, raycastDistance, layerMask))
             {
                 float u = hit.textureCoord.x;
-                float distanceFromCenter = Mathf.Abs((u - 0.5f) * totalWidth); // Matches heightmap
+                float distanceFromCenter = Mathf.Abs((u - 0.5f) * totalWidth);
 
-                if (distanceFromCenter <= innerPaddingEnd)
+                // Core section (splat and internal topology)
+                if (distanceFromCenter <= blendEdge)
                 {
+                    // Splat painting
                     float splatStrength = strength;
-                    if (distanceFromCenter > roadCoreEdge && distanceFromCenter <= innerFadeEnd)
+                    if (distanceFromCenter > coreEdge)
                     {
-                        float fadeProgress = (distanceFromCenter - roadCoreEdge) / (innerFadeEnd - roadCoreEdge);
-                        splatStrength *= (1f - fadeProgress);
-                    }
-                    else if (distanceFromCenter > innerFadeEnd)
-                    {
-                        splatStrength = 0f; // Match heightmap
+                        float fadeProgress = .5f;
+                        splatStrength *= fadeProgress;
                     }
 
                     if (splatStrength > 0f)
@@ -560,23 +549,36 @@ private static GameObject CreateInfluenceMesh(ERRoad road, PathData pathData)
                             for (int k = 0; k < groundLayerCount; k++)
                                 if (k != splatIndex) groundMap[x, z, k] *= scale;
                         }
+                    }
 
-                        int topoX = Mathf.FloorToInt(x / TerrainManager.SplatRatio);
-                        int topoZ = Mathf.FloorToInt(z / TerrainManager.SplatRatio);
+                    // Internal topology
+                    if (distanceFromCenter <= coreEdge)
+                    {
+                        int topoX = Mathf.FloorToInt((zStartIndex + j) / TerrainManager.SplatRatio);
+                        int topoZ = Mathf.FloorToInt((xStartIndex + i) / TerrainManager.SplatRatio);
                         if (topoX >= 0 && topoX < topologyWidth && topoZ >= 0 && topoZ < topologyHeight)
                         {
-                            float currentTopology = topologyMap[topoX, topoZ, 0];
-                            float newTopologyValue = Mathf.Lerp(currentTopology, 1f, splatStrength);
-                            topologyMap[topoX, topoZ, 0] = newTopologyValue;
-                            topologyMap[topoX, topoZ, 1] = 1f - newTopologyValue;
+                            topologyMap[topoX, topoZ, 0] = 1f;
+                            topologyMap[topoX, topoZ, 1] = 0f;
                         }
+                    }
+                }
+                // Outer topology section
+                else if (outerTopoWidth > 0f && outerTopology != -1 && distanceFromCenter <= outerEdge)
+                {
+                    int topoX = Mathf.FloorToInt((zStartIndex + j) / TerrainManager.SplatRatio);
+                    int topoZ = Mathf.FloorToInt((xStartIndex + i) / TerrainManager.SplatRatio);
+                    if (topoX >= 0 && topoX < topologyWidth && topoZ >= 0 && topoZ < topologyHeight)
+                    {
+                        outerTopologyMap[topoX, topoZ, 0] = 1f;
+                        outerTopologyMap[topoX, topoZ, 1] = 0f;
                     }
                 }
             }
         }
     }
 
-   
+    // Apply changes
     TerrainManager.SetSplatMap(groundMap, TerrainManager.LayerType.Ground);
     TerrainManager.SetSplatMap(topologyMap, TerrainManager.LayerType.Topology, topologyIndex);
 
@@ -584,14 +586,23 @@ private static GameObject CreateInfluenceMesh(ERRoad road, PathData pathData)
     bool[,] downscaledBitmap = TerrainManager.DownscaleBitmap(topologyBitmap);
     TopologyData.SetTopology(TerrainTopology.IndexToType(topologyIndex), 0, 0, downscaledBitmap.GetLength(0), downscaledBitmap.GetLength(1), downscaledBitmap);
 
+    if (outerTopology != -1 && outerTopologyMap != null)
+    {
+        TerrainManager.SetSplatMap(outerTopologyMap, TerrainManager.LayerType.Topology, outerTopologyIndex);
+        bool[,] outerTopologyBitmap = TerrainManager.ConvertSplatToBitmap(outerTopologyMap);
+        bool[,] outerDownscaledBitmap = TerrainManager.DownscaleBitmap(outerTopologyBitmap);
+        TopologyData.SetTopology(TerrainTopology.IndexToType(outerTopologyIndex), 0, 0, outerDownscaledBitmap.GetLength(0), outerDownscaledBitmap.GetLength(1), outerDownscaledBitmap);
+        TerrainManager.Callbacks.InvokeLayerUpdated(TerrainManager.LayerType.Topology, outerTopologyIndex);
+    }
+
     TerrainManager.Callbacks.InvokeLayerUpdated(TerrainManager.LayerType.Ground, 0);
     TerrainManager.Callbacks.InvokeLayerUpdated(TerrainManager.LayerType.Topology, topologyIndex);
 
+    influenceMeshObj.SetActive(false);
     UnityEngine.Object.Destroy(influenceMeshObj);
 
-    Debug.Log($"Painted road layers for '{road.GetName()}' with splat={pathData.splat} (index {splatIndex}), topology={pathData.topology} (index {topologyIndex}), strength={strength}");
+    Debug.Log($"Painted road layers for '{road.GetName()}': splat={pathData.splat} (index {splatIndex}), topology={pathData.topology} (index {topologyIndex}), outerTopoWidth={outerTopoWidth}, outerTopology={(outerTopology != -1 ? outerTopology.ToString() : "None")}, strength={strength}");
 }
-
     private static void DestroySplatMeshes(List<GameObject> splatMeshList)
     {
         if (splatMeshList != null)
@@ -696,13 +707,40 @@ private static GameObject CreateInfluenceMesh(ERRoad road, PathData pathData)
         return newRoadObject;
     }
 	
-    private static string InferRoadTypePrefix(PathData pathData)
-    {
-        if (pathData.topology == (int)TerrainTopology.Enum.River) return "River";
-        if (pathData.width == 0f) return "Powerline";
-        if (pathData.topology == (int)TerrainTopology.Enum.Rail) return "Rail";
-        return "Road";
-    }
+	private static string InferRoadTypePrefix(PathData pathData)
+	{
+		// Log for debugging
+		Debug.Log($"InferRoadTypePrefix: topology={pathData.topology}, width={pathData.width}, splat={pathData.splat}");
+
+		// Check topology using TerrainTopology.TypeToIndex for consistency
+		int riverIndex = TerrainTopology.TypeToIndex((int)TerrainTopology.Enum.River);
+		int railIndex = TerrainTopology.TypeToIndex((int)TerrainTopology.Enum.Rail);
+		int roadIndex = TerrainTopology.TypeToIndex((int)TerrainTopology.Enum.Road);
+
+		if (pathData.topology == riverIndex)
+		{
+			return "River";
+		}
+		else if (pathData.width == 0f)
+		{
+			return "Powerline";
+		}
+		else if (pathData.topology == railIndex)
+		{
+			return "Rail";
+		}
+		else if (pathData.topology == roadIndex || pathData.topology == TerrainTopology.TypeToIndex((int)TerrainTopology.Enum.Field)) // Assuming trails might use Field or Road
+		{
+			if (pathData.width == 4f)
+				return "Road"; // Trails are treated as invisible roads but named "Road" here
+			else if (pathData.width == 12f)
+				return "Road"; // CircleRoad named as "Road" with width distinction
+			else
+				return "Road"; // Default road
+		}
+
+		return "Road";
+	}
 
     public static void ReconfigureRoad(ERRoad road, PathData pathData)
     {
@@ -898,6 +936,145 @@ private static GameObject CreateInfluenceMesh(ERRoad road, PathData pathData)
 		road.Refresh();
     }
 
+	public static GameObject CreateSplatTopologyMesh(ERRoad road, PathData pathData, float outerTopoWidth)
+	{
+		ERModularRoad modularRoad = road.gameObject.GetComponent<ERModularRoad>();
+		if (modularRoad == null)
+		{
+			Debug.LogWarning($"ERModularRoad component not found on road '{road.GetName()}'. Using fallback geometry.");
+		}
+
+		// Gather road points
+		List<Vector3> roadPoints = new List<Vector3>();
+		if (modularRoad != null && modularRoad.soSplinePoints != null && modularRoad.soSplinePoints.Count > 0)
+		{
+			roadPoints.AddRange(modularRoad.soSplinePoints);
+		}
+		else
+		{
+			for (int i = 0; i < road.GetMarkerCount(); i++)
+			{
+				roadPoints.Add(road.GetMarkerPosition(i));
+			}
+		}
+
+		if (roadPoints.Count < 2)
+		{
+			Debug.LogError($"Road '{road.GetName()}' has insufficient points ({roadPoints.Count}) for splat/topology mesh creation.");
+			return null;
+		}
+
+		// Mesh data
+		List<Vector3> vertices = new List<Vector3>();
+		List<Vector2> uvs = new List<Vector2>();
+		List<int> triangles = new List<int>();
+		float accumulatedLength = 0f;
+
+		// Dimensions
+		float roadWidth = pathData.width;
+		float halfRoadWidth = roadWidth * 0.5f;
+		float blendWidth = 1f; 
+		float totalWidthPerSide = halfRoadWidth + blendWidth + outerTopoWidth;
+		float totalWidth = roadWidth + 2f * (blendWidth + outerTopoWidth);
+
+		// UV proportions
+		float uvBlendStart = (halfRoadWidth) / totalWidth;
+		float uvBlendEnd = (halfRoadWidth + blendWidth) / totalWidth;
+		float uvOuterEnd = 1f;
+
+		List<int> segmentStartIndices = new List<int>();
+
+		for (int i = 0; i < roadPoints.Count; i++)
+		{
+			Vector3 point = roadPoints[i];
+			Vector3 nextPoint = (i < roadPoints.Count - 1) ? roadPoints[i + 1] : point;
+			Vector3 direction = (nextPoint - point).normalized;
+			if (direction == Vector3.zero) continue;
+
+			Vector3 right = Vector3.Cross(Vector3.up, direction).normalized;
+
+			// Vertex positions for three sections per side
+			Vector3 leftOuterEdge = point - right * totalWidthPerSide;
+			Vector3 leftBlendEdge = point - right * (halfRoadWidth + blendWidth);
+			Vector3 leftCoreEdge = point - right * halfRoadWidth;
+			Vector3 rightCoreEdge = point + right * halfRoadWidth;
+			Vector3 rightBlendEdge = point + right * (halfRoadWidth + blendWidth);
+			Vector3 rightOuterEdge = point + right * totalWidthPerSide;
+
+			// Set Y to match road height
+			leftOuterEdge.y = point.y;
+			leftBlendEdge.y = point.y;
+			leftCoreEdge.y = point.y;
+			rightCoreEdge.y = point.y;
+			rightBlendEdge.y = point.y;
+			rightOuterEdge.y = point.y;
+
+			segmentStartIndices.Add(vertices.Count);
+
+			// Add vertices
+			vertices.Add(leftOuterEdge);  // 0: Left outer edge
+			vertices.Add(leftBlendEdge);  // 1: Left blend edge
+			vertices.Add(leftCoreEdge);   // 2: Left core edge
+			vertices.Add(rightCoreEdge);  // 3: Right core edge
+			vertices.Add(rightBlendEdge); // 4: Right blend edge
+			vertices.Add(rightOuterEdge); // 5: Right outer edge
+
+			// UVs
+			if (i > 0) accumulatedLength += Vector3.Distance(point, roadPoints[i - 1]);
+			uvs.Add(new Vector2(0f, accumulatedLength));           // Left outer edge
+			uvs.Add(new Vector2(uvBlendStart, accumulatedLength)); // Left blend edge
+			uvs.Add(new Vector2(uvBlendEnd, accumulatedLength));   // Left core edge
+			uvs.Add(new Vector2(1f - uvBlendEnd, accumulatedLength)); // Right core edge
+			uvs.Add(new Vector2(1f - uvBlendStart, accumulatedLength)); // Right blend edge
+			uvs.Add(new Vector2(1f, accumulatedLength));           // Right outer edge
+		}
+
+		// Generate triangles
+		for (int i = 0; i < segmentStartIndices.Count - 1; i++)
+		{
+			int baseIndex = segmentStartIndices[i];
+			int nextBaseIndex = segmentStartIndices[i + 1];
+
+			triangles.Add(baseIndex);   triangles.Add(nextBaseIndex);  triangles.Add(baseIndex + 1);
+			triangles.Add(baseIndex + 1); triangles.Add(nextBaseIndex);  triangles.Add(nextBaseIndex + 1);
+			triangles.Add(baseIndex + 1); triangles.Add(nextBaseIndex + 1); triangles.Add(baseIndex + 2);
+			triangles.Add(baseIndex + 2); triangles.Add(nextBaseIndex + 1); triangles.Add(nextBaseIndex + 2);
+			triangles.Add(baseIndex + 2); triangles.Add(nextBaseIndex + 2); triangles.Add(baseIndex + 3);
+			triangles.Add(baseIndex + 3); triangles.Add(nextBaseIndex + 2); triangles.Add(nextBaseIndex + 3);
+			triangles.Add(baseIndex + 3); triangles.Add(nextBaseIndex + 3); triangles.Add(baseIndex + 4);
+			triangles.Add(baseIndex + 4); triangles.Add(nextBaseIndex + 3); triangles.Add(nextBaseIndex + 4);
+			triangles.Add(baseIndex + 4); triangles.Add(nextBaseIndex + 4); triangles.Add(baseIndex + 5);
+			triangles.Add(baseIndex + 5); triangles.Add(nextBaseIndex + 4); triangles.Add(nextBaseIndex + 5);
+		}
+
+		if (vertices.Count == 0 || triangles.Count == 0)
+		{
+			Debug.LogError($"Splat/topology mesh for '{road.GetName()}' has no valid vertices or triangles.");
+			return null;
+		}
+
+		// Create mesh object
+		GameObject meshObj = new GameObject($"SplatTopologyMesh_{road.GetName()}");
+		meshObj.transform.SetParent(road.gameObject.transform, false);
+		Mesh mesh = new Mesh
+		{
+			name = $"SplatTopologyMesh_{road.GetName()}",
+			vertices = vertices.ToArray(),
+			uv = uvs.ToArray(),
+			triangles = triangles.ToArray()
+		};
+		mesh.RecalculateNormals();
+		mesh.RecalculateBounds();
+
+		MeshFilter filter = meshObj.AddComponent<MeshFilter>();
+		filter.sharedMesh = mesh;
+		MeshCollider collider = meshObj.AddComponent<MeshCollider>();
+		collider.sharedMesh = mesh;
+		meshObj.layer = 30; // Influence layer
+
+		Debug.Log($"Created splat/topology mesh for '{road.GetName()}': {vertices.Count} vertices, bounds: {mesh.bounds}, outerTopoWidth: {outerTopoWidth}");
+		return meshObj;
+	}
 
     public static void RotatePaths(bool CW)
     {

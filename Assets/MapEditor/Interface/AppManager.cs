@@ -214,54 +214,68 @@ public class AppManager : MonoBehaviour
         SaveWindowStates(); // Persist the state change
     }
 		
-    public void ActivateWindow(int index)
+public void ActivateWindow(int index)
+{
+    if (index < 0 || index >= windowToggles.Count || index >= windowPanels.Count)
     {
-        if (index < 0 || index >= windowToggles.Count || index >= windowPanels.Count)
-        {
-            Debug.LogWarning($"Invalid window index: {index}. Must be within bounds of windowToggles and windowPanels arrays.");
-            return;
-        }
-
-        if (windowToggles[index] == null || windowPanels[index] == null)
-        {
-            Debug.LogWarning($"Null reference found at index {index}: windowToggles or windowPanels is null.");
-            return;
-        }
-
-        windowToggles[index].isOn = true;
-        windowPanels[index].SetActive(true);
-
-        RectTransform windowRect = windowPanels[index].GetComponent<RectTransform>();
-        if (windowRect == null)
-        {
-            Debug.LogWarning($"Window panel at index {index} has no RectTransform component.");
-            return;
-        }
-
-        if (menuPanel == null)
-        {
-            Debug.LogWarning("menuPanel is null. Cannot adjust scale.");
-            return;
-        }
-
-        RectTransform menuRect = menuPanel.GetComponent<RectTransform>();
-        if (menuRect == null)
-        {
-            Debug.LogWarning("menuPanel has no RectTransform component. Cannot adjust scale.");
-            return;
-        }
-
-        Vector3 menuScale = menuRect.localScale;
-        Vector3 adjustedScale = menuScale - Vector3.one;
-
-        adjustedScale.x = Mathf.Clamp(adjustedScale.x, 0.6f, 3f);
-        adjustedScale.y = Mathf.Clamp(adjustedScale.y, 0.6f, 3f);
-        adjustedScale.z = Mathf.Clamp(adjustedScale.z, 0.6f, 3f);
-
-        windowRect.localScale = adjustedScale;
-
-        ActivateRecycleTree(index, adjustedScale);
+        Debug.LogWarning($"Invalid window index: {index}. Must be within bounds of windowToggles and windowPanels arrays.");
+        return;
     }
+
+    if (windowToggles[index] == null || windowPanels[index] == null)
+    {
+        Debug.LogWarning($"Null reference found at index {index}: windowToggles or windowPanels is null.");
+        return;
+    }
+
+    // Check for mutual exclusivity between Path (9) and Painting (6) windows
+    if (index == 6 && windowPanels[9].activeSelf) // Activating Painting, Path is active
+    {
+        DeactivateWindow(9); // Deactivate Path
+		CoroutineManager.Instance.ChangeStylus(2);
+    }
+    else if (index == 9 && windowPanels[6].activeSelf) // Activating Path, Painting is active
+    {
+        DeactivateWindow(6); // Deactivate Painting
+		CoroutineManager.Instance.ChangeStylus(3);
+    }
+
+    windowToggles[index].isOn = true;
+    windowPanels[index].SetActive(true);
+
+    RectTransform windowRect = windowPanels[index].GetComponent<RectTransform>();
+    if (windowRect == null)
+    {
+        Debug.LogWarning($"Window panel at index {index} has no RectTransform component.");
+        return;
+    }
+
+    if (menuPanel == null)
+    {
+        Debug.LogWarning("menuPanel is null. Cannot adjust scale.");
+        return;
+    }
+
+    RectTransform menuRect = menuPanel.GetComponent<RectTransform>();
+    if (menuRect == null)
+    {
+        Debug.LogWarning("menuPanel has no RectTransform component. Cannot adjust scale.");
+        return;
+    }
+
+    Vector3 menuScale = menuRect.localScale;
+    Vector3 adjustedScale = menuScale - Vector3.one;
+
+    adjustedScale.x = Mathf.Clamp(adjustedScale.x, 0.6f, 3f);
+    adjustedScale.y = Mathf.Clamp(adjustedScale.y, 0.6f, 3f);
+    adjustedScale.z = Mathf.Clamp(adjustedScale.z, 0.6f, 3f);
+
+    windowRect.localScale = adjustedScale;
+
+    ActivateRecycleTree(index, adjustedScale);
+
+    SaveWindowStates(); // Persist the state change
+}
 
 	public void ActivateRecycleTree(int index, Vector3 adjustedScale)
 	{
@@ -366,64 +380,81 @@ public class AppManager : MonoBehaviour
 		SaveWindowStates();
 	}
 
-	public void OnWindowToggle(Toggle windowToggle, GameObject windowPanel)
-	{
-		bool windowState = windowToggle.isOn;
-		windowPanel.SetActive(windowState);
-		windowPanel.transform.SetAsLastSibling();
+public void OnWindowToggle(Toggle windowToggle, GameObject windowPanel)
+{
+    bool windowState = windowToggle.isOn;
+    windowPanel.SetActive(windowState);
+    windowPanel.transform.SetAsLastSibling();
 
-		int index = windowPanels.IndexOf(windowPanel);
+    int index = windowPanels.IndexOf(windowPanel);
 
-		// Apply menu's adjusted scale (menu scale - 1) to the window if activated
-		if (windowState && menuPanel != null)
-		{
-			RectTransform windowRect = windowPanel.GetComponent<RectTransform>();
-			Vector3 menuScale = menuPanel.GetComponent<RectTransform>().localScale;
-			Vector3 adjustedScale = menuScale - Vector3.one;
+    // Enforce mutual exclusivity between Path (9) and Painting (6) windows
+    if (windowState)
+    {
+        if (index == 6 && windowPanels[9].activeSelf) // Painting activated, Path is active
+        {
+            DeactivateWindow(9); // Deactivate Path
+			CoroutineManager.Instance.ChangeStylus(2); //force paintbrush
+        }
+        else if (index == 9 && windowPanels[6].activeSelf) // Path activated, Painting is active
+        {
+            DeactivateWindow(6); // Deactivate Painting
+			CoroutineManager.Instance.ChangeStylus(3); //force path selection
+        }
+    }
 
-			adjustedScale.x = Mathf.Clamp(adjustedScale.x, 0.6f, 3f);
-			adjustedScale.y = Mathf.Clamp(adjustedScale.y, 0.6f, 3f);
+    // Apply menu's adjusted scale (menu scale - 1) to the window if activated
+    if (windowState && menuPanel != null)
+    {
+        RectTransform windowRect = windowPanel.GetComponent<RectTransform>();
+        Vector3 menuScale = menuPanel.GetComponent<RectTransform>().localScale;
+        Vector3 adjustedScale = menuScale - Vector3.one;
 
-			if (windowRect != null)
-			{
-				windowRect.localScale = adjustedScale;
-			}
-		}
+        adjustedScale.x = Mathf.Clamp(adjustedScale.x, 0.6f, 3f);
+        adjustedScale.y = Mathf.Clamp(adjustedScale.y, 0.6f, 3f);
 
-		// Handle RecycleTree if it exists
-		if (index >= 0 && index < RecycleTrees.Count && RecycleTrees[index] != null)
-		{
-			RecycleTrees[index].gameObject.SetActive(windowState);
+        if (windowRect != null)
+        {
+            windowRect.localScale = adjustedScale;
+        }
+    }
 
-			if (windowState)
-			{
-				int windowSiblingIndex = windowPanel.transform.GetSiblingIndex();
-				RecycleTrees[index].transform.SetSiblingIndex(windowSiblingIndex + 1);
+    // Handle RecycleTree if it exists
+    if (index >= 0 && index < RecycleTrees.Count && RecycleTrees[index] != null)
+    {
+        RecycleTrees[index].gameObject.SetActive(windowState);
 
-				// Apply the adjusted scale to the tree
-				if (menuPanel != null)
-				{
-					RectTransform treeRect = RecycleTrees[index].GetComponent<RectTransform>();
-					Vector3 menuScale = menuPanel.GetComponent<RectTransform>().localScale;
-					Vector3 adjustedScale = menuScale - Vector3.one;
+        if (windowState)
+        {
+            int windowSiblingIndex = windowPanel.transform.GetSiblingIndex();
+            RecycleTrees[index].transform.SetSiblingIndex(windowSiblingIndex + 1);
 
-					adjustedScale.x = Mathf.Clamp(adjustedScale.x, 0.6f, 3f);
-					adjustedScale.y = Mathf.Clamp(adjustedScale.y, 0.6f, 3f);
+            // Apply the adjusted scale to the tree
+            if (menuPanel != null)
+            {
+                RectTransform treeRect = RecycleTrees[index].GetComponent<RectTransform>();
+                Vector3 menuScale = menuPanel.GetComponent<RectTransform>().localScale;
+                Vector3 adjustedScale = menuScale - Vector3.one;
 
-					if (treeRect != null)
-					{
-						treeRect.localScale = adjustedScale;
-					}
-				}
-			}
-		}
-		if (menuPanel != null)
-		{
-			menuPanel.transform.SetAsLastSibling();
-		}
-		SaveWindowStates();
-		SettingsManager.SaveSettings();
-	}
+                adjustedScale.x = Mathf.Clamp(adjustedScale.x, 0.6f, 3f);
+                adjustedScale.y = Mathf.Clamp(adjustedScale.y, 0.6f, 3f);
+
+                if (treeRect != null)
+                {
+                    treeRect.localScale = adjustedScale;
+                }
+            }
+        }
+    }
+
+    if (menuPanel != null)
+    {
+        menuPanel.transform.SetAsLastSibling();
+    }
+
+    SaveWindowStates();
+    SettingsManager.SaveSettings();
+}
 	
 	public void LockWindows()    {
 			lockToggle.targetGraphic.enabled = !lockToggle.isOn;

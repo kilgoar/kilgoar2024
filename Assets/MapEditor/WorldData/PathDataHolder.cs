@@ -6,7 +6,9 @@ public class PathDataHolder : MonoBehaviour {
     
     public WorldSerialization.PathData pathData;
     public float resolutionFactor = 0;
-
+	
+	public float outerTopoWidth;
+    public int outerTopology;
 
     public void AddNodeToStart()
     {

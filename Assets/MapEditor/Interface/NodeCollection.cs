@@ -152,14 +152,13 @@ public class NodeCollection : MonoBehaviour
         sphere.name = $"PathNode_{index}";
         sphere.tag = "Node";
         Transform sphereTransform = sphere.transform;
-        sphereTransform.localScale = Vector3.one * 5f;
+        sphereTransform.localScale = Vector3.one * 16f;
         sphere.layer = 9;
 
         if (!sphere.TryGetComponent<SphereCollider>(out _))
         {
             SphereCollider collider = sphere.AddComponent<SphereCollider>();
-            collider.radius = 2.5f;
-            collider.isTrigger = true;
+            collider.radius = 8f;
         }
 
         PathNode pathNode = sphere.AddComponent<PathNode>();
