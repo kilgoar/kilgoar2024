@@ -1,0 +1,2 @@
+g.GeneratePerlinHeightmap 30191, 1, 9, .2, 5
+t.SqueezeHeightMap 500, 600

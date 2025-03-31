@@ -3,94 +3,91 @@ using UnityEngine;
 
 public abstract class TerrainPlacement : PrefabAttribute
 {
-    // Public fields for configuring terrain placement
-    public Vector3 size = Vector3.zero;            // Size of the placement area
-    public Vector3 extents = Vector3.zero;         // Extents (half-size) of the placement area
-    public Vector3 offset = Vector3.zero;          // Offset from the origin
-    public bool HeightMap = false;                 // Enable height map modifications
-    public bool AlphaMap = false;                  // Enable alpha map modifications
-    public bool WaterMap = false;                  // Enable water map modifications
-    public TerrainSplat.Enum SplatMask = 0;   // Mask for splat (texture) layers
-    public TerrainBiome.Enum BiomeMask = 0;   // Mask for biome layers
-    public TerrainTopology.Enum TopologyMask = 0; // Mask for topology layers
-
-    // Hidden texture references for terrain data
-    public Texture2DRef heightmap;   // Heightmap texture
-    public Texture2DRef splatmap0;   // First splatmap texture
-    public Texture2DRef splatmap1;   // Second splatmap texture
-    public Texture2DRef alphamap;    // Alphamap texture
-    public Texture2DRef biomemap;    // Biomemap texture
-    public Texture2DRef topologymap; // Topologymap texture
-    public Texture2DRef watermap;    // Watermap texture
-    public Texture2DRef blendmap;    // Blendmap texture
-
-    // Constructor
-    protected TerrainPlacement()
+    public void ApplyHeight(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
     {
-        // Initialization can go here if needed
+        if (!ShouldHeight()) return;
+        Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
+        Matrix4x4 worldToLocal = localToWorld.inverse;
+        ApplyHeightMap(localToWorld, worldToLocal, dimensions);
     }
 
-    // Public method to apply terrain modifications
+    public void ApplySplat(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
+    {
+        if (!ShouldSplat(-1)) return;
+        Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
+        Matrix4x4 worldToLocal = localToWorld.inverse;
+        ApplySplatMap(localToWorld, worldToLocal, dimensions);
+    }
+
+    public void ApplyAlpha(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
+    {
+        if (!ShouldAlpha()) return;
+        Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
+        Matrix4x4 worldToLocal = localToWorld.inverse;
+        ApplyAlphaMap(localToWorld, worldToLocal, dimensions);
+    }
+
+    public void ApplyBiome(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
+    {
+        if (!ShouldBiome(-1)) return;
+        Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
+        Matrix4x4 worldToLocal = localToWorld.inverse;
+        ApplyBiomeMap(localToWorld, worldToLocal, dimensions);
+    }
+
+    public void ApplyTopology(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
+    {
+        if (!ShouldTopology(-1)) return;
+        Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
+        Matrix4x4 worldToLocal = localToWorld.inverse;
+        ApplyTopologyMap(localToWorld, worldToLocal, dimensions);
+    }
+
     public void Apply(Matrix4x4 localToWorld, Matrix4x4 worldToLocal)
     {
-        // Call abstract/virtual methods to apply specific modifications
-        ApplyHeight(localToWorld, worldToLocal);
-        ApplySplat(localToWorld, worldToLocal);
-        ApplyAlpha(localToWorld, worldToLocal);
-        ApplyBiome(localToWorld, worldToLocal);
-        ApplyTopology(localToWorld, worldToLocal);
+        TerrainBounds dimensions = new TerrainBounds();
+        if (ShouldHeight()) ApplyHeightMap(localToWorld, worldToLocal, dimensions);
+        if (ShouldSplat(-1)) ApplySplatMap(localToWorld, worldToLocal, dimensions);
+        if (ShouldAlpha()) ApplyAlphaMap(localToWorld, worldToLocal, dimensions);
+        if (ShouldBiome(-1)) ApplyBiomeMap(localToWorld, worldToLocal, dimensions);
+        if (ShouldTopology(-1)) ApplyTopologyMap(localToWorld, worldToLocal, dimensions);
+        if (ShouldWater()) ApplyWaterMap(localToWorld, worldToLocal, dimensions);
     }
 
-    // Abstract methods for terrain modification (must be implemented by derived classes)
-    protected abstract void ApplyHeight(Matrix4x4 localToWorld, Matrix4x4 worldToLocal);
-    protected abstract void ApplySplat(Matrix4x4 localToWorld, Matrix4x4 worldToLocal);
-    protected abstract void ApplyAlpha(Matrix4x4 localToWorld, Matrix4x4 worldToLocal);
-    protected abstract void ApplyBiome(Matrix4x4 localToWorld, Matrix4x4 worldToLocal);
-    protected abstract void ApplyTopology(Matrix4x4 localToWorld, Matrix4x4 worldToLocal);
+    protected abstract void ApplyAlphaMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions);
+    protected abstract void ApplyBiomeMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions);
+    protected abstract void ApplyHeightMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions);
+    protected abstract void ApplySplatMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions);
+    protected abstract void ApplyTopologyMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions);
+    protected abstract void ApplyWaterMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions);
 
-    // Virtual methods for type determination (can be overridden)
-    protected virtual Type GetHeightType() => null;
-    protected virtual Type GetSplatType() => null;
-    protected virtual Type GetAlphaType() => null;
-    protected virtual Type GetBiomeType() => null;
-    protected virtual Type GetTopologyType() => null;
-
-    // Protected methods to check if specific modifications should be applied
-    protected bool ShouldApplyHeight() => HeightMap;
-    protected bool ShouldApplyAlpha() => AlphaMap;
-    protected bool ShouldApplyWater() => WaterMap;
-    protected bool ShouldApplySplat() => SplatMask != 0;
-    protected bool ShouldApplyBiome() => BiomeMask != 0;
-    protected bool ShouldApplyTopology() => TopologyMask != 0;
-
-    // Methods to check specific splat layers (optional layer index)
-    protected bool ShouldApplySplatLayer(int layer = -1)
+    protected override Type GetPrefabAttributeType()
     {
-        if (layer == -1) return SplatMask != 0;
-        return ((int)SplatMask & (1 << layer)) != 0;
+        return typeof(TerrainPlacement);
     }
 
-    // Methods to check specific biome layers
-    protected bool ShouldApplyBiomeLayer(int layer = -1)
-    {
-        if (layer == -1) return BiomeMask != 0;
-        return ((int)BiomeMask & (1 << layer)) != 0;
-    }
+    public virtual bool ShouldAlpha() => alphamap != null && alphamap.IsValid && AlphaMap;
+    public virtual bool ShouldBiome(int mask = -1) => biomemap != null && biomemap.IsValid && (BiomeMask & (TerrainBiome.Enum)mask) > (TerrainBiome.Enum)0;
+    public virtual bool ShouldHeight() => heightmap != null && heightmap.IsValid && HeightMap;
+    public virtual bool ShouldSplat(int mask = -1) => splatmap0 != null && splatmap0.IsValid && splatmap1 != null && splatmap1.IsValid && (SplatMask & (TerrainSplat.Enum)mask) > (TerrainSplat.Enum)0;
+    public virtual bool ShouldTopology(int mask = -1) => topologymap != null && topologymap.IsValid && (TopologyMask & (TerrainTopology.Enum)mask) > (TerrainTopology.Enum)0;
+    public virtual bool ShouldWater() => watermap != null && watermap.IsValid && WaterMap;
 
-    // Methods to check specific topology layers
-    protected bool ShouldApplyTopologyLayer(int layer = -1)
-    {
-        if (layer == -1) return TopologyMask != 0;
-        return ((int)TopologyMask & (1 << layer)) != 0;
-    }
-
-    // Additional utility methods for checking modification conditions
-    protected bool HasHeightMap() => heightmap != null && heightmap.IsValid;
-    protected bool HasSplatMap0() => splatmap0 != null && splatmap0.IsValid;
-    protected bool HasSplatMap1() => splatmap1 != null && splatmap1.IsValid;
-    protected bool HasAlphaMap() => alphamap != null && alphamap.IsValid;
-    protected bool HasBiomeMap() => biomemap != null && biomemap.IsValid;
-    protected bool HasTopologyMap() => topologymap != null && topologymap.IsValid;
-    protected bool HasWaterMap() => watermap != null && watermap.IsValid;
-    protected bool HasBlendMap() => blendmap != null && blendmap.IsValid;
+    public Vector3 size = Vector3.zero;
+    public Vector3 extents = Vector3.zero;
+    public Vector3 offset = Vector3.zero;
+    public bool HeightMap = true;
+    public bool AlphaMap = true;
+    public bool WaterMap;
+    public TerrainSplat.Enum SplatMask;
+    public TerrainBiome.Enum BiomeMask;
+    public TerrainTopology.Enum TopologyMask;
+    public Texture2DRef heightmap;
+    public Texture2DRef splatmap0;
+    public Texture2DRef splatmap1;
+    public Texture2DRef alphamap;
+    public Texture2DRef biomemap;
+    public Texture2DRef topologymap;
+    public Texture2DRef watermap;
+    public Texture2DRef blendmap;
 }

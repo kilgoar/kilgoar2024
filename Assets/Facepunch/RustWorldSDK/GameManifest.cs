@@ -1,60 +1,20 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class GameManifest : ScriptableObject
 {
-	[Serializable]
-	public struct PooledString
-	{
-		[HideInInspector]
-		public string str;
+    [Serializable] public struct PooledString { [SerializeField] public string str; [SerializeField] public uint hash; }
+    [Serializable] public class PrefabProperties { [SerializeField] public string name; [SerializeField] public string guid; [SerializeField] public uint hash; [SerializeField] public bool pool; }
+    [Serializable] public class EffectCategory { [SerializeField] public string folder; [SerializeField] public List<string> prefabs; }
+    [Serializable] public class GuidPath { [SerializeField] public string name; [SerializeField] public string guid; }
 
-		public uint hash;
-	}
+    [SerializeField] public PooledString[] pooledStrings;
+    [SerializeField] public PrefabProperties[] prefabProperties;
+    [SerializeField] public EffectCategory[] effectCategories;
+    [SerializeField] public GuidPath[] guidPaths;
+    [SerializeField] public string[] entities;
 
-	[Serializable]
-	public class MeshColliderInfo
-	{
-		[HideInInspector]
-		public string name;
 
-		public uint hash;
-
-		public PhysicMaterial physicMaterial;
-	}
-
-	[Serializable]
-	public class PrefabProperties
-	{
-		[HideInInspector]
-		public string name;
-
-		public string guid;
-
-		public uint hash;
-
-		public bool pool;
-	}
-
-	[Serializable]
-	public class EffectCategory
-	{
-		[HideInInspector]
-		public string folder;
-
-		public List<string> prefabs;
-	}
-
-	public PooledString[] pooledStrings;
-
-	public MeshColliderInfo[] meshColliders;
-
-	public PrefabProperties[] prefabProperties;
-
-	public EffectCategory[] effectCategories;
-
-	public string[] skinnables;
-
-	public string[] entities;
 }

@@ -14,7 +14,7 @@ public class ItemsWindow : MonoBehaviour
 	public Text footer;
     public UIRecycleTree tree;
 	public InputField query;
-	public Button deleteChecked, checkAll, uncheckAll, findInBreaker, saveCustom;
+	public Button deleteChecked, checkAll, uncheckAll, findInBreaker, saveCustom, applyTerrain;
 	private int currentMatchIndex = 0; 
 	private List<Node> matchingNodes = new List<Node>();
 	public List<InputField> prefabDataFields = new List<InputField>();
@@ -22,8 +22,7 @@ public class ItemsWindow : MonoBehaviour
 	
 	public static ItemsWindow Instance { get; private set; }
 	
-	
-	
+
     private void Awake()
     {
         if (Instance == null)
@@ -72,6 +71,10 @@ public class ItemsWindow : MonoBehaviour
         PrefabDataHolder prefabHolder = go.GetComponent<PrefabDataHolder>();
         bool isCollection = go.CompareTag("Collection");
 		saveCustom.interactable = false;
+		
+		TerrainPlacement terrainPlacement = go.GetComponent<TerrainPlacement>();
+        applyTerrain.interactable = (terrainPlacement != null);
+        
 		
         if (prefabHolder != null && !isCollection) // Prefab with data
         {
@@ -254,7 +257,9 @@ public class ItemsWindow : MonoBehaviour
 		checkAll.onClick.AddListener(CheckNodes);
 		uncheckAll.onClick.AddListener(UncheckNodes);
 		findInBreaker.onClick.AddListener(FindBreakerWithPath);
-		   
+		applyTerrain.onClick.AddListener(ApplyTerrain);
+        applyTerrain.interactable = false;
+	
 
 		saveCustom.onClick.AddListener(() =>
 		{
@@ -269,6 +274,30 @@ public class ItemsWindow : MonoBehaviour
 		});
 		
 	}
+	
+	private void ApplyTerrain()
+    {
+        if (CameraManager.Instance._selectedObjects.Count == 0) return;
+        
+        GameObject selected = CameraManager.Instance._selectedObjects[^1];
+        TerrainPlacement terrainPlacement = selected.GetComponent<TerrainPlacement>();
+        
+        if (terrainPlacement != null && terrainPlacement.ShouldHeight())
+        {
+            TerrainBounds dimensions = new TerrainBounds();
+            Vector3 position = selected.transform.position;
+            Quaternion rotation = selected.transform.rotation;
+            Vector3 scale = selected.transform.localScale;
+            
+            terrainPlacement.ApplyHeight(position, rotation, scale, dimensions);
+			terrainPlacement.ApplySplat(position, rotation, scale, dimensions);
+            Debug.Log($"Applied height map to terrain at {position}");
+        }
+        else
+        {
+            Debug.LogWarning("No valid TerrainPlacement component with height map found on selected object");
+        }
+    }
 	
 	public void SaveCollection(GameObject go)
 	{

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,8 +21,18 @@ public class TerrainWindow : MonoBehaviour
 	public List<Toggle> carveToggles;
 	public List<Toggle> TopologyToggles;	
 	public Slider strength, size, height;
+	public Text footer;
+	
+	public Transform brushRowParent;
+    public List<GameObject> brushRows = new List<GameObject>();
+    public const int BRUSHES_PER_ROW = 8;
+	
+	public Button TemplateButton; //this has a raw image child object RawImage which displays the paint brush. clone this when constructing rows
 	
 	public int topo, lastIndex;
+	
+	public List<Texture2D> loadedBrushTextures = new List<Texture2D>(); 
+    public string[] brushFiles;
 	
 	Layers layers = new Layers() { Ground = TerrainSplat.Enum.Grass, Biome = TerrainBiome.Enum.Temperate, Topologies = TerrainTopology.Enum.Field};
 	
@@ -29,8 +40,10 @@ public class TerrainWindow : MonoBehaviour
 	
 	public void Setup()
 	{		
+		
 		Debug.LogError("setting up terrain window");
-	
+		PopulateBrushButtons();
+		
 		// Check if either list is null before comparing counts
 		if (layerToggles == null || layerPanels == null) {
 			Debug.LogError("invalid terrain window config");
@@ -131,6 +144,123 @@ public class TerrainWindow : MonoBehaviour
         }
 	}
 	
+	public void PopulateBrushButtons()
+	{
+		// Clear existing rows except the first one (template row)
+		for (int i = 1; i < brushRows.Count; i++)
+		{
+			Destroy(brushRows[i]);
+		}
+		brushRows.Clear();
+		brushRows.Add(brushRowParent.gameObject); // Keep the original Brush Row
+
+		// Get brush paths from SettingsManager
+		string brushPath = Path.Combine(SettingsManager.AppDataPath(), "Custom/Brushes");
+		brushFiles = Directory.GetFiles(brushPath, "*.png");
+
+		if (brushFiles.Length == 0)
+		{
+			Debug.Log("No brush images found in Custom/Brushes directory");
+			footer.text = "No brushes found"; // Update footer even if no brushes are loaded
+			return;
+		}
+
+		// Load all textures and store them
+		loadedBrushTextures.Clear();
+		foreach (string file in brushFiles)
+		{
+			Texture2D texture = LoadTextureFromFile(file);
+			if (texture != null)
+			{
+				loadedBrushTextures.Add(texture);
+			}
+		}
+
+		// Pass the loaded textures to MainScript
+		MainScript.Instance.SetBrushTextures(loadedBrushTextures.ToArray());
+
+		// Calculate number of rows needed
+		int rowCount = Mathf.CeilToInt((float)loadedBrushTextures.Count / BRUSHES_PER_ROW);
+
+		// Create additional rows if needed
+		for (int i = 1; i < rowCount; i++)
+		{
+			GameObject newRow = Instantiate(brushRowParent.gameObject, brushRowParent.parent);
+			newRow.name = $"Brush Row {i + 1}";
+			
+			int targetSiblingIndex = brushRows[i - 1].transform.GetSiblingIndex() + 1;
+			newRow.transform.SetSiblingIndex(targetSiblingIndex);
+			
+			brushRows.Add(newRow);
+			
+			foreach (Transform child in newRow.transform)
+			{
+				Destroy(child.gameObject);
+			}
+		}
+
+		// Create buttons for each brush
+		for (int i = 0; i < loadedBrushTextures.Count; i++)
+		{
+			int rowIndex = i / BRUSHES_PER_ROW;
+			int buttonIndex = i % BRUSHES_PER_ROW;
+
+			GameObject buttonObj = Instantiate(TemplateButton.gameObject, brushRows[rowIndex].transform);
+			Button button = buttonObj.GetComponent<Button>();
+			buttonObj.SetActive(true); 
+			RawImage brushImage = buttonObj.GetComponentInChildren<RawImage>();
+
+			// Set the texture for display
+			brushImage.texture = loadedBrushTextures[i];
+
+			// Set button properties
+			buttonObj.name = $"Brush_{Path.GetFileNameWithoutExtension(brushFiles[i])}";
+			
+			// Add click listener with brush ID
+			int brushId = i; // Capture the index as the brush ID
+			button.onClick.AddListener(() => OnBrushSelected(brushId));
+		}
+
+		// Update footer text with the number of brushes loaded
+		footer.text = $"{brushPath}";
+
+		// Force layout rebuild
+		LayoutRebuilder.ForceRebuildLayoutImmediate(brushRowParent.GetComponent<RectTransform>());
+	}
+	
+    private Texture2D LoadTextureFromFile(string filePath)
+    {
+        try
+        {
+            byte[] bytes = File.ReadAllBytes(filePath);
+            Texture2D texture = new Texture2D(2, 2);
+            if (texture.LoadImage(bytes))
+            {
+                return texture;
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to load brush texture from {filePath}: {e.Message}");
+        }
+        return null;
+    }
+
+    private void OnBrushSelected(int brushId)
+    {
+        if (brushId >= 0 && brushId < loadedBrushTextures.Count)
+        {
+            MainScript.Instance.SetBrush(brushId);
+            Debug.Log($"Selected brush ID: {brushId} - {Path.GetFileName(brushFiles[brushId])}");
+        }
+        else
+        {
+            Debug.LogError($"Brush ID {brushId} is out of range for loaded textures.");
+        }
+    }
+
+
+	
 	public void SetLayer(int index){
 		
 		
@@ -163,9 +293,10 @@ public class TerrainWindow : MonoBehaviour
 		if (index == 3){                   //topos
 
 			TerrainManager.BitView(topo);
-
+			
 		return;
 		}
+		
 		
 	}
 	
@@ -193,6 +324,8 @@ public class TerrainWindow : MonoBehaviour
             layerToggles[i].SetIsOnWithoutNotify(isActive);
             layerToggles[i].interactable = !isActive;
         }
+		
+		LayoutRebuilder.ForceRebuildLayoutImmediate(this.GetComponent<RectTransform>());
     }
 	
 	void ClearPreview()

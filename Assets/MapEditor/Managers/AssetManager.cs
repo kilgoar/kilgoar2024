@@ -12,6 +12,8 @@ using UnityEngine;
 using RustMapEditor.Variables;
 using System.Text.RegularExpressions;
 using EasyRoads3Dv3;
+using Rust;
+using System.Reflection;
 
 public static class AssetManager
 {
@@ -103,6 +105,8 @@ public static class AssetManager
 	}
 	
 	
+
+	
 	private static void HideLoadScreen()
 	{
 		LoadScreen.Instance.Hide();
@@ -126,7 +130,7 @@ public static class AssetManager
 	}
 
 	public static GameManifest Manifest { get; private set; }
-
+	
 	public const string ManifestPath = "assets/manifest.asset";
 	public const string AssetDumpPath = "AssetDump.txt";
 	public const string MaterialsListPath = "MaterialsList.txt";
@@ -142,6 +146,9 @@ public static class AssetManager
 	public static Dictionary<string, UnityEngine.Object> AssetCache { get; private set; } = new Dictionary<string, UnityEngine.Object>();
 	public static Dictionary<string, GameObject> VolumesCache { get; private set; } = new Dictionary<string, GameObject>();
 	public static Dictionary<string, Texture2D> PreviewCache { get; private set; } = new Dictionary<string, Texture2D>();
+	
+	public static Dictionary<string, string> GuidToPath { get; private set; } = new Dictionary<string, string>();
+	public static Dictionary<string, string> PathToGuid { get; private set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 	
 	public static  Dictionary<string, uint[]> MonumentLayers { get; private set; }  = new Dictionary<string, uint[]>();
 	
@@ -164,6 +171,47 @@ public static class AssetManager
 			return null;
 
 		return bundle.LoadAsset<T>(filePath);
+	}
+	
+	public static UnityEngine.Object GetAssetByGuid(string guid)
+	{
+		if (string.IsNullOrEmpty(guid))
+		{
+			Debug.LogWarning("GUID is empty.");
+			return null;
+		}
+
+		if (GuidToPath.TryGetValue(guid, out string path))
+		{
+			if (AssetCache.TryGetValue(path, out UnityEngine.Object cachedAsset))
+			{
+				Debug.Log($"Loaded resource from cache for GUID: {guid}, Path: {path}");
+				return cachedAsset;
+			}
+
+			UnityEngine.Object asset = GetAsset<UnityEngine.Object>(path);
+			if (asset != null)
+			{
+				AssetCache[path] = asset;
+				Debug.Log($"Loaded resource from bundle for GUID: {guid}, Path: {path}");
+				return asset;
+			}
+			else
+			{
+				Debug.LogError($"Failed to load asset from bundle for GUID: {guid}, Path: {path}. Path not in BundleLookup or asset missing.");
+				return null;
+			}
+		}
+		else
+		{
+			Debug.LogError($"GUID not found in GuidToPath: {guid}. Total GUIDs loaded: {GuidToPath.Count}");
+			return null;
+		}
+	}
+	
+	public static T GetAssetByGuid<T>(string guid) where T : UnityEngine.Object
+	{
+		return GetAssetByGuid(guid) as T;
 	}
 	
 	#if UNITY_EDITOR
@@ -972,244 +1020,153 @@ public static class AssetManager
 			}
 			rootBundle.Unload(true);
 		}
+		
+public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
+{
+    var sw = new System.Diagnostics.Stopwatch();
+    sw.Start();
 
-	public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
-		{
-			var sw = new System.Diagnostics.Stopwatch();
-			sw.Start();
-
-			foreach (var asset in BundleCache.Values)
-			{
-				foreach (var filename in asset.GetAllAssetNames())
-				{
-					BundleLookup.Add(filename, asset);
-					if (sw.Elapsed.TotalMilliseconds >= 0.5f)
-					{
-						yield return null;
-						sw.Restart();    
-					}
-				}
-				foreach (var filename in asset.GetAllScenePaths())
-				{
-					BundleLookup.Add(filename, asset);
-					if (sw.Elapsed.TotalMilliseconds >= 0.5f)
-					{
-						yield return null;
-						sw.Restart();
-					}
-				}
-				yield return null;
-
-			}
-			
-			#if UNITY_EDITOR
-			Progress.Report(ID.bundle, 0.99f, "Loaded " + BundleCache.Count + " bundles.");
-			Progress.Finish(ID.bundle, Progress.Status.Succeeded);
-			#endif
-
-			Manifest = GetAsset<GameManifest>(ManifestPath);
-			if (Manifest == null)
-			{
-				Debug.LogError("Couldn't load GameManifest.");
-				Dispose();
-				#if UNITY_EDITOR
-				Progress.Finish(ID.parent, Progress.Status.Failed);
-				#endif
-				yield break;
-			}
-
-			var setLookups = Task.Run(() =>
-			{
-				string[] parse;
-				string name;
-				string monumentTag = "";
-				for (uint i = 0; i < Manifest.pooledStrings.Length; ++i)
-				{
-					
-					IDLookup.Add(Manifest.pooledStrings[i].hash, Manifest.pooledStrings[i].str);
-					PathLookup.Add(Manifest.pooledStrings[i].str, Manifest.pooledStrings[i].hash);
-					
-					monumentTag = "";
-					
-					if (Manifest.pooledStrings[i].str.EndsWith(".png"))
-					{
-						
-						parse = Manifest.pooledStrings[i].str.Split('/');
-						monumentTag = parse[parse.Length - 2]; // Extract the second-to-last element as the monumentTag
-
-						if (!MonumentLayers.ContainsKey(monumentTag))
-						{
-							MonumentLayers[monumentTag] = new uint[8]; 
-						}
-
-						int index = GetMapIndex(Manifest.pooledStrings[i].str);
-
-						if(index >-1){
-							MonumentLayers[monumentTag][index] = Manifest.pooledStrings[i].hash; 
-							//Debug.Log($"Mapped '{Manifest.pooledStrings[i].str}' to MonumentLayers['{monumentTag}'][{index}] with hash {Manifest.pooledStrings[i].hash}");
-						}
-					}
-					
-					if(Manifest.pooledStrings[i].str.EndsWith(".prefab"))
-					{
-
-						if(Manifest.pooledStrings[i].str.Contains("prefabs_small_oilrig"))
-						{
-							monumentTag = "oilrig_small/";
-						}
-						
-						if(Manifest.pooledStrings[i].str.Contains("client")) //dangerous 
-						{
-							monumentTag = "EVENT SYSTEMS DISABLED ";
-						}
-						
-
-						
-						parse = Manifest.pooledStrings[i].str.Split('/');
-						name = parse[parse.Length -1];
-						name = name.Replace(".prefab", "");
-						name = monumentTag + name;
-						
-						try
-						{
-							PrefabLookup.Add(name, Manifest.pooledStrings[i].hash);
-						}
-						catch
-						{
-							
-						}
-					}
-					if (ToID(Manifest.pooledStrings[i].str) != 0)
-						AssetPaths.Add(Manifest.pooledStrings[i].str);
-
-					
-					if(Manifest.pooledStrings[i].str.Contains("autospawn/monument", StringComparison.Ordinal)){
-							MonumentList.Add(ToID(Manifest.pooledStrings[i].str));
-						}
-				}
-				
-				AssetDump();
-			});
-			while (!setLookups.IsCompleted)
+    // Populate BundleLookup with asset names and scene paths from loaded bundles
+    foreach (var asset in BundleCache.Values)
+    {
+        foreach (var filename in asset.GetAllAssetNames())
+        {
+            BundleLookup.Add(filename, asset);
+            if (sw.Elapsed.TotalMilliseconds >= 0.5f)
             {
-				if (sw.Elapsed.TotalMilliseconds >= 0.1f)
+                yield return null;
+                sw.Restart();
+            }
+        }
+        foreach (var filename in asset.GetAllScenePaths())
+        {
+            BundleLookup.Add(filename, asset);
+            if (sw.Elapsed.TotalMilliseconds >= 0.5f)
+            {
+                yield return null;
+                sw.Restart();
+            }
+        }
+        yield return null;
+    }
+
+    #if UNITY_EDITOR
+    Progress.Report(ID.bundle, 0.99f, "Loaded " + BundleCache.Count + " bundles.");
+    Progress.Finish(ID.bundle, Progress.Status.Succeeded);
+    #endif
+
+    // Load the GameManifest from the bundles
+    Manifest = GetAsset<GameManifest>(ManifestPath); // "assets/manifest.asset"
+    if (Manifest == null)
+    {
+        Debug.LogError("Couldn't load GameManifest.");
+        Dispose();
+        #if UNITY_EDITOR
+        Progress.Finish(ID.parent, Progress.Status.Failed);
+        #endif
+        yield break;
+    }
+
+    // Debug: Verify guidPaths and prefabProperties
+    Debug.Log($"Manifest.guidPaths length: {Manifest.guidPaths.Length}");
+    Debug.Log($"Manifest.prefabProperties length: {Manifest.prefabProperties.Length}");
+
+    // Populate GuidToPath and PathToGuid from Manifest
+    GuidToPath.Clear();
+    PathToGuid.Clear();
+    foreach (var prop in Manifest.prefabProperties)
+    {
+        GuidToPath[prop.guid] = prop.name;
+        PathToGuid[prop.name] = prop.guid;
+    }
+    foreach (var guidPath in Manifest.guidPaths)
+    {
+        if (!GuidToPath.ContainsKey(guidPath.guid))
+        {
+            GuidToPath[guidPath.guid] = guidPath.name;
+            PathToGuid[guidPath.name] = guidPath.guid;
+        }
+    }
+
+    var setLookups = Task.Run(() =>
+    {
+        string[] parse;
+        string name;
+        string monumentTag = "";
+        for (uint i = 0; i < Manifest.pooledStrings.Length; ++i)
+        {
+            IDLookup.Add(Manifest.pooledStrings[i].hash, Manifest.pooledStrings[i].str);
+            PathLookup.Add(Manifest.pooledStrings[i].str, Manifest.pooledStrings[i].hash);
+
+            monumentTag = "";
+
+            if (Manifest.pooledStrings[i].str.EndsWith(".png"))
+            {
+                parse = Manifest.pooledStrings[i].str.Split('/');
+                monumentTag = parse[parse.Length - 2]; // Extract the second-to-last element as the monumentTag
+
+                if (!MonumentLayers.ContainsKey(monumentTag))
                 {
-					yield return null;
-					sw.Restart();
-				}
-			}
-		}
+                    MonumentLayers[monumentTag] = new uint[8];
+                }
 
-	public static IEnumerator SetMaterials(int materialID)
-	{
-		bool performance = false; // Set to true for file-based material loading
-		int count = 0;
+                int index = GetMapIndex(Manifest.pooledStrings[i].str);
+                if (index > -1)
+                {
+                    MonumentLayers[monumentTag][index] = Manifest.pooledStrings[i].hash;
+                    //Debug.Log($"Mapped '{Manifest.pooledStrings[i].str}' to MonumentLayers['{monumentTag}'][{index}] with hash {Manifest.pooledStrings[i].hash}");
+                }
+            }
 
-		Shader standardShader = Shader.Find("Standard");
-		Shader specularShader = Shader.Find("Standard (Specular setup)");
+            if (Manifest.pooledStrings[i].str.EndsWith(".prefab"))
+            {
+                if (Manifest.pooledStrings[i].str.Contains("prefabs_small_oilrig"))
+                {
+                    monumentTag = "oilrig_small/";
+                }
 
-		Dictionary<Shader, List<Material>> shaderGroups = new Dictionary<Shader, List<Material>>();
+                if (Manifest.pooledStrings[i].str.Contains("client")) //dangerous 
+                {
+                    monumentTag = "EVENT SYSTEMS DISABLED ";
+                }
 
-		// File-based Material Processing
-		if (File.Exists(MaterialsListPath) && performance)
-		{
-			string[] materials = File.ReadAllLines(MaterialsListPath);
-			for (int i = 0; i < materials.Length; i++)
-			{
-				var lineSplit = materials[i].Split(':');
-				lineSplit[0] = lineSplit[0].Trim(); // Shader Name
-				lineSplit[1] = lineSplit[1].Trim(); // Material Path
+                parse = Manifest.pooledStrings[i].str.Split('/');
+                name = parse[parse.Length - 1];
+                name = name.Replace(".prefab", "");
+                name = monumentTag + name;
 
-	#if UNITY_EDITOR
-				Progress.Report(materialID, (float)i / materials.Length, "Processing: " + lineSplit[1]);
-	#endif
+                try
+                {
+                    PrefabLookup.Add(name, Manifest.pooledStrings[i].hash);
+                }
+                catch
+                {
+                    // Ignore duplicates silently for now
+                }
+            }
 
-				Material mat = LoadAsset<Material>(lineSplit[1]); // Uses AssetCache automatically
-				if (mat == null)
-				{
-					Debug.LogWarning($"{lineSplit[1]} is not a valid asset.");
-					continue;
-				}
+            if (ToID(Manifest.pooledStrings[i].str) != 0)
+            {
+                AssetPaths.Add(Manifest.pooledStrings[i].str);
+            }
 
-				// Group materials by shader type
-				Shader targetShader = null;
-				switch (lineSplit[0])
-				{
-					case "Standard":
-						targetShader = standardShader;
-						break;
-					case "Specular":
-						targetShader = specularShader;
-						break;
-					case "Foliage":
-						mat.DisableKeyword("_TINTENABLED_ON");
-						break;
-					default:
-						Debug.LogWarning($"{lineSplit[0]} is not a valid shader.");
-						continue;
-				}
+            if (Manifest.pooledStrings[i].str.Contains("autospawn/monument", StringComparison.Ordinal))
+            {
+                MonumentList.Add(ToID(Manifest.pooledStrings[i].str));
+            }
+        }
+        AssetDump();
+    });
 
-				if (targetShader != null)
-				{
-					if (!shaderGroups.ContainsKey(targetShader))
-						shaderGroups[targetShader] = new List<Material>();
-
-					shaderGroups[targetShader].Add(mat);
-				}
-
-				yield return null;
-			}
-		}
-		else if (!performance) // Load from in-memory MaterialLookup
-		{
-			foreach (string path in MaterialLookup.Values)
-			{
-				Material mat = LoadAsset<Material>(path); // Uses AssetCache automatically
-				if (mat == null) continue;
-
-				Shader shader = mat.shader;
-				if (!shaderGroups.ContainsKey(shader))
-					shaderGroups[shader] = new List<Material>();
-
-				shaderGroups[shader].Add(mat);
-				yield return null;
-			}
-			Debug.Log($"processed {MaterialLookup.Count} materials");
-		}
-
-		// Update grouped materials
-		int batchSize = 10;
-		foreach (var group in shaderGroups)
-		{
-			Shader shader = group.Key;
-			List<Material> materials = group.Value;
-
-			for (int i = 0; i < materials.Count; i++)
-			{
-				Material mat = materials[i];
-
-				/*
-				// Skip if the shader is already correct
-				if (mat.shader == shader)
-				{
-					continue;
-				}
-				*/
-				// Update the material with the correct shader
-				yield return UpdateShader(mat);
-
-				// Yield after processing a batch of materials
-				if ((i + 1) % batchSize == 0)
-					yield return null;
-			}
-			Debug.Log($"updated {materials.Count} shaders");
-		}
-
-	#if UNITY_EDITOR
-		Progress.Report(materialID, 0.99f, "Materials processed.");
-		Progress.Finish(materialID, Progress.Status.Succeeded);
-	#endif
-	}
+    while (!setLookups.IsCompleted)
+    {
+        if (sw.Elapsed.TotalMilliseconds >= 0.1f)
+        {
+            yield return null;
+            sw.Restart();
+        }
+    }
+}
 
 	//fake
 	public static IEnumerator UpdateShader(Material mat, Shader shader)

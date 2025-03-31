@@ -78,9 +78,29 @@ public static class SettingsManager
 		}
 		//overwrite [appdatapath]/presets/breakerFragments with (default) presets/breakerFragments.json - only if the default file is larger
 		UpdateBreakerFragmentsIfNewer();
-		
+		EnsureDefaultBrushes();
 		LoadFragmentLookup();
 		LoadSettings();
+    }
+	
+	private static void EnsureDefaultBrushes()
+    {
+        string defaultBrushesPath = Path.Combine(Application.dataPath, "..", "Custom", "Brushes"); // Source: next to executable
+        string appDataBrushesPath = Path.Combine(AppDataPath(), "Custom", "Brushes"); // Target: AppData/RustMapper/Custom/Brushes
+
+        if (!Directory.Exists(appDataBrushesPath))
+        {
+            if (Directory.Exists(defaultBrushesPath))
+            {
+                CopyDirectory(defaultBrushesPath, appDataBrushesPath);
+                Debug.Log($"Populated {appDataBrushesPath} with default brushes from {defaultBrushesPath}");
+            }
+            else
+            {
+                Debug.LogWarning($"Default brushes directory not found at {defaultBrushesPath}. Creating empty Brushes folder.");
+                Directory.CreateDirectory(appDataBrushesPath);
+            }
+        }
     }
 	
 	public static List<string> GetScriptFiles()
@@ -290,6 +310,20 @@ public static class SettingsManager
 		}
 		return pathsList;
 	}
+
+	public static List<string> GetBrushPaths()
+    {
+        string brushPath = Path.Combine(AppDataPath(), "Custom/Brushes");
+        if (!Directory.Exists(brushPath))
+        {
+            Debug.LogWarning($"Brush directory not found at: {brushPath}");
+            return new List<string>();
+        }
+
+        return Directory.GetFiles(brushPath, "*.png")
+            .Concat(Directory.GetFiles(brushPath, "*.jpg"))
+            .ToList();
+    }
 
 	public static List<string> GetDataPaths(string path, string root, string extension = ".prefab")    
 	{

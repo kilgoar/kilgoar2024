@@ -19,6 +19,7 @@
     "newBiome": 2,
     "newSplat": 16,
     "recentFiles": [
+      "E:\\test.map.map",
       "E:\\Program Files (x86)\\Steam\\steamapps\\common\\Rust\\maps\\proceduralmap.4500.1337.250_b9a88dce15ae14333143e3a545f696f4.map",
       "E:\\smallmap.map"
     ]
@@ -269,14 +270,17 @@
   },
   "macroSources": false,
   "faves": {
-    "favoriteCustoms": []
+    "favoriteCustoms": [
+      "assets/bundled/prefabs/autospawn/monument/medium/bandit_town",
+      "assets/bundled/prefabs/autospawn/monument/large/trainyard_1"
+    ]
   },
   "windowStates": [
     {
       "isActive": false,
       "position": {
-        "x": 6.46,
-        "y": -8.86,
+        "x": 215.459991,
+        "y": -81.034,
         "z": 0.0
       },
       "scale": {
@@ -301,7 +305,7 @@
     {
       "isActive": false,
       "position": {
-        "x": -125.5,
+        "x": -123.0,
         "y": 68.49997,
         "z": 0.0
       },
@@ -314,8 +318,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -299.79657,
-        "y": 33.0865479,
+        "x": -283.79657,
+        "y": -34.3733826,
         "z": 0.0
       },
       "scale": {
@@ -327,8 +331,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -302.29657,
-        "y": 29.0704041,
+        "x": -290.79657,
+        "y": 46.3503723,
         "z": 0.0
       },
       "scale": {
@@ -340,21 +344,21 @@
     {
       "isActive": false,
       "position": {
-        "x": -56.3999939,
+        "x": -53.8999939,
         "y": 2.1,
         "z": 0.0
       },
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 1.0
+        "z": 0.6
       }
     },
     {
-      "isActive": false,
+      "isActive": true,
       "position": {
-        "x": -322.789978,
-        "y": 49.7000122,
+        "x": 251.298889,
+        "y": -50.6040039,
         "z": 0.0
       },
       "scale": {
@@ -366,14 +370,14 @@
     {
       "isActive": false,
       "position": {
-        "x": -26.5,
-        "y": -0.5000305,
+        "x": -47.47998,
+        "y": -82.1099854,
         "z": 0.0
       },
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 1.0
+        "z": 0.0
       }
     },
     {
@@ -386,20 +390,20 @@
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 1.0
+        "z": 0.0
       }
     },
     {
-      "isActive": true,
+      "isActive": false,
       "position": {
-        "x": 306.05,
+        "x": 308.55,
         "y": -105.47,
         "z": 0.0
       },
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 0.6
+        "z": 0.0
       }
     }
   ],
@@ -410,8 +414,8 @@
       "z": 1.0
     },
     "position": {
-      "x": 987.0,
-      "y": 653.0,
+      "x": 984.0,
+      "y": 599.0,
       "z": 0.0
     }
   }

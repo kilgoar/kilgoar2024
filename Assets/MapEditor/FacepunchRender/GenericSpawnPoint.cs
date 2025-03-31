@@ -25,7 +25,7 @@ public class GenericSpawnPoint : BaseSpawnPoint
         collider.center = Vector3.zero;
 
         // Attach our DefaultPrefab from our asset folder for visualization
-        GameObject prefab = Resources.Load<GameObject>("Prefabs/DefaultPrefab");
+        GameObject prefab = Resources.Load<GameObject>("Prefabs/CubeVolume");
         if (prefab != null)
         {
             // Instantiate the prefab as a child of this GameObject

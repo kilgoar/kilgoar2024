@@ -29,12 +29,44 @@ public class PostBuildProcessor
     {
 		RemoveDirectory("E:/RustMapper");
         string buildPath = "E:/RustMapper/RustMapper.exe";
+		string releasePath = "E:/RustMapper";
+        string presetsPath = Path.Combine(releasePath, "Presets");
+        string customPath = Path.Combine(releasePath, "Custom");
+        string editorSettingsPath = Path.Combine(releasePath, "EditorSettings.json");
+		
         BuildPipeline.BuildPlayer(EditorBuildSettings.scenes, buildPath, BuildTarget.StandaloneWindows64, BuildOptions.None);
 		
         SettingsManager.CopyDirectory("Presets", "E:/RustMapper/Presets");
         SettingsManager.CopyDirectory("Custom", "E:/RustMapper/Custom");
 		SettingsManager.CopyDirectory("HarmonyMods", "E:/RustMapper/HarmonyMods");
         SettingsManager.CopyEditorSettings("E:/RustMapper/EditorSettings.json");
+		
+		// Hide default settings and so on
+        try
+        {
+            if (Directory.Exists(presetsPath))
+            {
+                DirectoryInfo di = new DirectoryInfo(presetsPath);
+                di.Attributes |= FileAttributes.Hidden; // Set Hidden attribute
+                UnityEngine.Debug.Log($"Set 'Presets' folder to hidden at {presetsPath}");
+            }
+            if (Directory.Exists(customPath))
+            {
+                DirectoryInfo di = new DirectoryInfo(customPath);
+                di.Attributes |= FileAttributes.Hidden; // Set Hidden attribute
+                UnityEngine.Debug.Log($"Set 'Custom' folder to hidden at {customPath}");
+            }
+            if (File.Exists(editorSettingsPath))
+            {
+                FileInfo fi = new FileInfo(editorSettingsPath);
+                fi.Attributes |= FileAttributes.Hidden; // Set Hidden attribute
+                UnityEngine.Debug.Log($"Set 'EditorSettings.json' to hidden at {editorSettingsPath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            UnityEngine.Debug.LogError($"Failed to hide files/folders: {ex.Message}");
+        }
 		
 		try
         {

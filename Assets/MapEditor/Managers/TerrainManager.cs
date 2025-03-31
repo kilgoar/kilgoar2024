@@ -79,6 +79,7 @@ public static class TerrainManager
     /// <summary>Biome textures [x, y, texture] use <seealso cref="TerrainBiome.TypeToIndex(int)"/> for texture indexes.</summary>
     /// <value>Strength of texture at <seealso cref="TerrainBiome"/> index, normalised between 0-1.</value>
     public static float[,,] Biome { get; private set; }
+	public static Vector4[,] BiomeMap { get; private set; }
     /// <summary>Alpha/Transparency value of terrain.</summary>
     /// <value>True = Visible / False = Invisible.</value>
     public static bool[,] Alpha { get; private set; }
@@ -164,16 +165,6 @@ public static class TerrainManager
 		Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
 	}
 
-    public static bool[,] GetAlphaMap()
-    {
-        if (AlphaDirty)
-        {
-            Alpha = Land.terrainData.GetHoles(0, 0, AlphaMapRes, AlphaMapRes);
-            AlphaDirty = false;
-        }
-        return Alpha;
-    }
-	
 	[ConsoleCommand("paints borders")]
     public static void PaintBorderLayer(Layers layerData, int radius)
     {
@@ -274,6 +265,192 @@ public static class TerrainManager
         // Notify listeners of the update
         TerrainManager.Callbacks.InvokeLayerUpdated(layerType, layerIndex);
     }
+	
+	public static Vector4[,] GetBiomeMap()
+    {
+        if (BiomeMap == null || LayerDirty || CurrentLayerType == LayerType.Biome)
+        {
+            float[,,] biomeSplat = GetSplatMap(LayerType.Biome);
+            if (biomeSplat == null) return null;
+
+            int res = SplatMapRes;
+            BiomeMap = new Vector4[res, res];
+            for (int x = 0; x < res; x++)
+            {
+                for (int z = 0; z < res; z++)
+                {
+                    BiomeMap[z, x] = new Vector4(
+                        biomeSplat[x, z, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Arid)],
+                        biomeSplat[x, z, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Temperate)],
+                        biomeSplat[x, z, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Tundra)],
+                        biomeSplat[x, z, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Arctic)]
+                    );
+                }
+            }
+            if (CurrentLayerType == LayerType.Biome) LayerDirty = false;
+        }
+        return BiomeMap;
+    }
+
+    /// <summary>Sets a region of the biome map.</summary>
+    public static void SetBiomeMapRegion(Vector4[,] array, int x, int y, int width, int height)
+    {
+        if (array == null || array.GetLength(0) != height || array.GetLength(1) != width)
+        {
+            Debug.LogError($"SetBiomeMapRegion: Invalid array dimensions. Expected [{height}, {width}], got [{array?.GetLength(0)}, {array?.GetLength(1)}]");
+            return;
+        }
+
+        Vector4[,] fullMap = GetBiomeMap();
+        for (int i = 0; i < height; i++)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                if (x + j < SplatMapRes && y + i < SplatMapRes)
+                {
+                    fullMap[y + i, x + j] = array[i, j];
+                }
+            }
+        }
+
+        // Convert back to float[,,] for TerrainData
+        float[,,] splatMap = new float[SplatMapRes, SplatMapRes, 4];
+        for (int i = 0; i < SplatMapRes; i++)
+        {
+            for (int j = 0; j < SplatMapRes; j++)
+            {
+                splatMap[i, j, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Arid)] = fullMap[i, j].x;
+                splatMap[i, j, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Temperate)] = fullMap[i, j].y;
+                splatMap[i, j, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Tundra)] = fullMap[i, j].z;
+                splatMap[i, j, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Arctic)] = fullMap[i, j].w;
+            }
+        }
+
+        RegisterSplatMapUndo("Set Biome Map Region");
+        SetSplatMap(splatMap, LayerType.Biome);
+    }
+
+    /// <summary>Gets the topology map for a specific layer as an int[,] array.</summary>
+    public static int[,] GetTopologyMap(int layer = -1)
+    {
+        if (layer < 0) layer = TopologyLayer;
+        if (layer < 0 || layer >= TerrainTopology.COUNT)
+        {
+            Debug.LogError($"GetTopologyMap: Invalid layer index {layer}. Must be between 0 and {TerrainTopology.COUNT - 1}");
+            return null;
+        }
+
+        float[,,] topologySplat = GetSplatMap(LayerType.Topology, layer);
+        if (topologySplat == null) return null;
+
+        int res = SplatMapRes;
+        int[,] topologyMap = new int[res, res];
+        for (int x = 0; x < res; x++)
+        {
+            for (int z = 0; z < res; z++)
+            {
+                topologyMap[z, x] = topologySplat[x, z, 0] > 0.5f ? TerrainTopology.IndexToType(layer) : 0;
+            }
+        }
+        return topologyMap;
+    }
+
+    /// <summary>Sets a region of the topology map.</summary>
+    public static void SetTopologyMapRegion(int[,] array, int x, int y, int width, int height, int layer = -1)
+    {
+        if (array == null || array.GetLength(0) != height || array.GetLength(1) != width)
+        {
+            Debug.LogError($"SetTopologyMapRegion: Invalid array dimensions. Expected [{height}, {width}], got [{array?.GetLength(0)}, {array?.GetLength(1)}]");
+            return;
+        }
+
+        if (layer < 0) layer = TopologyLayer;
+        if (layer < 0 || layer >= TerrainTopology.COUNT)
+        {
+            Debug.LogError($"SetTopologyMapRegion: Invalid layer index {layer}. Must be between 0 and {TerrainTopology.COUNT - 1}");
+            return;
+        }
+
+        float[,,] fullMap = GetSplatMap(LayerType.Topology, layer);
+        for (int i = 0; i < height; i++)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                if (x + j < SplatMapRes && y + i < SplatMapRes)
+                {
+                    fullMap[y + i, x + j, 0] = array[i, j] != 0 ? 1f : 0f;
+                    fullMap[y + i, x + j, 1] = array[i, j] == 0 ? 1f : 0f;
+                }
+            }
+        }
+
+        RegisterSplatMapUndo($"Set Topology Map Region Layer {layer}");
+        SetSplatMap(fullMap, LayerType.Topology, layer);
+    }
+
+    /// <summary>Gets the alpha map as a float[,] for blending purposes (0 = hole, 1 = visible).</summary>
+    public static float[,] GetAlphaMapFloat()
+    {
+        bool[,] alpha = GetAlphaMap();
+        if (alpha == null) return null;
+
+        int res = AlphaMapRes;
+        float[,] alphaFloat = new float[res, res];
+        for (int x = 0; x < res; x++)
+        {
+            for (int z = 0; z < res; z++)
+            {
+                alphaFloat[z, x] = alpha[x, z] ? 1f : 0f;
+            }
+        }
+        return alphaFloat;
+    }
+
+    /// <summary>Sets a region of the alpha map from a float[,] array.</summary>
+    public static void SetAlphaMapRegion(float[,] array, int x, int y, int width, int height)
+    {
+        if (array == null || array.GetLength(0) != height || array.GetLength(1) != width)
+        {
+            Debug.LogError($"SetAlphaMapRegion: Invalid array dimensions. Expected [{height}, {width}], got [{array?.GetLength(0)}, {array?.GetLength(1)}]");
+            return;
+        }
+
+        bool[,] regionAlpha = new bool[height, width];
+        for (int i = 0; i < height; i++)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                regionAlpha[i, j] = array[i, j] > 0.5f; // Threshold at 0.5 for binary conversion
+            }
+        }
+
+        SetAlphaMap(regionAlpha, x, y, width, height);
+    }
+
+    // Override the existing GetAlphaMap to clarify it's for holes
+    public static bool[,] GetAlphaMap()
+    {
+        if (AlphaDirty || Alpha == null)
+        {
+            Alpha = Land.terrainData.GetHoles(0, 0, AlphaMapRes, AlphaMapRes);
+            AlphaDirty = false;
+        }
+        return Alpha;
+    }
+	
+	public static float ToWorldX(int terrainX)
+    {
+        Vector3 terrainPos = Land.transform.position;
+        return terrainPos.x + (terrainX / (float)HeightMapRes) * Land.terrainData.size.x;
+    }
+
+    public static float ToWorldZ(int terrainZ)
+    {
+        Vector3 terrainPos = Land.transform.position;
+        return terrainPos.z + (terrainZ / (float)HeightMapRes) * Land.terrainData.size.z;
+    }
+	
+	
 [ConsoleCommand("flattens map borders")]
 public static void BorderTuck(int targetHeight, int radius, int padding)
 {
@@ -1741,6 +1918,79 @@ public static bool[,] UpscaleBitmap(bool[,] source)
     {
         SetSplatMap(GetSplatMap(CurrentLayerType, TopologyLayer), CurrentLayerType, TopologyLayer);
         Callbacks.InvokeLayerSaved(CurrentLayerType, TopologyLayer);
+    }
+
+	    public static float ToTerrainX(float worldX)
+    {
+        Vector3 terrainPos = Land.transform.position;
+        return (worldX - terrainPos.x) / Land.terrainData.size.x * SplatMapRes;
+    }
+
+    public static float ToTerrainZ(float worldZ)
+    {
+        Vector3 terrainPos = Land.transform.position;
+        return (worldZ - terrainPos.z) / Land.terrainData.size.z * SplatMapRes;
+    }
+
+    public static float ToWorldX(float terrainX)
+    {
+        Vector3 terrainPos = Land.transform.position;
+        return terrainPos.x + (terrainX / SplatMapRes) * Land.terrainData.size.x;
+    }
+
+    public static float ToWorldZ(float terrainZ)
+    {
+        Vector3 terrainPos = Land.transform.position;
+        return terrainPos.z + (terrainZ / SplatMapRes) * Land.terrainData.size.z;
+    }
+
+    // Height scaling (similar to GFDFCCMFAON.GEJDPJHFNCE)
+    public static float ToTerrainHeight(float worldHeight)
+    {
+        Vector3 terrainPos = Land.transform.position;
+        return (worldHeight - terrainPos.y) / Land.terrainData.size.y;
+    }
+
+    public static float ToWorldHeight(float terrainHeight)
+    {
+        Vector3 terrainPos = Land.transform.position;
+        return terrainPos.y + terrainHeight * Land.terrainData.size.y;
+    }
+
+    // Region-specific splatmap update
+    public static void SetSplatMapRegion(float[,,] array, LayerType layer, int x, int y, int width, int height, int topology = -1)
+    {
+        float[,,] fullMap = GetSplatMap(layer, topology);
+        for (int i = 0; i < height; i++)
+            for (int j = 0; j < width; j++)
+                if (x + j < SplatMapRes && y + i < SplatMapRes)
+                    for (int k = 0; k < LayerCount(layer); k++)
+                        fullMap[y + i, x + j, k] = array[i, j, k];
+        SetSplatMap(fullMap, layer, topology);
+    }
+
+    // Region-specific heightmap update
+    public static void SetHeightMapRegion(float[,] array, int x, int y, int width, int height, TerrainType terrain = TerrainType.Land)
+    {
+        float[,] fullMap = GetHeightMap(terrain);
+        for (int i = 0; i < height; i++)
+            for (int j = 0; j < width; j++)
+                if (x + j < HeightMapRes && y + i < HeightMapRes)
+                    fullMap[y + i, x + j] = array[i, j];
+        if (terrain == TerrainType.Land)
+            Land.terrainData.SetHeights(x, y, array);
+        else
+            Water.terrainData.SetHeights(x, y, array);
+    }
+
+    // Convert world corners to terrain grid bounds
+    public static int[] WorldCornersToGrid(Vector3 bottomLeft, Vector3 bottomRight, Vector3 topLeft, Vector3 topRight)
+    {
+        int minX = Mathf.FloorToInt(ToTerrainX(bottomLeft.x));
+        int minZ = Mathf.FloorToInt(ToTerrainZ(bottomLeft.z));
+        int maxX = Mathf.CeilToInt(ToTerrainX(topRight.x));
+        int maxZ = Mathf.CeilToInt(ToTerrainZ(topRight.z));
+        return new[] { minX, minZ, maxX, maxZ };
     }
 
     /// <summary>Changes the active Land and Topology Layers.</summary>

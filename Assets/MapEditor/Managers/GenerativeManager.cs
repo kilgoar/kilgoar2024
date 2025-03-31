@@ -24,6 +24,241 @@ public static class GenerativeManager
 	public static int GeologySpawns;
 	private static Coroutine cliffCoroutine;
 
+    #region Noise Generation Fields
+    private static readonly double unit = 1.0 / Math.Sqrt(2);
+    private static readonly double[,] Gradients = new double[8, 2]
+    {
+        { unit, unit }, { -unit, unit }, { unit, -unit }, { -unit, -unit },
+        { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }
+    };
+
+    private static readonly byte[] HashTable = new byte[256]
+    {
+        151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225,
+        140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148,
+        247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 203, 117, 35, 11, 32, 57,
+        177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74,
+        165, 71, 134, 139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60,
+        211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65,
+        25, 63, 161, 1, 216, 80, 73, 209, 76, 187, 208, 89, 18, 169, 200, 196,
+        135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 132, 64,
+        52, 217, 226, 250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85,
+        212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170,
+        213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43,
+        172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185,
+        112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12, 191,
+        179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31,
+        181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150,
+        254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195,
+        78, 66, 215, 61, 156, 180, 219
+    };
+    #endregion
+
+    #region Noise Generation Methods
+    private static double DotGridGradient(int ix, int iy, double x, double y, int seed)
+    {
+        int mx = RobustMod(ix + seed, 256);
+        int my = RobustMod(iy + seed, 256);
+        int index = RobustMod(mx + HashTable[my], 256);
+        int g = HashTable[index] % 8;
+
+        double dx = x - ix;
+        double dy = y - iy;
+
+        return dx * Gradients[g, 0] + dy * Gradients[g, 1];
+    }
+
+    private static int RobustMod(int x, int m)
+    {
+        return ((x % m) + m) % m;
+    }
+
+    private static double Smoother(double t)
+    {
+        return t * t * t * (t * (t * 6 - 15) + 10);
+    }
+
+    public static double GetPerlinNoise(double x, double y, int seed)
+    {
+        int x0 = (int)Math.Floor(x);
+        int x1 = x0 + 1;
+        int y0 = (int)Math.Floor(y);
+        int y1 = y0 + 1;
+
+        double sx = x - x0;
+        double sy = y - y0;
+
+        double s = DotGridGradient(x0, y0, x, y, seed);
+        double t = DotGridGradient(x1, y0, x, y, seed);
+        double u = DotGridGradient(x0, y1, x, y, seed);
+        double v = DotGridGradient(x1, y1, x, y, seed);
+
+        double ix0 = Lerp(s, t, Smoother(sx));
+        double ix1 = Lerp(u, v, Smoother(sx));
+        return Lerp(ix0, ix1, Smoother(sy));
+    }
+
+    private static double Lerp(double a, double b, double t)
+    {
+        return a + t * (b - a);
+    }
+	
+	
+
+    [ConsoleCommand("Diamond method with smoothstep blending")]
+    public static void GenerateDiamondHeightmap(int seed, float roughness = 0.5f, float blendWeight = 0.5f)
+    {
+        Terrain land = GameObject.FindGameObjectWithTag("Land")?.GetComponent<Terrain>();
+        if (land == null)
+        {
+            Debug.LogError("No terrain found with tag 'Land'. Creating a new one.");
+            GameObject terrainObj = Terrain.CreateTerrainGameObject(new TerrainData());
+            terrainObj.tag = "Land";
+            land = terrainObj.GetComponent<Terrain>();
+            land.terrainData.heightmapResolution = 513;
+        }
+
+        int res = land.terrainData.heightmapResolution;
+        float[,] baseMap = land.terrainData.GetHeights(0, 0, res, res);
+        float[,] diamondMap = new float[res, res];
+
+        // Initialize corners with random values
+        diamondMap[0, 0] = (float)UnityEngine.Random.Range(0.475f, 0.525f);
+        diamondMap[res - 1, 0] = (float)UnityEngine.Random.Range(0.475f, 0.525f);
+        diamondMap[0, res - 1] = (float)UnityEngine.Random.Range(0.475f, 0.525f);
+        diamondMap[res - 1, res - 1] = (float)UnityEngine.Random.Range(0.475f, 0.525f);
+
+        // Diamond-Square algorithm
+        float range = 1.0f;
+        for (int step = res - 1; step > 1; step /= 2)
+        {
+            int halfStep = step / 2;
+
+            // Diamond step
+            for (int x = 0; x < res - 1; x += step)
+            {
+                for (int y = 0; y < res - 1; y += step)
+                {
+                    float avg = (diamondMap[x, y] + diamondMap[x + step, y] + diamondMap[x, y + step] + diamondMap[x + step, y + step]) / 4.0f;
+                    diamondMap[x + halfStep, y + halfStep] = avg + (float)(UnityEngine.Random.Range(-range, range) * roughness);
+                }
+            }
+
+            // Square step
+            for (int x = 0; x < res - 1; x += halfStep)
+            {
+                for (int y = (x + halfStep) % step; y < res - 1; y += step)
+                {
+                    float avg = (
+                        diamondMap[(x - halfStep + res - 1) % (res - 1), y] +
+                        diamondMap[(x + halfStep) % (res - 1), y] +
+                        diamondMap[x, (y + halfStep) % (res - 1)] +
+                        diamondMap[x, (y - halfStep + res - 1) % (res - 1)]
+                    ) / 4.0f;
+                    diamondMap[x, y] = avg + (float)(UnityEngine.Random.Range(-range, range) * roughness);
+
+                    // Handle edges
+                    if (x == 0) diamondMap[res - 1, y] = diamondMap[x, y];
+                    if (y == 0) diamondMap[x, res - 1] = diamondMap[x, y];
+                }
+            }
+
+            range *= (1.0f - roughness); // Reduce range with each iteration
+        }
+
+        // Normalize diamondMap to 0-1
+        float minValue = float.MaxValue;
+        float maxValue = float.MinValue;
+        for (int i = 0; i < res; i++)
+        {
+            for (int j = 0; j < res; j++)
+            {
+                minValue = Mathf.Min(minValue, diamondMap[i, j]);
+                maxValue = Mathf.Max(maxValue, diamondMap[i, j]);
+            }
+        }
+        for (int i = 0; i < res; i++)
+        {
+            for (int j = 0; j < res; j++)
+            {
+                diamondMap[i, j] = (diamondMap[i, j] - minValue) / (maxValue - minValue);
+            }
+        }
+
+        // Apply smoothstep blending onto the base terrain
+        for (int i = 0; i < res; i++)
+        {
+            for (int j = 0; j < res; j++)
+            {
+                float t = (float)Smoother(blendWeight); // Smoothstep the blend weight
+                diamondMap[i, j] = Mathf.Lerp(baseMap[i, j], diamondMap[i, j], t);
+            }
+        }
+
+        land.terrainData.SetHeights(0, 0, diamondMap);
+        Debug.Log($"Generated Diamond-Square heightmap with seed {seed}, roughness {roughness}, blendWeight {blendWeight}. Min value: {minValue}, Max value: {maxValue}");
+    }
+    #endregion
+	
+	[ConsoleCommand("Perlin method")]
+    public static void GeneratePerlinHeightmap(int seed, float scale = 0.05f, int octaves = 4, float persistence = 0.5f, float lacunarity = 2.0f)
+    {
+        Terrain land = GameObject.FindGameObjectWithTag("Land")?.GetComponent<Terrain>();
+        if (land == null)
+        {
+            Debug.LogError("No terrain found with tag 'Land'. Creating a new one.");
+            GameObject terrainObj = Terrain.CreateTerrainGameObject(new TerrainData());
+            terrainObj.tag = "Land";
+            land = terrainObj.GetComponent<Terrain>();
+            land.terrainData.heightmapResolution = 513;
+        }
+
+        int res = land.terrainData.heightmapResolution;
+        float[,] heightMap = new float[res, res];
+
+        double minValue = double.MaxValue;
+        double maxValue = double.MinValue;
+
+        // Generate Perlin noise with octaves
+        for (int i = 0; i < res; i++)
+        {
+            for (int j = 0; j < res; j++)
+            {
+                double x = (double)i / res * scale;
+                double y = (double)j / res * scale;
+
+                double noise = 0.0;
+                double amplitude = 1.0;
+                double frequency = 1.0;
+
+                for (int octave = 0; octave < octaves; octave++)
+                {
+                    noise += GetPerlinNoise(x * frequency, y * frequency, seed) * amplitude;
+                    amplitude *= persistence;
+                    frequency *= lacunarity;
+                }
+
+                heightMap[i, j] = (float)noise;
+                minValue = Math.Min(minValue, noise);
+                maxValue = Math.Max(maxValue, noise);
+            }
+        }
+
+        // Normalize to 0-1
+        for (int i = 0; i < res; i++)
+        {
+            for (int j = 0; j < res; j++)
+            {
+                heightMap[i, j] = (float)((heightMap[i, j] - minValue) / (maxValue - minValue));
+            }
+        }
+
+        land.terrainData.SetHeights(0, 0, heightMap);
+        Debug.Log($"Generated Perlin heightmap with seed {seed}, scale {scale}, octaves {octaves}, persistence {persistence}, lacunarity {lacunarity}. Min value: {minValue}, Max value: {maxValue}");
+    }
+
+
+
 	[ConsoleCommand("Paints the borders of a specified layer with a blending radius")]
     public static void PaintBorder(Layers layerData, int radius)
     {

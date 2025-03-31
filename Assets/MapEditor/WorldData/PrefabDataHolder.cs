@@ -106,6 +106,10 @@ public class PrefabDataHolder : MonoBehaviour
 */
     public void AlwaysBreakPrefabs()
     {
+		if (prefabData.id == 0){
+			Destroy(this);
+			return;
+		}
 		prefabData.position = transform.position-TerrainManager.MapOffset;
         //prefabData.position = gameObject.transform.localPosition;
         prefabData.rotation = gameObject.transform.rotation.eulerAngles;
