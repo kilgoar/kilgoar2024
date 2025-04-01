@@ -34,63 +34,142 @@ public class TerrainWindow : MonoBehaviour
 	public List<Texture2D> loadedBrushTextures = new List<Texture2D>(); 
     public string[] brushFiles;
 	
+	public Toggle randomRotations;
+	
 	Layers layers = new Layers() { Ground = TerrainSplat.Enum.Grass, Biome = TerrainBiome.Enum.Temperate, Topologies = TerrainTopology.Enum.Field};
 	
 	//public List<GameObject> carvePanels; placeholder
 	
 	public void Setup()
-	{		
-		
-		Debug.LogError("setting up terrain window");
+	{
+		Debug.Log("Setting up terrain window");
+
+		// Ensure MainScript.Instance is available
+		if (MainScript.Instance == null)
+		{
+			Debug.LogError("MainScript.Instance is null during TerrainWindow setup!");
+			return;
+		}
+
+		// Populate brush buttons first
 		PopulateBrushButtons();
-		
-		// Check if either list is null before comparing counts
-		if (layerToggles == null || layerPanels == null) {
-			Debug.LogError("invalid terrain window config");
+
+		// Validate toggle and panel lists
+		if (layerToggles == null || layerPanels == null || layerToggles.Count != layerPanels.Count)
+		{
+			Debug.LogError("Invalid terrain window config: layerToggles or layerPanels issue");
 			return;
 		}
 
-		if (layerToggles.Count != layerPanels.Count) {
-			Debug.LogError("invalid terrain window config 2");
-			return;
-		}
-
+		// Add slider listeners (values are already set in Inspector)
 		strength.onValueChanged.AddListener(_ => SendSettings());
 		size.onValueChanged.AddListener(_ => SendSettings());
-		height.onValueChanged.AddListener(_ => SendSettings());			
+		height.onValueChanged.AddListener(_ => SendSettings());
+		randomRotations.onValueChanged.AddListener(OnRandomRotationsChanged);
 		
-		for (int i = 0; i < layerToggles.Count; i++) {
-			// Check if tabPanels[i] is not null before setting its active state
-			if (i < layerPanels.Count && layerPanels[i] != null) {
-				layerPanels[i].SetActive(false);
-			}
+        MainScript.Instance.rotations = randomRotations.isOn;
 
-			int index = i; 
-			// Check if tabToggles[i] is not null before adding the listener
-			if (i < layerToggles.Count && layerToggles[i] != null) {
+		// Find and sync the initial layer toggle (based on Inspector state)
+		int initialLayerIndex = -1;
+		for (int i = 0; i < layerToggles.Count; i++)
+		{
+			if (layerToggles[i] != null && layerToggles[i].isOn)
+			{
+				initialLayerIndex = i;
+				break;
+			}
+		}
+		if (initialLayerIndex == -1) // Fallback if no toggle is on
+		{
+			initialLayerIndex = 0;
+			layerToggles[0].isOn = true;
+		}
+		for (int i = 0; i < layerToggles.Count; i++)
+		{
+			if (i < layerPanels.Count && layerPanels[i] != null)
+			{
+				layerPanels[i].SetActive(i == initialLayerIndex);
+			}
+			if (i < layerToggles.Count && layerToggles[i] != null)
+			{
+				layerToggles[i].SetIsOnWithoutNotify(i == initialLayerIndex);
+				layerToggles[i].interactable = i != initialLayerIndex;
+				int index = i;
 				layerToggles[i].onValueChanged.AddListener((isOn) => OnToggleChanged(index));
 			}
 		}
-		
-		for (int i = 0; i < carveToggles.Count; i++) {
-			int index = i; 
-			// Check if tabToggles[i] is not null before adding the listener
-			if (i < carveToggles.Count && carveToggles[i] != null) {
+		OnToggleChanged(initialLayerIndex); // Push Inspector state to MainScript
+
+		// Find and sync the initial carve toggle (based on Inspector state)
+		int initialCarveIndex = -1;
+		for (int i = 0; i < carveToggles.Count; i++)
+		{
+			if (carveToggles[i] != null && carveToggles[i].isOn)
+			{
+				initialCarveIndex = i;
+				break;
+			}
+		}
+		if (initialCarveIndex == -1) // Fallback if no toggle is on
+		{
+			initialCarveIndex = 0;
+			carveToggles[0].isOn = true;
+		}
+		for (int i = 0; i < carveToggles.Count; i++)
+		{
+			if (i < carveToggles.Count && carveToggles[i] != null)
+			{
+				carveToggles[i].SetIsOnWithoutNotify(i == initialCarveIndex);
+				carveToggles[i].interactable = i != initialCarveIndex;
+				int index = i;
 				carveToggles[i].onValueChanged.AddListener((isOn) => OnCarveChanged(index));
 			}
 		}
-		
-		for (int i = 0; i < TopologyToggles.Count; i++) {
-			int index = i; 
-			// Check if tabToggles[i] is not null before adding the listener
-			if (i < TopologyToggles.Count && TopologyToggles[i] != null) {
+		OnCarveChanged(initialCarveIndex); // Push Inspector state to MainScript
+
+		// Find and sync the initial topology toggle (based on Inspector state)
+		int initialTopoIndex = -1;
+		for (int i = 0; i < TopologyToggles.Count; i++)
+		{
+			if (TopologyToggles[i] != null && TopologyToggles[i].isOn)
+			{
+				initialTopoIndex = i;
+				break;
+			}
+		}
+		if (initialTopoIndex == -1) // Fallback if no toggle is on
+		{
+			initialTopoIndex = 0;
+			TopologyToggles[0].isOn = true;
+		}
+		topo = initialTopoIndex;
+		for (int i = 0; i < TopologyToggles.Count; i++)
+		{
+			if (i < TopologyToggles.Count && TopologyToggles[i] != null)
+			{
+				TopologyToggles[i].SetIsOnWithoutNotify(i == initialTopoIndex);
+				TopologyToggles[i].interactable = i != initialTopoIndex;
+				int index = i;
 				TopologyToggles[i].onValueChanged.AddListener((isOn) => OnTopologyChanged(index));
 			}
 		}
+		OnTopologyChanged(initialTopoIndex); // Push Inspector state to MainScript
 
+		// Set initial brush based on Inspector or first available
+		if (loadedBrushTextures.Count > 0)
+		{
+			OnBrushSelected(0); // Default to first brush unless specified otherwise
+		}
+
+		// Send initial slider settings to MainScript (values from Inspector)
 		SendSettings();
 	}
 	
+	private void OnRandomRotationsChanged(bool isOn)
+	{
+		MainScript.Instance.rotations = isOn;
+		MainScript.Instance.RegenerateBrushWithRotation();
+	}
 
 	private void Awake()
 	{
@@ -219,6 +298,12 @@ public class TerrainWindow : MonoBehaviour
 			// Add click listener with brush ID
 			int brushId = i; // Capture the index as the brush ID
 			button.onClick.AddListener(() => OnBrushSelected(brushId));
+			
+	        if (i == 0) // Use first brush as default
+				{
+					button.Select(); // Visually highlight
+					OnBrushSelected(brushId); // Push to MainScript
+				}
 		}
 
 		// Update footer text with the number of brushes loaded

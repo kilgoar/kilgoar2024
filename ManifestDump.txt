@@ -1,4 +1,4 @@
-Total manifest entries: 31213
+Total manifest entries: 31219
 _bikebase : 1249547831
 _hold_ammobox : 879182934
 _hold_barrel : 2961208945
@@ -20264,6 +20264,7 @@ assets/prefabs/weapons/hammer/effects/deploy.prefab : 3320514215
 assets/prefabs/weapons/hammer/effects/holster.prefab : 1439518680
 assets/prefabs/weapons/hammer/effects/strike.prefab : 1713627268
 assets/prefabs/weapons/hammer/effects/strike_screenshake.prefab : 3329753946
+assets/prefabs/weapons/hammer/effects/strike-squeaky.prefab : 1231600888
 assets/prefabs/weapons/hammer/effects/throw.prefab : 3759345565
 assets/prefabs/weapons/hammer/hammer.entity.prefab : 388861612
 assets/prefabs/weapons/hammer/hammer.item.prefab : 138703644
@@ -20275,6 +20276,7 @@ assets/prefabs/weapons/hammer/sound/hammer-attack-3p.asset : 2265563641
 assets/prefabs/weapons/hammer/sound/hammer-deploy.asset : 2989857519
 assets/prefabs/weapons/hammer/sound/hammer-deploy-3p.asset : 3053873336
 assets/prefabs/weapons/hammer/sound/hammer-strike.asset : 3204084350
+assets/prefabs/weapons/hammer/sound/squeakyboi-strike.asset : 3983997773
 assets/prefabs/weapons/hatchet/effects/attack_shake.prefab : 1676912495
 assets/prefabs/weapons/hatchet/effects/deploy.prefab : 541222889
 assets/prefabs/weapons/hatchet/effects/strike.prefab : 474408751
@@ -29686,6 +29688,9 @@ spraycan.viewmodel : 3186951173
 spring : 1582902570
 springroot_l : 274494383
 springroot_r : 2444406746
+squeakyboi3000_lod0 : 2777975206
+squeakyboi3000_lod1 : 1938181266
+squeakyboi3000_lod2 : 3143924514
 sr cockpit light secondary : 2243327599
 sr rear cockpit light secondary : 4014706921
 sr rear gauge light : 1258637408
@@ -30714,6 +30719,7 @@ w_smg_rigged : 766014842
 w_spas12 : 1276636465
 w_speargun : 108365486
 w_speargunammo : 698278132
+w_squeakyboi3000 : 3922659052
 w_stone_pickaxe : 2467330026
 w_stone_pickaxe_lod0 : 1287915905
 w_stone_pickaxe_lod1 : 3909303500

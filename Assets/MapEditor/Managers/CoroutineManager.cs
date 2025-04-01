@@ -183,9 +183,12 @@ public class CoroutineManager : MonoBehaviour
 
 					TerrainManager.GetTerrainCoordinates(hit, MainScript.Instance.brushSize, out int numX, out int numY);
 					
+
 					
 					if (mouseLeftClick.ReadValue<float>() > 0.5f)
 					{
+						MainScript.Instance.RegenerateBrushWithRotation();
+						
 						if(MainScript.Instance.paintMode == -1){
 							MainScript.Instance.ModifySplat(numX, numY);
 						}
