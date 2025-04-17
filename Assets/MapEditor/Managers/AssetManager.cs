@@ -104,7 +104,6 @@ public static class AssetManager
 		SettingsWindow.Instance.UpdateButtonStates();
 	}
 	
-	
 
 	
 	private static void HideLoadScreen()
@@ -265,9 +264,11 @@ public static class AssetManager
 		else
 		{
 			asset = GetAsset<T>(filePath);
-			if (asset != null)
+			if (asset != null){
 				AssetCache.Add(filePath, asset);
+			}
 		}
+
 		return asset;
 	}
 
@@ -701,29 +702,124 @@ public static class AssetManager
 		
 		return 0;
 	}
-	
-	/// <summary>Dumps every asset found in the Rust content bundle to a text file.</summary>
-	public static void AssetDump()
-	{
-		if (Manifest == null)
-		{
-			Debug.LogError("Manifest is null. Cannot dump contents.");
-			return;
-		}
+		
+public static void AssetDump()
+{
+    if (Manifest == null)
+    {
+        Debug.LogError("Manifest is null. Cannot dump contents.");
+        return;
+    }
+    if (BundleLookup.Count == 0)
+    {
+        Debug.LogError("BundleLookup is empty. Ensure bundles are loaded before dumping.");
+        return;
+    }
 
-		string dumpPath = "ManifestDump.txt"; // Separate file for clarity
-		using (StreamWriter streamWriter = new StreamWriter(dumpPath, false))
-		{
-			streamWriter.WriteLine($"Total manifest entries: {Manifest.pooledStrings.Length}");
-			for (int i = 0; i < Manifest.pooledStrings.Length; i++)
-			{
-				string path = Manifest.pooledStrings[i].str;
-				uint hash = Manifest.pooledStrings[i].hash;
-				streamWriter.WriteLine($"{path} : {hash}");
-			}
-		}
-		Debug.Log($"Manifest contents dumped to {dumpPath}");
-	}
+    string dumpPath = "ManifestDump.txt";
+    using (StreamWriter streamWriter = new StreamWriter(dumpPath, false))
+    {
+        // Header
+        streamWriter.WriteLine("=== Rust Manifest and Bundle Dump ===");
+        streamWriter.WriteLine($"Date: {DateTime.Now}");
+        streamWriter.WriteLine();
+
+        // Section 1: Pooled Strings (Paths and Hashes)
+        streamWriter.WriteLine("--- Pooled Strings (Manifest) ---");
+        streamWriter.WriteLine($"Total entries: {Manifest.pooledStrings.Length}");
+        var pooledStringsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase); // Track duplicates
+        foreach (var pooledString in Manifest.pooledStrings)
+        {
+            string path = pooledString.str;
+            uint hash = pooledString.hash;
+            string entry = $"{path} : Hash={hash}";
+            if (PathToGuid.TryGetValue(path, out string guid))
+            {
+                entry += $" : GUID={guid}";
+            }
+            streamWriter.WriteLine(entry);
+            pooledStringsSet.Add(path);
+        }
+        streamWriter.WriteLine();
+
+        // Section 2: GUID Paths
+        streamWriter.WriteLine("--- GUID Paths (Manifest) ---");
+        streamWriter.WriteLine($"Total entries: {Manifest.guidPaths.Length}");
+        int guidPathUniqueCount = 0;
+        foreach (var guidPath in Manifest.guidPaths)
+        {
+            string path = guidPath.name;
+            string guid = guidPath.guid;
+            string entry = $"{path} : GUID={guid}";
+            if (PathLookup.TryGetValue(path, out uint hash))
+            {
+                entry += $" : Hash={hash}";
+            }
+            if (!pooledStringsSet.Contains(path))
+            {
+                streamWriter.WriteLine(entry);
+                guidPathUniqueCount++;
+                pooledStringsSet.Add(path); // Add to set to avoid duplicates in next section
+            }
+        }
+        streamWriter.WriteLine($"Unique entries (not in Pooled Strings): {guidPathUniqueCount}");
+        streamWriter.WriteLine();
+
+        // Section 3: Prefab Properties
+        streamWriter.WriteLine("--- Prefab Properties (Manifest) ---");
+        streamWriter.WriteLine($"Total entries: {Manifest.prefabProperties.Length}");
+        int prefabUniqueCount = 0;
+        foreach (var prefab in Manifest.prefabProperties)
+        {
+            string path = prefab.name;
+            string guid = prefab.guid;
+            string entry = $"{path} : GUID={guid}";
+            if (PathLookup.TryGetValue(path, out uint hash))
+            {
+                entry += $" : Hash={hash}";
+            }
+            if (!pooledStringsSet.Contains(path))
+            {
+                streamWriter.WriteLine(entry);
+                prefabUniqueCount++;
+                pooledStringsSet.Add(path); // Add to set for next section
+            }
+        }
+        streamWriter.WriteLine($"Unique entries (not in Pooled Strings): {prefabUniqueCount}");
+        streamWriter.WriteLine();
+
+        // Section 4: All Bundle Assets (from BundleLookup)
+        streamWriter.WriteLine("--- All Bundle Assets (BundleLookup) ---");
+        streamWriter.WriteLine($"Total entries: {BundleLookup.Count}");
+        int bundleUniqueCount = 0;
+        foreach (var assetPath in BundleLookup.Keys.OrderBy(k => k)) // Sort for readability
+        {
+            string path = assetPath;
+            string entry = $"{path}";
+            bool hasAdditionalInfo = false;
+
+            if (PathLookup.TryGetValue(path, out uint hash))
+            {
+                entry += $" : Hash={hash}";
+                hasAdditionalInfo = true;
+            }
+            if (PathToGuid.TryGetValue(path, out string guid))
+            {
+                entry += $" : GUID={guid}";
+                hasAdditionalInfo = true;
+            }
+
+            // Include all assets, even if already in previous sections, for completeness
+            streamWriter.WriteLine(entry);
+            if (!pooledStringsSet.Contains(path))
+            {
+                bundleUniqueCount++;
+            }
+        }
+        streamWriter.WriteLine($"Unique entries (not in previous sections): {bundleUniqueCount}");
+    }
+    Debug.Log($"Manifest and bundle contents dumped to {dumpPath}");
+}
 
 	public static string ToPath(uint i)
 	{
@@ -756,63 +852,36 @@ public static class AssetManager
 		return "";
 	}	
 	
-	public static void LoadShaderCache()
-	{
-		
-		/*
-		ShaderCache.Clear();
-		Debug.Log($"Shader cache cleared and ready for loading");
-		foreach (string path in BundleLookup.Keys)
-		{
-			if (path.EndsWith(".shader", StringComparison.Ordinal))
-			{
-				try
-				{  
-					Shader shader = LoadAsset<Shader>(path);
-					if (shader != null)
-					{
-						ShaderCache[shader.name] = shader;							
-					}
+public static void LoadShaderCache()
+{
+    ShaderCache.Clear();
+    Debug.Log($"Shader cache cleared and ready for loading. Total assets in BundleLookup: {BundleLookup.Count}");
+    foreach (string path in BundleLookup.Keys)
+    {
+        if (path.EndsWith(".shader", StringComparison.Ordinal))
+        {
+            try
+            {  
+                Shader shader = LoadAsset<Shader>(path);
+                if (shader != null)
+                {
+                    ShaderCache[shader.name] = shader;
+                    Debug.Log($"Loaded shader into ShaderCache: {shader.name} (Path: {path})");
+                }
+                else
+                {
+                    Debug.LogWarning($"Shader not found at path: {path}");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"Error loading shader from path: {path}. Exception: {e.Message}");
+            }
+        }
+    }
 
-					else
-					{
-						Debug.LogWarning($"Shader not found at path: {path}");
-					}
-				}
-				catch (System.Exception e)
-				{
-					Debug.LogWarning($"Error loading shader from path: {path}. Exception: {e.Message}");
-				}
-			}
-			
-		}
-		
-		foreach (var shader in ShaderCache)
-		{
-			string shaderName = shader.Key;
-			string filePath = Path.Combine("E:/shaders/", shaderName + ".shader");
-			
-			try
-			{
-				// Ensure the directory exists
-				Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-				
-				// Write shader to file
-				using (StreamWriter writer = new StreamWriter(filePath))
-				{
-					
-					writer.Write(shader.Value.ToString()); // Assuming ToString() provides the shader's source code
-				}
-				Debug.Log($"Shader {shaderName} written to {filePath}");
-			}
-			catch (System.Exception e)
-			{
-				Debug.LogError($"Failed to write shader {shaderName} to file. Exception: {e.Message}");
-			}
-		}
-		*/
-	}
-	
+}
+
 
 	
 	
@@ -850,7 +919,7 @@ public static class AssetManager
 			}
 			yield return EditorCoroutineUtility.StartCoroutineOwnerless(SetBundleReferences((progressID, bundleID)));
 			
-			//LoadShaderCache();
+			LoadShaderCache();
 			//yield return EditorCoroutineUtility.StartCoroutineOwnerless(PopulateMaterialLookup());
 			//yield return EditorCoroutineUtility.StartCoroutineOwnerless(SetMaterials(materialID));
 			
@@ -1040,7 +1109,7 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
         }
         foreach (var filename in asset.GetAllScenePaths())
         {
-            BundleLookup.Add(filename, asset);
+            BundleLookup.Add(filename + " -scene", asset);
             if (sw.Elapsed.TotalMilliseconds >= 0.5f)
             {
                 yield return null;
@@ -1182,11 +1251,12 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			yield break;
 		}
 
-
-		
-		Shader standardShader = Shader.Find("Standard");
+		Shader standardShader = Shader.Find("Custom/Rust/Standard");
+		Shader standardFourShader = Shader.Find("Custom/Rust/StandardBlend4Way");
 		Shader specularShader = Shader.Find("Standard (Specular setup)");
 		Shader decalShader = Shader.Find("Legacy Shaders/Decal");
+		Shader standardShaderSpecular = Shader.Find("Custom/Rust/StandardSpecular");
+		Shader standardShaderBlend = Shader.Find("Custom/Rust/StandardBlendLayer");
 		
 		// Skip if the shader is Core/Foliage
 		if (mat.shader.name.Contains("Core/Foliage"))
@@ -1197,6 +1267,29 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			yield break;
 		}
 		
+		if (mat.shader.name.Equals("Rust/Standard"))
+		{
+			mat.shader = standardShader;
+			yield break;
+		}
+		
+		if (mat.shader.name.Equals("Rust/Standard Blend 4-Way"))
+		{
+			mat.shader = standardFourShader;
+			yield break;
+		}
+		
+		if (mat.shader.name.Equals("Rust/Standard (Specular setup)"))
+		{
+			mat.shader = standardShaderSpecular;
+			yield break;
+		}
+		
+		if (mat.shader.name.Equals("Rust/Standard Blend Layer"))
+		{
+			mat.shader = standardShaderBlend;
+			yield break;
+		}
 		
 		if (mat.shader.name.Contains("Nature/Water"))
 		{
@@ -1218,11 +1311,13 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			mat.SetFloat("_Mode", 1f);
 			mat.SetFloat("_Cutoff", 0.5f); // Default cutoff
 			mat.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+			yield break;
 		}
 		
 		int renderQueue = mat.renderQueue;
 
 		// Determine mode based on render queue
+		/*
 		if (renderQueue <= (int)UnityEngine.Rendering.RenderQueue.Geometry) // 2000
 		{
 			mat.shader = standardShader;
@@ -1238,7 +1333,8 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			mat.SetFloat("_Metallic", 0.25f); 
 			mat.SetFloat("_Glossiness", 0.25f);
 		}
-		else if (renderQueue > (int)UnityEngine.Rendering.RenderQueue.Geometry &&
+		*/
+		if (renderQueue > (int)UnityEngine.Rendering.RenderQueue.Geometry &&
 				 renderQueue <= 2450) // Transparent Cutout range
 		{
 			mat.shader = standardShader;

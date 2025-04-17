@@ -1,7 +1,13 @@
 ﻿
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.InputSystem;
 using System;
+using System.Reflection;
+using System.Collections.Generic;
+using System.Linq;
+
+
 #if UNITY_EDITOR
 using Unity.EditorCoroutines.Editor;
 using UnityEditor;
@@ -15,12 +21,93 @@ using static AreaManager;
 
 public static class TerrainManager
 {
+	
+	#region Fields and Properties
+    // Terrain References
+    public static Terrain Land { get; private set; }
+    public static Terrain LandMask { get; private set; }
+    public static Terrain Water { get; private set; }
+    public static Material WaterMaterial { get; private set; }
+    public static Vector3 TerrainSize => Land.terrainData.size;
+    public static Vector3 MapOffset => 0.5f * TerrainSize;
+    public static Vector3 TerrainPosition => Land.transform.position;
+    public static Vector3 TerrainSizeInverse => new Vector3(1f / TerrainSize.x, 1f / TerrainSize.y, 1f / TerrainSize.z);
+
+    // Resolution
+    public static int HeightMapRes { get; private set; }
+    public static int SplatMapRes { get; private set; }
+    public static int AlphaMapRes => HeightMapRes - 1;
+    public static float SplatSize => Land.terrainData.size.x / SplatMapRes;
+    public static float SplatRatio => Land.terrainData.heightmapResolution / (float)SplatMapRes;
+
+    // Height Data
+    public static float[,] Height;
+    public static float[,] Slope;
+    public static float[,] Curvature;
+    private static Vector2 HeightMapCentre => new Vector2(0.5f, 0.5f);
+
+    // Splat Data
+    public static float[,,] Ground { get; private set; }
+    public static float[,,] Biome { get; private set; }
+    public static Vector4[,] BiomeMap { get; private set; }
+    public static bool[,] Alpha { get; private set; }
+    public static bool[,] AlphaMask { get; private set; }
+    public static bool[,] SpawnMap { get; private set; }
+    public static float[,] CliffMap { get; private set; }
+    public static float[,,] CliffField { get; private set; }
+    public static float[][,,] Topology { get; private set; } = new float[TerrainTopology.COUNT][,,];
+
+    // Layer State
+    public static LayerType CurrentLayerType { get; private set; }
+    public static int TopologyLayer => TerrainTopology.TypeToIndex((int)TopologyLayerEnum);
+    public static TerrainTopology.Enum TopologyLayerEnum { get; private set; }
+    public static bool LayerDirty { get; private set; }
+    public static bool AlphaDirty { get; set; } = true;
+    public static int Layers => LayerCount(CurrentLayerType);
+
+    // Textures
+    private static Texture FilterTexture;
+    private static Texture2D HeightTexture;
+    public static RenderTexture HeightSlopeTexture;
+    private static RenderTexture AlphaTexture;
+    private static RenderTexture BiomeTexture;
+    public static Texture2D RuntimeNormalMap { get; private set; }
+
+    // Configuration
+    public static TerrainConfig _config;
+    public static bool IsLoading { get; private set; }
+    public static uint RandomSeed { get; set; }
+    public static float MinHeight { get; set; }
+    public static float MaxHeight { get; set; }
+
+    // Terrain Layers
+    private static TerrainLayer[] GroundLayers;
+    private static TerrainLayer[] BiomeLayers;
+    private static TerrainLayer[] TopologyLayers;
+    private static TerrainLayer[] MaskLayers;
+    #endregion
+
+    // Enum for LayerType (kept as is from original)
+    public enum LayerType
+    {
+        Ground,
+        Biome,
+        Alpha,
+        Topology
+    }
+	
+	public enum TerrainType
+    {
+        Land,
+		LandMask,
+        Water
+    }
+	
 	#if UNITY_EDITOR
     #region Init
     [InitializeOnLoadMethod]
     private static void Init()
-    {
-		
+    {	
         TerrainCallbacks.heightmapChanged += HeightMapChanged;
         TerrainCallbacks.textureChanged += SplatMapChanged;
         EditorApplication.update += OnProjectLoad;
@@ -31,25 +118,923 @@ public static class TerrainManager
     {
 			EditorApplication.update -= OnProjectLoad;
 			FilterTexture = Resources.Load<Texture>("Textures/Brushes/White128");
-			SetTerrainReferences();
+			SetTerrainReferences();		
     }
     #endregion
 	#endif
+	
 	
 	public static void RuntimeInit()
 	{
 		TerrainCallbacks.heightmapChanged += HeightMapChanged;
         TerrainCallbacks.textureChanged += SplatMapChanged;
+		
+		AssetManager.Callbacks.BundlesLoaded += OnBundlesLoaded;
+		
 		FilterTexture = Resources.Load<Texture>("Textures/Brushes/White128");
-
         SetTerrainReferences();
-		//ShowLandMask();	
-		SetTerrainLayers();
-	
-		SetWaterTransparency(.3f);
-		//UpdateHeightCache();
-		HideLandMask();
+		
+		/*
+		#if UNITY_EDITOR
+		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.GenerateNormalMap(HeightMapRes - 1, Progress.Start("Generate Normal Map")));
+		#else
+		CoroutineManager.StartCoroutine(Coroutines.GenerateNormalMap(HeightMapRes - 1, -1)); // No progress ID at runtime
+		#endif
+		*/
 	}
+	
+	public static void OnBundlesLoaded()
+	{		
+		_config = Resources.Load<TerrainConfig>("TerrainConfig");
+        if (_config == null)
+        {
+            Debug.LogError("TerrainConfig not found at Resources/TerrainConfig!");
+        }
+
+		SetTerrainLayers();
+		LoadTerrainAssets();
+		
+		ConfigureShaderGlobals(Land);
+		
+		ApplyConfigToTerrain(Land);
+	}
+	
+	public static void PopulateTerrainArrays()
+	{
+		if (Land == null || Land.terrainData == null)
+		{
+			Debug.LogError("Cannot populate terrain arrays: Land terrain or its data is null.");
+			return;
+		}
+
+		// Populate Height array
+		Height = Land.terrainData.GetHeights(0, 0, HeightMapRes, HeightMapRes);
+		SyncHeightTexture();
+
+		// Populate Alpha array
+		Alpha = Land.terrainData.GetHoles(0, 0, AlphaMapRes, AlphaMapRes);
+
+
+		// Populate Ground and Biome arrays
+		Ground = Land.terrainData.GetAlphamaps(0, 0, SplatMapRes, SplatMapRes);
+		//Biome = Ground; // Assuming Biome shares the same alphamap data initially; adjust if separate biome data exists
+		//SyncBiomeTexture();
+		SyncAlphaTexture();
+		LayerDirty = false;
+
+	/*
+		// Populate Topology arrays
+		if (Topology == null || Topology.Length != TerrainTopology.COUNT)
+		{
+			Topology = new float[TerrainTopology.COUNT][,,];
+		}
+		for (int i = 0; i < TerrainTopology.COUNT; i++)
+		{
+			// Assuming TopologyData provides the topology layer data; adjust if sourced differently
+			Topology[i] = TopologyData.GetTopologyLayer(TerrainTopology.IndexToType(i));
+			if (Topology[i] == null || Topology[i].GetLength(0) != SplatMapRes || Topology[i].GetLength(1) != SplatMapRes)
+			{
+				Topology[i] = new float[SplatMapRes, SplatMapRes, 2]; // Default to 2 channels (active/inactive)
+			}
+		}
+*/
+
+	}
+	
+	private static void ApplyConfigToTerrain(Terrain terrain)
+	{
+		if (_config == null || terrain == null || terrain.terrainData == null)
+		{
+			Debug.LogError("Cannot apply config: _config or terrain is null.");
+			return;
+		}
+
+		// Set terrain properties from _config
+		terrain.castShadows = _config.CastShadows;
+		terrain.materialType = Terrain.MaterialType.Custom;
+		terrain.materialTemplate = LoadTerrainMaterial();
+		terrain.GetComponent<TerrainCollider>().sharedMaterial = _config.GenericMaterial;
+
+		// Set terrain layers based on _config.Splats
+		TerrainLayer[] layers = new TerrainLayer[_config.Splats.Length];
+		for (int i = 0; i < _config.Splats.Length; i++)
+		{
+			SplatType splat = _config.Splats[i];
+			TerrainLayer layer = new TerrainLayer
+			{
+				tileSize = new Vector2(splat.SplatTiling, splat.SplatTiling),
+				tileOffset = Vector2.zero,
+				specular = splat.TemperateColor,
+				metallic = 0f,
+				smoothness = splat.TemperateOverlay?.Smoothness ?? 0.5f
+				// Textures handled via shader globals
+			};
+			layers[i] = layer;
+		}
+		terrain.terrainData.terrainLayers = layers;
+	}
+	
+	
+    public static void BytesToAlpha(byte[] data)
+    {
+        int res = Mathf.RoundToInt(Mathf.Sqrt(data.Length / sizeof(float)));
+        if (res != AlphaMapRes)
+        {
+            Debug.LogWarning($"Alpha data resolution ({res}) does not match AlphaMapRes ({AlphaMapRes}). ");
+        }
+
+        Alpha = new bool[AlphaMapRes, AlphaMapRes];
+        for (int i = 0; i < AlphaMapRes; i++)
+        {
+            for (int j = 0; j < AlphaMapRes; j++)
+            {
+                int dataIndex = i * res + j;
+                Alpha[i, j] = (dataIndex < data.Length) ? (BitUtility.Byte2Float(data[dataIndex]) > 0.5f) : true;
+            }
+        }
+        SyncAlphaTexture();
+    }
+
+    public static void SyncAlphaTexture()
+    {
+        if (Alpha == null || Alpha.GetLength(0) != AlphaMapRes)
+        {
+            Debug.LogError("Alpha data is not initialized or resolution mismatch.");
+            return;
+        }
+
+        Texture2D tempTexture = new Texture2D(AlphaMapRes, AlphaMapRes, TextureFormat.RGBA32, false, true);
+        Color32[] colors = new Color32[AlphaMapRes * AlphaMapRes];
+
+        for (int z = 0; z < AlphaMapRes; z++)
+        {
+            for (int x = 0; x < AlphaMapRes; x++)
+            {
+                float value = Alpha[z, x] ? 1f : 0f;
+                colors[z * AlphaMapRes + x] = new Color(value, value, value, value);
+            }
+        }
+
+        tempTexture.SetPixels32(colors);
+        tempTexture.Apply(true, false);
+
+        if (AlphaTexture == null || !AlphaTexture.IsCreated())
+        {
+            AlphaTexture = new RenderTexture(AlphaMapRes, AlphaMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                enableRandomWrite = true
+            };
+            AlphaTexture.Create();
+        }
+
+        Graphics.Blit(tempTexture, AlphaTexture);
+        UnityEngine.Object.Destroy(tempTexture);
+        Shader.SetGlobalTexture("Terrain_Alpha", AlphaTexture);
+    }
+	
+    public static void BytesToBiomeTexture(byte[] data)
+    {
+        int res = Mathf.RoundToInt(Mathf.Sqrt(data.Length / 4f));
+        if (res != SplatMapRes)
+        {
+            Debug.LogWarning($"Biome data resolution ({res}) does not match SplatMapRes ({SplatMapRes}).");
+        }
+        
+        Biome = new float[SplatMapRes, SplatMapRes, 4];
+        for (int i = 0; i < SplatMapRes; i++)
+        {
+            for (int j = 0; j < SplatMapRes; j++)
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    int dataIndex = (k * res + i) * res + j;
+                    Biome[i, j, k] = (dataIndex < data.Length) ? BitUtility.Byte2Float(data[dataIndex]) : 0f;
+                }
+            }
+        }
+        SyncBiomeTexture();
+    }
+
+	public static void SyncHeightSlopeTexture(int targetResolution)
+    {
+        if (Height == null)
+        {
+            Debug.LogError("[TerrainManager] Height array is null. Cannot sync HeightSlopeTexture.");
+            return;
+        }
+
+        if (HeightSlopeTexture == null || HeightSlopeTexture.width != targetResolution || !HeightSlopeTexture.IsCreated())
+        {
+            HeightSlopeTexture = new RenderTexture(targetResolution, targetResolution, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear)
+            {
+                name = "Terrain_HeightSlope",
+                filterMode = FilterMode.Trilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                useMipMap = true,
+                autoGenerateMips = true
+            };
+            HeightSlopeTexture.Create();
+        }
+
+        var processor = new HeightSlopeProcessor();
+        processor.SourceSize = HeightMapRes;
+        processor.DestinationSize = targetResolution;
+        int sourcePower = Mathf.ClosestPowerOfTwo(processor.SourceSize);
+        processor.Pixels = new Color[processor.DestinationSize * processor.DestinationSize];
+
+        Texture2D tempTexture = new Texture2D(processor.DestinationSize, processor.DestinationSize, TextureFormat.RGFloat, false, true)
+        {
+            name = "Terrain_HeightSlope_Temp",
+            filterMode = FilterMode.Trilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+        processor.BlockSize = sourcePower / processor.DestinationSize;
+        float blockScale = 1f / (processor.BlockSize * processor.BlockSize);
+
+        processor.HeightOffset = TerrainPosition.y;
+        processor.HeightScale = TerrainSize.y * blockScale * 0.25f * BitUtility.Short2Float(1);
+        processor.SlopeScale = blockScale * BitUtility.Short2Float(1) * 0.375f;
+        processor.NormalY = TerrainSize.x / TerrainSize.y / processor.SourceSize;
+
+        // Convert Height array (float[,]) to Color32[] for processing
+        processor.HeightColors = new Color32[HeightMapRes * HeightMapRes];
+        for (int y = 0; y < HeightMapRes; y++)
+        {
+            for (int x = 0; x < HeightMapRes; x++)
+            {
+                ushort height = (ushort)(Height[y, x] * 65535f); // Convert 0-1 float to 0-65535 ushort
+                processor.HeightColors[y * HeightMapRes + x] = new Color32((byte)(height & 0xFF), 0, (byte)(height >> 8), 255);
+            }
+        }
+
+        Parallel.For(0, processor.DestinationSize, z => processor.ProcessRow(z));
+
+        tempTexture.SetPixels(processor.Pixels);
+        tempTexture.Apply(false);
+
+        Graphics.Blit(tempTexture, HeightSlopeTexture);
+
+        RenderTexture temp1 = RenderTexture.GetTemporary(processor.DestinationSize, processor.DestinationSize, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear);
+        RenderTexture temp2 = RenderTexture.GetTemporary(processor.DestinationSize, processor.DestinationSize, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear);
+        Material blurMaterial = new Material(AssetManager.LoadAsset<Shader>("assets/content/shaders/resources/separableblur.shader"))
+        {
+            hideFlags = HideFlags.HideAndDontSave
+        };
+
+        Graphics.Blit(tempTexture, temp1);
+        float offset = 1f / processor.DestinationSize;
+        for (int i = 0; i < 4; i++)
+        {
+            blurMaterial.SetVector("offsets", new Vector4(offset, 0f, 0f, 0f));
+            Graphics.Blit(temp1, temp2, blurMaterial, 2);
+            blurMaterial.SetVector("offsets", new Vector4(0f, offset, 0f, 0f));
+            Graphics.Blit(temp2, temp1, blurMaterial, 2);
+        }
+
+        Graphics.Blit(temp1, HeightSlopeTexture);
+        UnityEngine.Object.DestroyImmediate(blurMaterial);
+        RenderTexture.ReleaseTemporary(temp1);
+        RenderTexture.ReleaseTemporary(temp2);
+        UnityEngine.Object.DestroyImmediate(tempTexture);
+    }
+
+    private static void SyncBiomeTexture()
+    {
+        if (Biome == null || Biome.GetLength(0) != SplatMapRes)
+        {
+            Debug.LogError("Biome data is not initialized or resolution mismatch.");
+            return;
+        }
+
+        Texture2D tempTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.RGBA32, false, true);
+        Color32[] colors = new Color32[SplatMapRes * SplatMapRes];
+
+        for (int z = 0; z < SplatMapRes; z++)
+        {
+            for (int x = 0; x < SplatMapRes; x++)
+            {
+                colors[z * SplatMapRes + x] = new Color(
+                    Biome[z, x, 0],
+                    Biome[z, x, 1],
+                    Biome[z, x, 2],
+                    Biome[z, x, 3]
+                );
+            }
+        }
+
+        tempTexture.SetPixels32(colors);
+        tempTexture.Apply(true, false);
+
+        if (BiomeTexture == null || !BiomeTexture.IsCreated())
+        {
+            BiomeTexture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                enableRandomWrite = true
+            };
+            BiomeTexture.Create();
+        }
+
+        Graphics.Blit(tempTexture, BiomeTexture);
+        UnityEngine.Object.Destroy(tempTexture);
+        Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture);
+    }
+	
+	
+	public static void LoadTerrainAssets()
+	{
+		Debug.LogError("load terrain assets working...");
+		_config = Resources.Load<TerrainConfig>("TerrainConfig");
+		Debug.LogError("config loaded");
+		GameObject terrainAssetTextPrefab = AssetManager.LoadAsset<GameObject>("assets/prefabs/engine/testlevel terrain.prefab");
+		if (terrainAssetTextPrefab == null)
+		{
+			Debug.LogError("terrain4 prefab not loading");
+			return;
+		}
+		CreateTerrainConfig();
+		Debug.LogError("working...");
+		
+		_config.AlbedoArrays[0] = AssetManager.LoadAsset<Texture>("assets/content/nature/terrain/atlas/terrain4_albedo_array.asset");
+		_config.AlbedoArrays[1] = AssetManager.LoadAsset<Texture>("assets/content/nature/terrain/atlas/terrain4_albedo_array_lod1.asset");
+		_config.AlbedoArrays[2] = AssetManager.LoadAsset<Texture>("assets/content/nature/terrain/atlas/terrain4_albedo_array_lod2.asset");
+		_config.NormalArrays[0] = AssetManager.LoadAsset<Texture>("assets/content/nature/terrain/atlas/terrain4_normal_array.asset");
+		_config.NormalArrays[1] = AssetManager.LoadAsset<Texture>("assets/content/nature/terrain/atlas/terrain4_normal_array_lod1.asset");
+		_config.NormalArrays[2] = AssetManager.LoadAsset<Texture>("assets/content/nature/terrain/atlas/terrain4_normal_array_lod2.asset");
+
+		// Validate loading
+		foreach (var tex in _config.AlbedoArrays.Concat(_config.NormalArrays))
+		{
+			if (tex == null) Debug.LogWarning("Failed to load a terrain texture array.");
+		}
+	}
+	
+
+    public static void CreateTerrainConfig()
+    {
+        try
+        {
+            TerrainConfig config = _config ?? ScriptableObject.CreateInstance<TerrainConfig>();
+            config.name = "RebuiltTerrainConfig";
+            Debug.Log("Created new TerrainConfig instance: RebuiltTerrainConfig");
+            Debug.Log("Hardcoding TerrainConfig from prefab dump (m_PathID = 210)...");
+
+            // Scalars from dump
+            config.CastShadows = true;
+            Debug.Log($"TerrainConfig.CastShadows set to {config.CastShadows}");
+
+            config.GroundMask = 8388608;
+            Debug.Log($"TerrainConfig.GroundMask set to {config.GroundMask}");
+
+            config.WaterMask = 16;
+            Debug.Log($"TerrainConfig.WaterMask set to {config.WaterMask}");
+
+            config.HeightMapErrorMin = 10f;
+            Debug.Log($"TerrainConfig.HeightMapErrorMin set to {config.HeightMapErrorMin}");
+
+            config.HeightMapErrorMax = 100f;
+            Debug.Log($"TerrainConfig.HeightMapErrorMax set to {config.HeightMapErrorMax}");
+
+            config.BaseMapDistanceMin = 100f;
+            Debug.Log($"TerrainConfig.BaseMapDistanceMin set to {config.BaseMapDistanceMin}");
+
+            config.BaseMapDistanceMax = 500f;
+            Debug.Log($"TerrainConfig.BaseMapDistanceMax set to {config.BaseMapDistanceMax}");
+
+            config.ShaderLodMin = 100f;
+            Debug.Log($"TerrainConfig.ShaderLodMin set to {config.ShaderLodMin}");
+
+            config.ShaderLodMax = 600f;
+            Debug.Log($"TerrainConfig.ShaderLodMax set to {config.ShaderLodMax}");
+
+            // Splats array from dump
+            config.Splats = new SplatType[8]
+            {
+                new SplatType
+                {
+                    Name = "Dirt",
+                    AridColor = new Color(0.8f, 0.7775281f, 0.7191011f, 1f),
+                    AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    TemperateColor = new Color(0.7f, 0.6845133f, 0.6597345f, 1f),
+                    TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    TundraColor = new Color(0.773f, 0.739761f, 0.739761f, 1f),
+                    TundraOverlay = new SplatOverlay { Color = new Color(0.1795656f, 0.184f, 0.139656f, 0f), Smoothness = 1f, NormalIntensity = 0f, BlendFactor = 1f, BlendFalloff = 32f },
+                    ArcticColor = new Color(0.704098f, 0.7391568f, 0.745f, 1f),
+                    ArcticOverlay = new SplatOverlay { Color = new Color(0.97f, 0.9861538f, 1f, 1f), Smoothness = 0.6f, NormalIntensity = 0.282f, BlendFactor = 0.64f, BlendFalloff = 6.1f },
+                    SplatTiling = 4.5f,
+                    UVMixMult = 0.33f,
+                    UVMixStart = 5f,
+                    UVMixDist = 100f
+                },
+                new SplatType
+                {
+                    Name = "Snow",
+                    AridColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
+                    AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    TemperateColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
+                    TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    TundraColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
+                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    ArcticColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
+                    ArcticOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    SplatTiling = 6f,
+                    UVMixMult = 0.05f,
+                    UVMixStart = 15f,
+                    UVMixDist = 50f
+                },
+                new SplatType
+                {
+                    Name = "Sand",
+                    AridColor = new Color(0.7098039f, 0.6536111f, 0.5749412f, 1f),
+                    AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    TemperateColor = new Color(0.6588235f, 0.6482823f, 0.6061177f, 1f),
+                    TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    TundraColor = new Color(0.5f, 0.4901961f, 0.4509804f, 1f),
+                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    ArcticColor = new Color(0.530689f, 0.5773377f, 0.589f, 1f),
+                    ArcticOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    SplatTiling = 4.5f,
+                    UVMixMult = 0.1f,
+                    UVMixStart = 5f,
+                    UVMixDist = 50f
+                },
+                new SplatType
+                {
+                    Name = "Rock",
+                    AridColor = new Color(0.85f, 0.7567085f, 0.61455f, 1f),
+                    AridOverlay = new SplatOverlay { Color = new Color(0.75f, 0.7232143f, 0.6734694f, 1f), Smoothness = 0f, NormalIntensity = 0.5f, BlendFactor = 0.5f, BlendFalloff = 16f },
+                    TemperateColor = new Color(0.6509804f, 0.6141859f, 0.566353f, 1f),
+                    TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    TundraColor = new Color(0.65f, 0.6047468f, 0.5224683f, 1f),
+                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    ArcticColor = new Color(0.6365f, 0.661625f, 0.67f, 1f),
+                    ArcticOverlay = new SplatOverlay { Color = new Color(0.874f, 0.912f, 0.95f, 1f), Smoothness = 0.4f, NormalIntensity = 0.25f, BlendFactor = 0.6f, BlendFalloff = 20f },
+                    SplatTiling = 10f,
+                    UVMixMult = 0.125f,
+                    UVMixStart = 10f,
+                    UVMixDist = 50f
+                },
+                new SplatType
+                {
+                    Name = "Grass",
+                    AridColor = new Color(0.74f, 0.728377f, 0.5850262f, 1f),
+                    AridOverlay = new SplatOverlay { Color = new Color(0.7215686f, 0.675817f, 0.6117647f, 1f), Smoothness = 0.1f, NormalIntensity = 1f, BlendFactor = 0.75f, BlendFalloff = 10f },
+                    TemperateColor = new Color(0.4784314f, 0.5803922f, 0.3764706f, 1f),
+                    TemperateOverlay = new SplatOverlay { Color = new Color(0.4784314f, 0.5803922f, 0.3764706f, 1f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0f, BlendFalloff = 16f },
+                    TundraColor = new Color(0.62f, 0.5783009f, 0.372f, 1f),
+                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 1f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0f, BlendFalloff = 16f },
+                    ArcticColor = new Color(0.7588235f, 0.8051961f, 0.8431373f, 1f),
+                    ArcticOverlay = new SplatOverlay { Color = new Color(0.892562f, 0.946281f, 1f, 1f), Smoothness = 0.6f, NormalIntensity = 0f, BlendFactor = 0.66f, BlendFalloff = 8f },
+                    SplatTiling = 4f,
+                    UVMixMult = 0.1f,
+                    UVMixStart = 10f,
+                    UVMixDist = 150f
+                },
+                new SplatType
+                {
+                    Name = "Forest",
+                    AridColor = new Color(0.8f, 0.7267974f, 0.5803922f, 1f),
+                    AridOverlay = new SplatOverlay { Color = new Color(0.7f, 0.6613065f, 0.5944723f, 0.9490196f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 16f },
+                    TemperateColor = new Color(0.68f, 0.68f, 0.5448193f, 1f),
+                    TemperateOverlay = new SplatOverlay { Color = new Color(0.3491461f, 0.4509804f, 0f, 0.9019608f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.2f, BlendFalloff = 4f },
+                    TundraColor = new Color(0.6f, 0.5228571f, 0.36f, 1f),
+                    TundraOverlay = new SplatOverlay { Color = new Color(0.6f, 0.5401961f, 0.3607843f, 0.5019608f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.2f, BlendFalloff = 4f },
+                    ArcticColor = new Color(0.851f, 0.8465748f, 0.784622f, 1f),
+                    ArcticOverlay = new SplatOverlay { Color = new Color(0.9f, 0.9434782f, 1f, 1f), Smoothness = 0.5f, NormalIntensity = 0.5f, BlendFactor = 0.3f, BlendFalloff = 6f },
+                    SplatTiling = 3.5f,
+                    UVMixMult = 0.2f,
+                    UVMixStart = 5f,
+                    UVMixDist = 150f
+                },
+                new SplatType
+                {
+                    Name = "Stones",
+                    AridColor = new Color(0.8509804f, 0.7333465f, 0.5795177f, 1f),
+                    AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    TemperateColor = new Color(0.72f, 0.6829715f, 0.6048f, 1f),
+                    TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    TundraColor = new Color(0.7f, 0.6488764f, 0.5623596f, 1f),
+                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    ArcticColor = new Color(0.558f, 0.58425f, 0.6f, 1f),
+                    ArcticOverlay = new SplatOverlay { Color = new Color(0.93f, 0.9608f, 1f, 0.8039216f), Smoothness = 0f, NormalIntensity = 0.5f, BlendFactor = 0.4f, BlendFalloff = 16f },
+                    SplatTiling = 10f,
+                    UVMixMult = 0.75f,
+                    UVMixStart = 5f,
+                    UVMixDist = 200f
+                },
+                new SplatType
+                {
+                    Name = "Gravel",
+                    AridColor = new Color(0.85f, 0.7416667f, 0.6375f, 1f),
+                    AridOverlay = new SplatOverlay { Color = new Color(0.348f, 0.3042722f, 0.2605445f, 1f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.1f, BlendFalloff = 4f },
+                    TemperateColor = new Color(0.64f, 0.619085f, 0.5939869f, 1f),
+                    TemperateOverlay = new SplatOverlay { Color = new Color(0.638f, 0.6161273f, 0.560802f, 1f), Smoothness = 0.25f, NormalIntensity = 0.25f, BlendFactor = 0f, BlendFalloff = 16f },
+                    TundraColor = new Color(0.6f, 0.5746988f, 0.5385543f, 1f),
+                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                    ArcticColor = new Color(0.65f, 0.65f, 0.65f, 1f),
+                    ArcticOverlay = new SplatOverlay { Color = new Color(0.93f, 0.9766666f, 1f, 0.4196078f), Smoothness = 0.6f, NormalIntensity = 1f, BlendFactor = 2f, BlendFalloff = 24f },
+                    SplatTiling = 5f,
+                    UVMixMult = 0.25f,
+                    UVMixStart = 5f,
+                    UVMixDist = 75f
+                }
+            };
+            Debug.Log($"TerrainConfig.Splats set with {config.Splats.Length} elements from prefab dump");
+
+            _config = config;
+            Debug.Log("Assigned rebuilt config to TerrainManager._config");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to rebuild TerrainConfig: {e.Message}");
+        }
+    }
+
+	private static void YoinkTerrainTexturing(GameObject sourcePrefab, Terrain targetTerrain)
+	{
+		if (sourcePrefab == null || targetTerrain == null)
+		{
+			Debug.LogError("Source prefab or target terrain is null");
+			return;
+		}
+
+		TerrainTexturing sourceTexturing = sourcePrefab.GetComponent<TerrainTexturing>();
+		if (sourceTexturing == null)
+		{
+			Debug.LogError("TerrainTexturing component not found on source prefab");
+			return;
+		}
+
+		TerrainTexturing targetTexturing = targetTerrain.gameObject.GetComponent<TerrainTexturing>();
+		if (targetTexturing == null)
+		{
+			targetTexturing = targetTerrain.gameObject.AddComponent<TerrainTexturing>();
+		}
+
+		try
+		{
+			// Fields derived from Land terrain (sizes, resolutions, etc.)
+			targetTexturing.terrainMaxDimension = Mathf.Max(targetTerrain.terrainData.size.x, targetTerrain.terrainData.size.z);
+			targetTexturing.textureResolution = Mathf.ClosestPowerOfTwo(targetTerrain.terrainData.heightmapResolution) >> 1; // Half the heightmap res, as per original logic
+			targetTexturing.pixelSize = targetTexturing.terrainMaxDimension / targetTexturing.textureResolution;
+
+			// Shore data - check if prefab has precomputed data; otherwise, regenerate
+			if (sourceTexturing.shoreDistances != null && sourceTexturing.shoreDistances.Length == targetTexturing.textureResolution * targetTexturing.textureResolution)
+			{
+				targetTexturing.shoreDistances = (float[])sourceTexturing.shoreDistances.Clone();
+			}
+			else
+			{
+				targetTexturing.shoreDistances = null; // Will be regenerated in Refresh()
+			}
+
+			if (sourceTexturing.shoreVectors != null && sourceTexturing.shoreVectors.Length == targetTexturing.textureResolution * targetTexturing.textureResolution)
+			{
+				targetTexturing.shoreVectors = (Vector3[])sourceTexturing.shoreVectors.Clone();
+			}
+			else
+			{
+				targetTexturing.shoreVectors = null; // Will be regenerated in Refresh()
+			}
+
+			// Texture references - copy from prefab if valid, otherwise null (regenerated in Refresh)
+			targetTexturing.shoreVectorTexture = sourceTexturing.shoreVectorTexture;
+			targetTexturing.baseDiffuseTexture = sourceTexturing.baseDiffuseTexture;
+			targetTexturing.baseNormalTexture = sourceTexturing.baseNormalTexture;
+			targetTexturing.heightSlopeTexture = sourceTexturing.heightSlopeTexture;
+
+			// Configuration and state fields from prefab
+			targetTexturing.debugFoliageDisplacement = sourceTexturing.debugFoliageDisplacement;
+			targetTexturing.previousFoliageDebugState = sourceTexturing.previousFoliageDebugState;
+			targetTexturing.isInitialized = false; // Force re-initialization with Land data
+			targetTexturing.baseTextureState = sourceTexturing.baseTextureState;
+			targetTexturing.heightSlopeState = sourceTexturing.heightSlopeState;
+			targetTexturing.needsRefresh = true; // Ensure refresh to align with Land
+
+			Debug.Log($"Yoinked TerrainTexturing: Resolution={targetTexturing.textureResolution}, " +
+					  $"TerrainMaxDimension={targetTexturing.terrainMaxDimension}, " +
+					  $"PixelSize={targetTexturing.pixelSize}, " +
+					  $"ShoreDistances={(targetTexturing.shoreDistances != null ? targetTexturing.shoreDistances.Length : 0)}, " +
+					  $"Initialized={targetTexturing.isInitialized}");
+
+			// Always refresh to ensure data aligns with Land terrain
+			if (targetTerrain == Land)
+			{
+				targetTexturing.Refresh(); // Regenerate runtime data based on Land
+			}
+		}
+		catch (Exception e)
+		{
+			Debug.LogError($"Failed to yoink TerrainTexturing data: {e.Message}");
+		}
+	}
+
+	
+private static void InspectComponent(Component component)
+{
+    // Get the type of the component
+    System.Type type = component.GetType();
+
+    // Get all fields (public, private, instance)
+    FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+    if (fields.Length == 0)
+    {
+        Debug.Log("  No fields found on this component.");
+        return;
+    }
+
+    foreach (FieldInfo field in fields)
+    {
+        try
+        {
+            object value = field.GetValue(component);
+            string valueString = (value == null) ? "null" : value.ToString();
+
+            // Handle arrays or collections specially
+            if (value != null && value.GetType().IsArray)
+            {
+                System.Array array = (System.Array)value;
+                valueString = $"Array[{array.Length}]";
+                for (int i = 0; i < array.Length; i++)
+                {
+                    valueString += $"\n    [{i}]: {(array.GetValue(i) == null ? "null" : array.GetValue(i).ToString())}";
+                }
+            }
+            else if (value is UnityEngine.Object unityObj && unityObj != null)
+            {
+                valueString = $"{unityObj.name} (Type: {unityObj.GetType().Name})";
+            }
+
+            Debug.Log($"  Field: {field.Name} = {valueString} (Type: {field.FieldType.Name})");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"  Failed to inspect field {field.Name}: {e.Message}");
+        }
+    }
+
+    // Optionally inspect properties too
+    PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+    foreach (PropertyInfo prop in properties)
+    {
+        if (prop.GetMethod != null && prop.GetMethod.GetParameters().Length == 0) // Only gettable properties with no parameters
+        {
+            try
+            {
+                object value = prop.GetValue(component);
+                string valueString = (value == null) ? "null" : value.ToString();
+                Debug.Log($"  Property: {prop.Name} = {valueString} (Type: {prop.PropertyType.Name})");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"  Failed to inspect property {prop.Name}: {e.Message}");
+            }
+        }
+    }
+}
+
+    private static void SetShaderSplatParameters()
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            SplatType s = _config.Splats[i];
+            Shader.SetGlobalVector($"Splat{i}_UVMIX", new Vector3(s.UVMixMult, s.UVMixStart, 1f / s.UVMixDist));
+            Shader.SetGlobalColor($"Splat{i}_AridColor", s.AridColor);
+            Shader.SetGlobalColor($"Splat{i}_TemperateColor", s.TemperateColor);
+            Shader.SetGlobalColor($"Splat{i}_TundraColor", s.TundraColor);
+            Shader.SetGlobalColor($"Splat{i}_ArcticColor", s.ArcticColor);
+        }
+    }
+
+    public static Vector3 WorldToTerrainUV(Vector3 worldPos)
+    {
+        return new Vector3(
+            (worldPos.x - TerrainPosition.x) * TerrainSizeInverse.x,
+            (worldPos.y - TerrainPosition.y) * TerrainSizeInverse.y,
+            (worldPos.z - TerrainPosition.z) * TerrainSizeInverse.z);
+    }
+
+    public static Vector3 TerrainUVToWorld(Vector3 terrainUV)
+    {
+        return new Vector3(
+            TerrainPosition.x + terrainUV.x * TerrainSize.x,
+            TerrainPosition.y + terrainUV.y * TerrainSize.y,
+            TerrainPosition.z + terrainUV.z * TerrainSize.z);
+    }
+
+    public static float ToTerrainX(float worldX) => (worldX - TerrainPosition.x) * TerrainSizeInverse.x * SplatMapRes;
+    public static float ToTerrainZ(float worldZ) => (worldZ - TerrainPosition.z) * TerrainSizeInverse.z * SplatMapRes;
+    public static float ToWorldX(float terrainX) => TerrainPosition.x + (terrainX / SplatMapRes) * TerrainSize.x;
+    public static float ToWorldZ(float terrainZ) => TerrainPosition.z + (terrainZ / SplatMapRes) * TerrainSize.z;
+
+
+    public static float GetHeightAtPosition(Vector3 position)
+    {
+        Vector3 uv = WorldToTerrainUV(position);
+        return TerrainPosition.y + Land.terrainData.GetInterpolatedHeight(uv.x, uv.z) * TerrainSize.y;
+    }
+
+    public static float GetHeightAtUV(float uvX, float uvZ)
+    {
+        return TerrainPosition.y + Land.terrainData.GetInterpolatedHeight(uvX, uvZ) * TerrainSize.y;
+    }
+
+    public static float GetHeightAtGrid(int gridX, int gridZ)
+    {
+        return TerrainPosition.y + Land.terrainData.GetHeight(gridX, gridZ) * TerrainSize.y;
+    }
+
+    public static bool IsOutsideTerrain(Vector3 position)
+    {
+        return position.x < TerrainPosition.x || position.z < TerrainPosition.z ||
+               position.x > TerrainPosition.x + TerrainSize.x || position.z > TerrainPosition.z + TerrainSize.z;
+    }
+
+    public static bool IsFarOutsideTerrain(Vector3 position)
+    {
+        const float buffer = 500f;
+        return position.x < TerrainPosition.x - buffer || position.z < TerrainPosition.z - buffer ||
+               position.x > TerrainPosition.x + TerrainSize.x + buffer || position.z > TerrainPosition.z + TerrainSize.z + buffer ||
+               (float.IsNaN(position.x) || float.IsNaN(position.y) || float.IsNaN(position.z));
+    }
+
+	private static uint NextRandom(ref uint seed)
+    {
+        seed ^= seed << 13;
+        seed ^= seed >> 17;
+        seed ^= seed << 5;
+        return seed;
+    }
+
+    private static int GenerateInt(ref uint seed, int min, int max)
+    {
+        uint range = (uint)(max - min);
+        uint randomValue = NextRandom(ref seed);
+        return min + (int)(randomValue % range);
+    }
+
+    private static int GenerateRandomOffset(ref uint seed)
+    {
+        uint randomValue = NextRandom(ref seed);
+        return (randomValue % 2U == 0U) ? 1 : -1;
+    }
+
+    public static uint GenerateRandomSeed()
+    {
+        RandomSeed = (uint)UnityEngine.Random.Range(1, int.MaxValue);
+        uint seed = RandomSeed;
+
+        int baseHeight = GenerateInt(ref seed, 0, 4) * 90; // 0 to 3 * 90 = 0, 90, 180, 270
+        int heightVariation = GenerateInt(ref seed, -45, 46); // -45 to 45
+        int heightOffset = GenerateRandomOffset(ref seed); // -1 or 1
+
+        MinHeight = baseHeight;
+        MaxHeight = baseHeight + heightVariation + heightOffset * 90;
+        return RandomSeed;
+    }
+
+
+
+    public static string GetTerrainDebugInfo(int gridX, int gridZ)
+    {
+		return "";
+		/*
+        float uvX = (float)gridX / SplatMapRes;
+        float uvZ = (float)gridZ / SplatMapRes;
+        return $"{Ground != null ? "Ground: " + string.Join(", ", Ground.GetRow(gridX, gridZ)) : "Ground: N/A"}\n" +
+               $"{Biome != null ? "Biome: " + string.Join(", ", Biome.GetRow(gridX, gridZ)) : "Biome: N/A"}\n" +
+               $"{Alpha != null ? "Alpha: " + Alpha[gridX, gridZ] : "Alpha: N/A"}\n" +
+               $"{Topology[TopologyLayer] != null ? "Topology: " + string.Join(", ", Topology[TopologyLayer].GetRow(gridX, gridZ)) : "Topology: N/A"}\n" +
+               $"Height: {GetHeightAtGrid(gridX, gridZ)}";
+		*/
+    }
+
+    private static Texture2D ExtractTextureFromArray(Texture[] array, int index)
+    {
+        if (array == null || index < 0 || index >= array.Length || array[0] == null)
+            return null;
+
+        Texture2DArray texArray = array[Mathf.Clamp(QualitySettings.masterTextureLimit, 0, array.Length - 1)] as Texture2DArray;
+        if (texArray == null || index >= texArray.depth)
+            return null;
+
+        Texture2D tex = new Texture2D(texArray.width, texArray.height, texArray.format, true);
+        Graphics.CopyTexture(texArray, index, 0, tex, 0, 0);
+        return tex;
+    }
+
+
+    public static Material LoadTerrainMaterial()
+    {
+        Material material = AssetManager.LoadAsset<Material>("assets/content/nature/terrain/materials/terrain.v3.mat");
+		
+		
+        UnityEngine.Object.DontDestroyOnLoad(material);
+        return material;
+    }
+
+
+
+private static void SetShaderTilingVectors()
+{
+    Shader.SetGlobalVector("Terrain_TexelSize0", new Vector4(
+        1f / TerrainManager._config.Splats[0].SplatTiling,
+        1f / TerrainManager._config.Splats[1].SplatTiling,
+        1f / TerrainManager._config.Splats[2].SplatTiling,
+        1f / TerrainManager._config.Splats[3].SplatTiling
+    ));
+    Shader.SetGlobalVector("Terrain_TexelSize1", new Vector4(
+        1f / TerrainManager._config.Splats[4].SplatTiling,
+        1f / TerrainManager._config.Splats[5].SplatTiling,
+        1f / TerrainManager._config.Splats[6].SplatTiling,
+        1f / TerrainManager._config.Splats[7].SplatTiling
+    ));
+}
+
+private static void ConfigureShaderGlobals(Terrain terrain)
+{
+	 
+    TerrainTexturing texturing = terrain.gameObject.GetComponent<TerrainTexturing>();
+        if (texturing == null)
+        {
+            Debug.LogWarning("TerrainTexturing component not found on terrain. Adding one now.");
+            texturing = terrain.gameObject.AddComponent<TerrainTexturing>();
+        }
+
+        // Call TerrainTexturing.Refresh to set up all shader properties
+    texturing.Refresh();
+
+	
+
+    // Core terrain data textures from TerrainData
+    Shader.SetGlobalTexture("Terrain_HeightTexture", HeightTexture); // Heightmap for elevation
+    //Shader.SetGlobalTexture("Terrain_Normal", RuntimeNormalMap);
+    Shader.SetGlobalTexture("Terrain_Alpha", AlphaTexture); 
+	
+    // Splatmap (alphamap) textures for ground control
+    Texture2D[] alphamaps = terrain.terrainData.alphamapTextures;
+    if (alphamaps.Length > 0) Shader.SetGlobalTexture("Terrain_Control0", alphamaps[0]); // First 4 splat channels
+    if (alphamaps.Length > 1) Shader.SetGlobalTexture("Terrain_Control1", alphamaps[1]); // Next 4 splat channels (if 8 splats)
+
+    // Texture arrays from TerrainConfig
+    Shader.SetGlobalTexture("Terrain_AlbedoArray", TerrainManager._config.AlbedoArray);
+    //Shader.SetGlobalTexture("Terrain_NormalArray", TerrainManager._config.NormalArray);
+	
+	// Disable shore vector (already done, but ensure for redundancy)
+    Shader.SetGlobalTexture("Terrain_ShoreVector", null);
+
+    // Update material properties to disable Puddle and Wetness Layers
+    Material material = terrain.materialTemplate;
+    if (material != null)
+    {
+        // Puddle Layer
+        material.SetFloat("_LayerFallback_Metallic", 0f);
+        material.SetFloat("_LayerFallback_Smoothness", 0f);
+        material.SetColor("_LayerFallback_Albedo", new Color(0.5f, 0.5f, 0.5f, 1f)); // Neutral gray
+
+        // Wetness Layer
+        material.SetFloat("_WetnessLayer_Wetness", 0f);
+        material.SetFloat("_WetnessLayer_WetAlbedoScale", 0f);
+        material.SetFloat("_WetnessLayer_WetSmoothness", 0f);
+        Texture2D blackTexture = new Texture2D(1, 1);
+        blackTexture.SetPixel(0, 0, Color.black);
+        blackTexture.Apply();
+        material.SetTexture("_WetnessLayer_Mask", blackTexture);
+    }
+
+    // Placeholder for biome and topology (adjust based on your data structure)
+    // Assuming these might come from TerrainManager or elsewhere
+	Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture);     // Replace with actual biome texture if available
+    Shader.SetGlobalTexture("Terrain_Topology", null);  // Replace with actual topology texture if available
+
+    // Texel size for splatmap resolution
+    float texelSize = 1f / terrain.terrainData.alphamapResolution;
+    Shader.SetGlobalVector("Terrain_TexelSize", new Vector2(texelSize, texelSize));
+
+    // Splat tiling vectors
+    SetShaderTilingVectors();
+
+    // Splat UV mix and biome colors
+    SetShaderSplatParameters();
+
+    // Terrain position and size
+    Shader.SetGlobalVector("Terrain_Position", terrain.gameObject.transform.position);
+    Shader.SetGlobalVector("Terrain_Size", terrain.terrainData.size);
+    Shader.SetGlobalVector("Terrain_RcpSize", new Vector3(
+        1f / terrain.terrainData.size.x,
+        1f / terrain.terrainData.size.y,
+        1f / terrain.terrainData.size.z
+    ));
+
+	
+    // Shader keywords (disable unnecessary ones)
+    if (terrain.materialTemplate)
+    {
+        terrain.materialTemplate.DisableKeyword("_TERRAIN_BLEND_LINEAR");
+        terrain.materialTemplate.DisableKeyword("_TERRAIN_VERTEX_NORMALS");
+    }
+}
 	
     public static class Callbacks
     {
@@ -72,38 +1057,10 @@ public static class TerrainManager
     }
 
     #region Splats
-    #region Fields
-    /// <summary>Ground textures [x, y, texture] use <seealso cref="TerrainSplat.TypeToIndex(int)"/> for texture indexes.</summary>
-    /// <value>Strength of texture at <seealso cref="TerrainSplat"/> index, normalised between 0 - 1.</value>
-    public static float[,,] Ground { get; private set; }
-    /// <summary>Biome textures [x, y, texture] use <seealso cref="TerrainBiome.TypeToIndex(int)"/> for texture indexes.</summary>
-    /// <value>Strength of texture at <seealso cref="TerrainBiome"/> index, normalised between 0-1.</value>
-    public static float[,,] Biome { get; private set; }
-	public static Vector4[,] BiomeMap { get; private set; }
-    /// <summary>Alpha/Transparency value of terrain.</summary>
-    /// <value>True = Visible / False = Invisible.</value>
-    public static bool[,] Alpha { get; private set; }
 
-	public static bool[,] AlphaMask { get; private set; }	
-	public static bool[,] SpawnMap { get; private set; }
-	
-	public static float[,] CliffMap { get; private set; }
-	public static float[,,] CliffField { get; private set; }	
-	
-
-    /// <summary>Topology layers [topology][x, y, texture] use <seealso cref="TerrainTopology.TypeToIndex(int)"/> for topology layer indexes.</summary>
-    /// <value>Texture 0 = Active / Texture 1 = Inactive.</value>
-    public static float[][,,] Topology { get; private set; } = new float[TerrainTopology.COUNT][,,];
-    /// <summary>Resolution of the splatmap/alphamap.</summary>
-    /// <value>Power of ^2, between 512 - 2048.</value>
-    public static int SplatMapRes { get; private set; }
-    /// <summary>The world size of each splat relative to the terrain size it covers.</summary>
-    public static float SplatSize { get => Land.terrainData.size.x / SplatMapRes; }
-	public static float SplatRatio { get => Land.terrainData.heightmapResolution / SplatMapRes; }
-    public static bool AlphaDirty { get; set; } = true;
-    #endregion
 
     #region Methods
+	
     /// <summary>Returns the SplatMap at the selected LayerType.</summary>
     /// <param name="layer">The LayerType to return. (Ground, Biome)</param>
     /// <returns>3D float array in Alphamap format. [x, y, Texture]</returns>
@@ -265,6 +1222,7 @@ public static class TerrainManager
         // Notify listeners of the update
         TerrainManager.Callbacks.InvokeLayerUpdated(layerType, layerIndex);
     }
+
 	
 	public static Vector4[,] GetBiomeMap()
     {
@@ -905,7 +1863,6 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 	public static void HideLandMask()
 	{
 		LandMask.gameObject.SetActive(false);
-
 	}
 	
 	public static float[,,] GetLayerData(LayerType layer, int topology = -1)
@@ -1151,6 +2108,10 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 		if(terrain==LandMask){
 			return;
 		}
+		
+		//SyncAlphaTexture();		
+        //SyncBiomeTexture();
+		
         if (!IsLoading && Land.Equals(terrain) && Mouse.current.leftButton.isPressed)
         {
             switch (textureName)
@@ -1171,24 +2132,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 
     #region HeightMap
     #region Fields
-    /// <summary>The current slope values stored as [x, y].</summary>
-    /// <value>Slope angle in degrees, between 0 - 90.</value>
-
-    public static float[,] Slope;
-	public static float[,] Curvature;
-    /// <summary>The current height values stored as [x, y].</summary>
-    /// <value>Height in metres, between 0 - 1000.</value> 
-    public static float[,] Height;
-
-    /// <summary>Resolution of the HeightMap.</summary>
-    /// <value>Power of ^2 + 1, between 1025 - 4097.</value>
-    public static int HeightMapRes { get; private set; }
-    /// <summary>Resolution of the AlphaMap.</summary>
-    /// <value>Power of ^2, between 1024 - 4096.</value>
-    public static int AlphaMapRes { get => HeightMapRes - 1; }
-
-    private static Texture FilterTexture;
-    private static Vector2 HeightMapCentre { get => new Vector2(0.5f, 0.5f); }
+ 
     #endregion
 
     #region Methods
@@ -1331,6 +2275,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 
         return Height[x, y];
     }
+	
 
     /// <summary>Returns a 2D array of the height values.</summary>
     /// <returns>Floats within the range 0m - 1000m.</returns>
@@ -1570,63 +2515,81 @@ public static bool[,] UpscaleBitmap(bool[,] source)
         UnityEngine.TerrainTools.TerrainPaintUtility.EndPaintHeightmap(paintContext, "Terrain Filter - Smooth Heights");
     }
 
-    /// <summary>Callback for whenever the heightmap is updated.</summary>
-    private static void HeightMapChanged(Terrain terrain, RectInt heightRegion, bool synched)
-    {
-		if(terrain.Equals(LandMask))	{
-			return;
-		}
-		
-        if (terrain.Equals(Land))
-		{
-			//FillLandMask();
-		}
+    #endregion
+    #endregion
 
-        ResetHeightCache();
-        Callbacks.InvokeHeightMapUpdated(terrain.Equals(Land) ? TerrainType.Land : TerrainType.Water);
-		
+	    private sealed class HeightSlopeProcessor
+    {
+        public int BlockSize;
+        public int DestinationSize;
+        public int SourceSize;
+        public Color32[] HeightColors;
+        public float SlopeScale;
+        public float NormalY;
+        public float HeightScale;
+        public float HeightOffset;
+        public Color[] Pixels;
+
+        public void ProcessRow(int z)
+        {
+            int sourceZ = z * BlockSize;
+            int pixelIndex = z * DestinationSize;
+            int sourceX = 0;
+
+            for (int x = 0; x < DestinationSize; x++)
+            {
+                float h00 = 0f, h10 = 0f, h01 = 0f, h11 = 0f;
+                int index00 = sourceZ * SourceSize + sourceX;
+                int index10 = index00 + 1;
+                int index01 = index00 + SourceSize;
+                int index11 = index10 + SourceSize;
+
+                for (int by = 0; by < BlockSize; by++)
+                {
+                    for (int bx = 0; bx < BlockSize; bx++)
+                    {
+                        h00 += (HeightColors[index00 + bx].b << 8 | HeightColors[index00 + bx].r);
+                        h10 += (HeightColors[index10 + bx].b << 8 | HeightColors[index10 + bx].r);
+                        h01 += (HeightColors[index01 + bx].b << 8 | HeightColors[index01 + bx].r);
+                        h11 += (HeightColors[index11 + bx].b << 8 | HeightColors[index11 + bx].r);
+                    }
+                    index00 += SourceSize;
+                    index10 += SourceSize;
+                    index01 += SourceSize;
+                    index11 += SourceSize;
+                }
+
+                float dx = (h10 + h11 - h00 - h01) * SlopeScale;
+                float dz = (h01 + h11 - h00 - h10) * SlopeScale;
+                Vector3 normal = new Vector3(dx, NormalY, dz).normalized;
+                float height = (h00 + h10 + h01 + h11) * HeightScale + HeightOffset;
+                float slope = normal.x * normal.x + normal.z * normal.z;
+
+                Pixels[pixelIndex + x] = new Color(height, slope, 0f, 0f);
+                sourceX += BlockSize;
+            }
+        }
     }
-    #endregion
-    #endregion
 
     #region Terrains
-    #region Fields
-    /// <summary>The Land terrain in the scene.</summary>
-    public static Terrain Land { get; private set; }
 
-	/// <summary>A Terrain for visualizing extra data.</summary>
-	public static Terrain LandMask { get; private set; }
-
-    /// <summary>The Water terrain in the scene.</summary>
-    public static Terrain Water { get; private set; }
-    /// <summary>The material used by the Water terrain object.</summary>
-    public static Material WaterMaterial { get; private set; }
-    /// <summary>The size of the Land and Water terrains in the scene.</summary>
-    public static Vector3 TerrainSize { get => Land.terrainData.size; }
-    /// <summary>The offset of the terrain from World Space.</summary>
-    public static Vector3 MapOffset { get => 0.5f * TerrainSize; }
-    /// <summary>The condition of the current terrain.</summary>
-    /// <value>True = Terrain is loading / False = Terrain is loaded.</value>
-    public static bool IsLoading { get; private set; } = false;
-
-    /// <summary>Enum of the 2 different terrains in scene. (Land, Water). Required to reference the terrain objects across the Editor.</summary>
-    public enum TerrainType
-    {
-        Land,
-		LandMask,
-
-        Water
-    }
-    #endregion
 
     #region Methods
-    public static void SetTerrainReferences()
-    {
-        Water = GameObject.FindGameObjectWithTag("Water").GetComponent<Terrain>();
-        Land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
+
+	
+	public static void SetTerrainReferences()
+	{
+		
+		
+		Water = GameObject.FindGameObjectWithTag("Water").GetComponent<Terrain>();
+		
+		Land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
+		
 		LandMask = GameObject.FindGameObjectWithTag("LandMask").GetComponent<Terrain>();
-		WaterMaterial = Water.materialTemplate;
-    }
+		
+		
+
+	}
 
     public static void SetWaterTransparency(float alpha)
     {
@@ -1658,9 +2621,6 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 
     #region Terrain Layers
     /// <summary>The Terrain layers used by the terrain for paint operations</summary>
-
-    private static TerrainLayer[] GroundLayers = null, BiomeLayers = null, TopologyLayers = null, MaskLayers = null;
-
 
     #region Methods
     /// <summary>Sets the unity terrain references if not already set, and returns the current terrain layers.</summary>
@@ -1890,27 +2850,102 @@ public static bool[,] UpscaleBitmap(bool[,] source)
     #endregion
 
     #region Layers
-    #region Fields
-    /// <summary>The LayerType currently being displayed on the terrain.</summary>
-    public static LayerType CurrentLayerType { get; private set; }
-    /// <summary>The Topology layer currently being displayed/to be displayed on the terrain when the LayerType is set to topology.</summary>
-    public static TerrainTopology.Enum TopologyLayerEnum { get; private set; }
-    /// <summary>The Topology layer currently being displayed/to be displayed on the terrain when the LayerType is set to topology.</summary>
-    public static int TopologyLayer { get => TerrainTopology.TypeToIndex((int)TopologyLayerEnum); }
-    /// <summary>The state of the current layer data.</summary>
-    /// <value>True = Layer has been modified and not saved / False = Layer has not been modified since last saved.</value>
-    public static bool LayerDirty { get; private set; } = false;
-    /// <summary>The amount of TerrainLayers used on the current LayerType.</summary>
-    public static int Layers => LayerCount(CurrentLayerType);
 
-    public enum LayerType
+    public static void SetHeightMapRegion(float[,] array, int x, int y, int width, int height, TerrainType terrain = TerrainType.Land)
     {
-        Ground,
-        Biome,
-        Alpha,
-        Topology
+        float[,] fullMap = GetHeightMap(terrain);
+        for (int i = 0; i < height; i++)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                if (x + j < HeightMapRes && y + i < HeightMapRes)
+                {
+                    fullMap[y + i, x + j] = array[i, j];
+                    if (terrain == TerrainType.Land)
+                    {
+                        Height[y + i, x + j] = array[i, j]; // Sync Height array
+                    }
+                }
+            }
+        }
+        if (terrain == TerrainType.Land)
+        {
+            Land.terrainData.SetHeights(x, y, array);
+            SyncHeightTexture(); 
+            Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
+        }
+        else
+        {
+            Water.terrainData.SetHeights(x, y, array);
+            Callbacks.InvokeHeightMapUpdated(TerrainType.Water);
+        }
     }
-    #endregion
+
+
+    private static void HeightMapChanged(Terrain terrain, RectInt heightRegion, bool synched)
+    {
+		if (terrain.Equals(LandMask))
+        {
+            return;
+        }
+		
+		if (terrain == Land)
+		{
+		#if UNITY_EDITOR
+				EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.GenerateNormalMap(HeightMapRes - 1, Progress.Start("Regenerate Normal Map")));
+		#else
+				Land.StartCoroutine(Coroutines.GenerateNormalMap(HeightMapRes - 1, -1));
+		#endif
+				Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
+		}
+		
+
+        if (terrain.Equals(Land))
+        {
+            SyncHeightTexture();
+        }
+        ResetHeightCache();
+        Callbacks.InvokeHeightMapUpdated(terrain.Equals(Land) ? TerrainType.Land : TerrainType.Water);
+    }
+	
+    public static void SyncHeightTexture()
+    {
+        if (Height == null || Height.GetLength(0) != HeightMapRes)
+        {
+            Debug.LogError("Height data is not initialized or resolution mismatch." + Height.GetLength(0) + " " + HeightMapRes);
+            return;
+        }
+
+        Texture2D tempTexture = new Texture2D(HeightMapRes, HeightMapRes, TextureFormat.RGBA32, false, true);
+        Color32[] colors = new Color32[HeightMapRes * HeightMapRes];
+
+        for (int z = 0; z < HeightMapRes; z++)
+        {
+            for (int x = 0; x < HeightMapRes; x++)
+            {
+                float height = Height[x, z]; // Note: x,z order matches Unity’s heightmap convention
+                short shortHeight = BitUtility.Float2Short(height);
+                colors[z * HeightMapRes + x] = BitUtility.EncodeShort(shortHeight);
+            }
+        }
+
+        tempTexture.SetPixels32(colors);
+        tempTexture.Apply(true, false);
+
+        if (HeightTexture == null || HeightTexture.width != HeightMapRes || HeightTexture.height != HeightMapRes)
+        {
+            if (HeightTexture != null) UnityEngine.Object.Destroy(HeightTexture);
+            HeightTexture = new Texture2D(HeightMapRes, HeightMapRes, TextureFormat.RGBA32, true, true)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+        }
+
+        Graphics.CopyTexture(tempTexture, HeightTexture);
+        UnityEngine.Object.Destroy(tempTexture);
+        Shader.SetGlobalTexture("Terrain_HeightTexture", HeightTexture);
+    }
 
     #region Methods
     /// <summary>Saves any changes made to the Alphamaps, including paint operations.</summary>
@@ -1918,37 +2953,6 @@ public static bool[,] UpscaleBitmap(bool[,] source)
     {
         SetSplatMap(GetSplatMap(CurrentLayerType, TopologyLayer), CurrentLayerType, TopologyLayer);
         Callbacks.InvokeLayerSaved(CurrentLayerType, TopologyLayer);
-    }
-
-	    public static float ToTerrainX(float worldX)
-    {
-        Vector3 terrainPos = Land.transform.position;
-        return (worldX - terrainPos.x) / Land.terrainData.size.x * SplatMapRes;
-    }
-
-    public static float ToTerrainZ(float worldZ)
-    {
-        Vector3 terrainPos = Land.transform.position;
-        return (worldZ - terrainPos.z) / Land.terrainData.size.z * SplatMapRes;
-    }
-
-    public static float ToWorldX(float terrainX)
-    {
-        Vector3 terrainPos = Land.transform.position;
-        return terrainPos.x + (terrainX / SplatMapRes) * Land.terrainData.size.x;
-    }
-
-    public static float ToWorldZ(float terrainZ)
-    {
-        Vector3 terrainPos = Land.transform.position;
-        return terrainPos.z + (terrainZ / SplatMapRes) * Land.terrainData.size.z;
-    }
-
-    // Height scaling (similar to GFDFCCMFAON.GEJDPJHFNCE)
-    public static float ToTerrainHeight(float worldHeight)
-    {
-        Vector3 terrainPos = Land.transform.position;
-        return (worldHeight - terrainPos.y) / Land.terrainData.size.y;
     }
 
     public static float ToWorldHeight(float terrainHeight)
@@ -1967,20 +2971,6 @@ public static bool[,] UpscaleBitmap(bool[,] source)
                     for (int k = 0; k < LayerCount(layer); k++)
                         fullMap[y + i, x + j, k] = array[i, j, k];
         SetSplatMap(fullMap, layer, topology);
-    }
-
-    // Region-specific heightmap update
-    public static void SetHeightMapRegion(float[,] array, int x, int y, int width, int height, TerrainType terrain = TerrainType.Land)
-    {
-        float[,] fullMap = GetHeightMap(terrain);
-        for (int i = 0; i < height; i++)
-            for (int j = 0; j < width; j++)
-                if (x + j < HeightMapRes && y + i < HeightMapRes)
-                    fullMap[y + i, x + j] = array[i, j];
-        if (terrain == TerrainType.Land)
-            Land.terrainData.SetHeights(x, y, array);
-        else
-            Water.terrainData.SetHeights(x, y, array);
     }
 
     // Convert world corners to terrain grid bounds
@@ -2102,9 +3092,35 @@ public static bool[,] UpscaleBitmap(bool[,] source)
         public static IEnumerator Load(MapInfo mapInfo, int progressID)
         {
 			
+			HeightMapRes = mapInfo.terrainRes;
+			SplatMapRes = mapInfo.splatRes;
+
+			// Initialize arrays directly from MapInfo
+			Height = mapInfo.land.heights;
+			Alpha = mapInfo.alphaMap;
+			Ground = mapInfo.splatMap;
+			Biome = mapInfo.biomeMap;
+			TopologyData.Set(mapInfo.topology);
+			if (Topology == null || Topology.Length != TerrainTopology.COUNT)
+			{
+				Topology = new float[TerrainTopology.COUNT][,,];
+			}
+			for (int i = 0; i < TerrainTopology.COUNT; i++)
+			{
+				Topology[i] = TopologyData.GetTopologyLayer(TerrainTopology.IndexToType(i));
+			}
+		
             IsLoading = true;
 			yield return SetTerrains(mapInfo, progressID);
             yield return SetSplatMaps(mapInfo, progressID);
+			
+			//SyncHeightTexture();
+			SyncAlphaTexture();
+			SyncBiomeTexture();
+			//SyncHeightSlopeTexture(Mathf.ClosestPowerOfTwo(HeightMapRes) >> 1);
+			AlphaDirty = false;
+			LayerDirty = false;
+			
             ClearSplatMapUndo();
             AreaManager.Reset();
 			
@@ -2120,21 +3136,13 @@ public static bool[,] UpscaleBitmap(bool[,] source)
             HeightMapRes = mapInfo.terrainRes;
 
             yield return SetupTerrain(mapInfo, Water);
-			#if UNITY_EDITOR
-            Progress.Report(progressID, .2f, "Loaded: Water.");
-			#endif
-           
-		   yield return SetupTerrain(mapInfo, Land);
-			#if UNITY_EDITOR
-            Progress.Report(progressID, .5f, "Loaded: Land.");
-			#endif
+			
+		    yield return SetupTerrain(mapInfo, Land);
 
 			yield return SetupTerrain(mapInfo, LandMask);
-			#if UNITY_EDITOR
-			Progress.Report(progressID, .2f, "Loaded: LandMask.");
-			#endif
 
         }
+
 
         /// <summary>Sets up the inputted terrain's terraindata.</summary>
         private static IEnumerator SetupTerrain(MapInfo mapInfo, Terrain terrain)
@@ -2151,6 +3159,71 @@ public static bool[,] UpscaleBitmap(bool[,] source)
             yield return null;
         }
 
+	public static IEnumerator GenerateNormalMap(int resolution, int progressID)
+	{
+		if (Land == null || Land.terrainData == null)
+		{
+			Debug.LogError("Cannot generate normal map: Land terrain or its data is null.");
+			yield break;
+		}
+
+		if (RuntimeNormalMap != null && RuntimeNormalMap.width != resolution)
+		{
+			UnityEngine.Object.Destroy(RuntimeNormalMap);
+			RuntimeNormalMap = null;
+		}
+
+		if (RuntimeNormalMap == null)
+		{
+			RuntimeNormalMap = new Texture2D(resolution, resolution, TextureFormat.RGBA32, true, true)
+			{
+				name = "TerrainNormal",
+				wrapMode = TextureWrapMode.Clamp
+			};
+		}
+
+		// Fetch height data on the main thread before processing
+		float[,] heights = Land.terrainData.GetHeights(0, 0, resolution + 1, resolution + 1);
+		Color32[] normals = new Color32[resolution * resolution];
+
+		int batchSize = 256; // Adjust based on performance needs
+		for (int y = 0; y < resolution; y += batchSize)
+		{
+			int batchHeight = Mathf.Min(batchSize, resolution - y);
+			for (int i = 0; i < batchHeight; i++)
+			{
+				int localY = y + i;
+				for (int x = 0; x < resolution; x++)
+				{
+					float height = heights[localY, x];
+					float heightRight = heights[localY, x + 1];
+					float heightUp = heights[localY + 1, x];
+
+					// Calculate normal using cross product of height differences
+					Vector3 normal = Vector3.Cross(
+						new Vector3(1f, (heightRight - height) * Land.terrainData.size.y, 0f),
+						new Vector3(0f, (heightUp - height) * Land.terrainData.size.y, 1f)
+					).normalized;
+
+					// Convert to Color32 (0-255 range, -1 to 1 mapped to 0-255)
+					normals[localY * resolution + x] = new Color32(
+						(byte)((normal.x + 1f) * 127.5f),
+						(byte)((normal.y + 1f) * 127.5f),
+						(byte)((normal.z + 1f) * 127.5f),
+						255
+					);
+				}
+			}
+
+			// Yield to allow frame updates
+			yield return null;
+		}
+
+		RuntimeNormalMap.SetPixels32(normals);
+		RuntimeNormalMap.Apply();
+
+		Shader.SetGlobalTexture("Terrain_Normal", RuntimeNormalMap);
+	}
 
         /// <summary>Sets and initialises the Splat/AlphaMaps of all layers from MapInfo. Called when first loading/creating a map.</summary>
         private static IEnumerator SetSplatMaps(MapInfo mapInfo, int progressID)

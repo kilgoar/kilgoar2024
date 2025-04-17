@@ -38,7 +38,21 @@ public class TerrainWindow : MonoBehaviour
 	
 	Layers layers = new Layers() { Ground = TerrainSplat.Enum.Grass, Biome = TerrainBiome.Enum.Temperate, Topologies = TerrainTopology.Enum.Field};
 	
-	//public List<GameObject> carvePanels; placeholder
+	public static TerrainWindow Instance { get; private set; }
+	
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;            
+            DontDestroyOnLoad(gameObject); 
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
 	
 	public void Setup()
 	{
@@ -171,7 +185,7 @@ public class TerrainWindow : MonoBehaviour
 		MainScript.Instance.RegenerateBrushWithRotation();
 	}
 
-	private void Awake()
+	private void Start()
 	{
 		Setup();
 	}
@@ -313,7 +327,7 @@ public class TerrainWindow : MonoBehaviour
 		LayoutRebuilder.ForceRebuildLayoutImmediate(brushRowParent.GetComponent<RectTransform>());
 	}
 	
-    private Texture2D LoadTextureFromFile(string filePath)
+    public Texture2D LoadTextureFromFile(string filePath)
     {
         try
         {
@@ -331,7 +345,7 @@ public class TerrainWindow : MonoBehaviour
         return null;
     }
 
-    private void OnBrushSelected(int brushId)
+    public void OnBrushSelected(int brushId)
     {
         if (brushId >= 0 && brushId < loadedBrushTextures.Count)
         {
@@ -385,6 +399,12 @@ public class TerrainWindow : MonoBehaviour
 		
 	}
 	
+	public void SampleHeightAtClick(RaycastHit hit)
+    {            
+            // Get the height at the clicked position
+            height.value = .001f*hit.point.y;
+          
+    }
 	
 	public void OnToggleChanged(int index)
     {

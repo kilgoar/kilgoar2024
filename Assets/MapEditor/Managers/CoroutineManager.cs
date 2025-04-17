@@ -179,6 +179,7 @@ public class CoroutineManager : MonoBehaviour
 		
         
 		if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask)){
+					
 
 
 					TerrainManager.GetTerrainCoordinates(hit, MainScript.Instance.brushSize, out int numX, out int numY);
@@ -187,6 +188,12 @@ public class CoroutineManager : MonoBehaviour
 					
 					if (mouseLeftClick.ReadValue<float>() > 0.5f)
 					{
+						if (Keyboard.current.ctrlKey.isPressed)
+						{
+							TerrainWindow.Instance.SampleHeightAtClick(hit);
+							return;
+						}
+						
 						MainScript.Instance.RegenerateBrushWithRotation();
 						
 						if(MainScript.Instance.paintMode == -1){

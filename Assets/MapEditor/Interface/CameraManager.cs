@@ -208,6 +208,8 @@ public void InitializeGizmos()
 	
 	public void Configure()
 	{
+		
+		
 		lockCam = false;
 		dragXarrow = false;
 		dragYarrow = false;

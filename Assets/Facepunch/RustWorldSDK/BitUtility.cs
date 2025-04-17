@@ -35,6 +35,11 @@ public class BitUtility
 	{
 		return b * short2float;
 	}
+	
+	public static float Short2Float(short b)
+    {
+        return b * short2float;
+    }
 
 	public static Color32 EncodeFloat(float f)
 	{
