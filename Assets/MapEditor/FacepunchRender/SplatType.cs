@@ -15,7 +15,7 @@ using System;
         public SplatOverlay ArcticOverlay;
         public PhysicMaterial Material;
         public float SplatTiling;
-        public float UVMixMult;  // Note: "UVMIX" in dump vs. "UVMix" in your TerrainConfig; adjusted to match dump
+        public float UVMixMult;  
         public float UVMixStart;
         public float UVMixDist;
     }

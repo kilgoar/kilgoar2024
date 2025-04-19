@@ -928,7 +928,7 @@ private static void InspectComponent(Component component)
     public static Material LoadTerrainMaterial()
     {
         Material material = AssetManager.LoadAsset<Material>("assets/content/nature/terrain/materials/terrain.v3.mat");
-		
+		AssetManager.UpdateShader(material);
 		
         UnityEngine.Object.DontDestroyOnLoad(material);
         return material;
@@ -978,8 +978,43 @@ private static void ConfigureShaderGlobals(Terrain terrain)
     if (alphamaps.Length > 1) Shader.SetGlobalTexture("Terrain_Control1", alphamaps[1]); // Next 4 splat channels (if 8 splats)
 
     // Texture arrays from TerrainConfig
-    Shader.SetGlobalTexture("Terrain_AlbedoArray", TerrainManager._config.AlbedoArray);
-    //Shader.SetGlobalTexture("Terrain_NormalArray", TerrainManager._config.NormalArray);
+    Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD0", TerrainManager._config.AlbedoArrays[0]);
+	Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD1", TerrainManager._config.AlbedoArrays[1]);
+	Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD2", TerrainManager._config.AlbedoArrays[2]);
+    Shader.SetGlobalTexture("Terrain_NormalArray_LOD0", TerrainManager._config.NormalArrays[0]);
+	Shader.SetGlobalTexture("Terrain_NormalArray_LOD1", TerrainManager._config.NormalArrays[1]);
+	Shader.SetGlobalTexture("Terrain_NormalArray_LOD2", TerrainManager._config.NormalArrays[2]);
+
+	Shader.SetGlobalColor("Terrain_Arid0" , TerrainManager._config.GetAridColors()[0]);
+	Shader.SetGlobalColor("Terrain_Arid1" , TerrainManager._config.GetAridColors()[1]);
+	Shader.SetGlobalColor("Terrain_Arid2" , TerrainManager._config.GetAridColors()[2]);
+	Shader.SetGlobalColor("Terrain_Arid3" , TerrainManager._config.GetAridColors()[3]);
+	
+	Shader.SetGlobalColor("Terrain_Temperate0" , TerrainManager._config.GetTemperateColors()[0]);
+	Shader.SetGlobalColor("Terrain_Temperate1" , TerrainManager._config.GetTemperateColors()[1]);
+	Shader.SetGlobalColor("Terrain_Temperate2" , TerrainManager._config.GetTemperateColors()[2]);
+	Shader.SetGlobalColor("Terrain_Temperate3" , TerrainManager._config.GetTemperateColors()[3]);
+	
+	Shader.SetGlobalColor("Terrain_Tundra0" , TerrainManager._config.GetTundraColors()[0]);
+	Shader.SetGlobalColor("Terrain_Tundra1" , TerrainManager._config.GetTundraColors()[1]);
+	Shader.SetGlobalColor("Terrain_Tundra2" , TerrainManager._config.GetTundraColors()[2]);
+	Shader.SetGlobalColor("Terrain_Tundra3" , TerrainManager._config.GetTundraColors()[3]);
+	
+	Shader.SetGlobalColor("Terrain_Arctic0" , TerrainManager._config.GetArcticColors()[0]);
+	Shader.SetGlobalColor("Terrain_Arctic1" , TerrainManager._config.GetArcticColors()[1]);
+	Shader.SetGlobalColor("Terrain_Arctic2" , TerrainManager._config.GetArcticColors()[2]);
+	Shader.SetGlobalColor("Terrain_Arctic3" , TerrainManager._config.GetArcticColors()[3]);
+	
+	Shader.SetGlobalVector("UVMixParameter0" , TerrainManager._config.GetUVMIXParameters()[0]);
+	Shader.SetGlobalVector("UVMixParameter1" , TerrainManager._config.GetUVMIXParameters()[1]);
+	Shader.SetGlobalVector("UVMixParameter2" , TerrainManager._config.GetUVMIXParameters()[2]);
+	Shader.SetGlobalVector("UVMixParameter3" , TerrainManager._config.GetUVMIXParameters()[3]);
+	Shader.SetGlobalVector("UVMixParameter4" , TerrainManager._config.GetUVMIXParameters()[4]);
+	Shader.SetGlobalVector("UVMixParameter5" , TerrainManager._config.GetUVMIXParameters()[5]);
+	Shader.SetGlobalVector("UVMixParameter6" , TerrainManager._config.GetUVMIXParameters()[6]);
+	Shader.SetGlobalVector("UVMixParameter7" , TerrainManager._config.GetUVMIXParameters()[7]);
+	
+	Shader.SetGlobalFloatArray("Terrain_Tiling", TerrainManager._config.GetSplatTilings());
 	
 	// Disable shore vector (already done, but ensure for redundancy)
     Shader.SetGlobalTexture("Terrain_ShoreVector", null);

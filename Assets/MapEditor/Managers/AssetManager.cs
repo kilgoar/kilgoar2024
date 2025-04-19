@@ -882,7 +882,9 @@ public static void LoadShaderCache()
 
 }
 
-
+	public static void UpdateShader(Material mat){
+		CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.UpdateShader(mat));
+	}
 	
 	
 	public static void FixRenderMode(Material mat, Shader shader = null){
@@ -1257,13 +1259,32 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 		Shader decalShader = Shader.Find("Legacy Shaders/Decal");
 		Shader standardShaderSpecular = Shader.Find("Custom/Rust/StandardSpecular");
 		Shader standardShaderBlend = Shader.Find("Custom/Rust/StandardBlendLayer");
+		Shader standardDecal = Shader.Find("Custom/Rust/StandardDecal");
+		Shader coreFoliage = Shader.Find("Custom/CoreFoliage");
+		Shader standardFourSpecularShader = Shader.Find("Custom/Rust/StandardBlend4WaySpecular");
+		Shader standardTerrain  = Shader.Find("Custom/Rust/StandardTerrain");
 		
+		// Skip if the shader is Core/Foliage
+		if (mat.shader.name.Equals("Core/Foliage"))
+		{
+			mat.shader = coreFoliage;
+			yield break;
+		}
+		
+		/*
 		// Skip if the shader is Core/Foliage
 		if (mat.shader.name.Contains("Core/Foliage"))
 		{
 			//set this shader's render queue to transparent
 			mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
 			//Debug.Log($"Material '{mat.name}' uses shader '{mat.shader.name}' and will not be updated.");
+			yield break;
+		}
+		*/
+		
+		if (mat.shader.name.Equals("Rust/Standard Terrain"))
+		{
+			mat.shader = standardTerrain;
 			yield break;
 		}
 		
@@ -1291,6 +1312,18 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			yield break;
 		}
 		
+		if (mat.shader.name.Equals("Rust/Standard Blend 4-Way (Specular setup)"))
+		{
+			mat.shader = standardFourSpecularShader;
+			yield break;
+		}
+		
+		if (mat.shader.name.Equals("Rust/StandardDecal"))
+		{
+			mat.shader = standardDecal;
+			yield break;
+		}
+		
 		if (mat.shader.name.Contains("Nature/Water"))
 		{
 			mat.shader = specularShader;
@@ -1298,6 +1331,8 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			yield break;
 		}
 		
+
+		/*
 		if (mat.shader.name.Contains("Decal"))
 		{
 			mat.shader = decalShader;			
@@ -1313,6 +1348,8 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			mat.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
 			yield break;
 		}
+		*/
+		
 		
 		int renderQueue = mat.renderQueue;
 
@@ -1333,7 +1370,8 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			mat.SetFloat("_Metallic", 0.25f); 
 			mat.SetFloat("_Glossiness", 0.25f);
 		}
-		*/
+		
+		
 		if (renderQueue > (int)UnityEngine.Rendering.RenderQueue.Geometry &&
 				 renderQueue <= 2450) // Transparent Cutout range
 		{
@@ -1349,7 +1387,10 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			mat.SetFloat("_Cutoff", 0.5f); // Default cutoff
 			mat.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
 		}
-		else if (renderQueue > 2450) // Transparent range
+		*/
+		
+		
+		if (renderQueue > 2450) // Transparent range
 		{
 			mat.shader = specularShader;
 			mat.SetOverrideTag("RenderType", "Transparent");
@@ -1367,6 +1408,7 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			//Debug.LogWarning($"Material {mat.name} has an unsupported render queue: {renderQueue}. No changes applied.");
 			yield break;
 		}
+		
 
 		//Debug.Log($"Material '{mat.name}' updated successfully. Mode: {mat.GetFloat("_Mode")}, Render Queue: {mat.renderQueue}");
 		yield return null;

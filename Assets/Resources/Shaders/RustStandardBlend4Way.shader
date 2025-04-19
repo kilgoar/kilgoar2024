@@ -317,15 +317,15 @@ Shader "Custom/Rust/StandardBlend4Way"
             }
 
 			/*
-            // Blend Layer 2
-            if (_BlendLayer2 > 0.0)
+            // Blend Layer 2  gives oil rig herpes
+            if (_BlendLayer2 > 0.0)  
             {
                 float2 blend2UV = _BlendLayer2_UVSet == 0.0 ? uv : uv2;
                 float2 blend2MaskUV = _BlendLayer2_BlendMaskUVSet == 0.0 ? uv : uv2;
                 fixed blendMask2 = tex2D(_BlendLayer2_BlendMaskMap, blend2MaskUV).r;
                 blendMask2 = _BlendLayer2_BlendMaskMapInvert > 0.0 ? 1.0 - blendMask2 : blendMask2;
-                blendMask2 = pow(blendMask2, max(0.1, _BlendLayer2_BlendFalloff)); // Apply falloff
-                blendMask2 = saturate(blendMask2 * _BlendLayer2_BlendFactor); // Apply intensity and factor
+                //blendMask2 = pow(blendMask2, max(0.1, _BlendLayer2_BlendFalloff)); // Apply falloff
+                //blendMask2 = saturate(blendMask2 * _BlendLayer2_BlendFactor); // Apply intensity and factor
 
                 fixed4 blendAlbedo2 = tex2D(_BlendLayer2_AlbedoMap, blend2UV);
                 if (blendAlbedo2.r == 1.0 && blendAlbedo2.g == 1.0 && blendAlbedo2.b == 1.0)
@@ -337,7 +337,8 @@ Shader "Custom/Rust/StandardBlend4Way"
                     blendAlbedo2.rgb *= _BlendLayer2_Color.rgb;
                 }
                 albedo.rgb = lerp(albedo.rgb, blendAlbedo2.rgb, blendMask2);
-            }*/
+            }
+			*/
 
             // Blend Layer 3
             if (_BlendLayer3 > 0.0)
@@ -346,8 +347,8 @@ Shader "Custom/Rust/StandardBlend4Way"
                 float2 blend3MaskUV = _BlendLayer3_BlendMaskUVSet == 0.0 ? uv : uv2;
                 fixed blendMask3 = tex2D(_BlendLayer3_BlendMaskMap, blend3MaskUV).r;
                 blendMask3 = _BlendLayer3_BlendMaskMapInvert > 0.0 ? 1.0 - blendMask3 : blendMask3;
-                blendMask3 = pow(blendMask3, max(0.1, _BlendLayer3_BlendFalloff)); // Apply falloff
-                blendMask3 = saturate(blendMask3 * _BlendLayer3_BlendFactor); // Apply intensity and factor
+                //blendMask3 = pow(blendMask3, max(0.1, _BlendLayer3_BlendFalloff)); // Apply falloff
+                //blendMask3 = saturate(blendMask3 * _BlendLayer3_BlendFactor); // Apply intensity and factor
 
                 fixed4 blendAlbedo3 = tex2D(_BlendLayer3_AlbedoMap, blend3UV);
                 if (blendAlbedo3.r == 1.0 && blendAlbedo3.g == 1.0 && blendAlbedo3.b == 1.0)
@@ -392,5 +393,5 @@ Shader "Custom/Rust/StandardBlend4Way"
         }
         ENDCG
     }
-    CustomEditor "RustStandardBlend4Way"
+    CustomEditor "RustStandardBlend4WayShaderGUI"
 }

@@ -1,0 +1,234 @@
+using UnityEditor;
+using UnityEngine;
+
+public class RustStandardTerrainShaderGUI : ShaderGUI
+{
+    private bool showSplatmap = true;
+    private bool showOverrides = false;
+    private bool showLayers = false;
+    private bool showWetness = false;
+    private bool showDetail = false;
+    private bool showRendering = false;
+
+    public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
+    {
+        Material material = materialEditor.target as Material;
+
+        // Find Properties
+        MaterialProperty _Control = FindProperty("_Control", properties);
+        MaterialProperty _Splat0 = FindProperty("_Splat0", properties);
+        MaterialProperty _Splat1 = FindProperty("_Splat1", properties);
+        MaterialProperty _Splat2 = FindProperty("_Splat2", properties);
+        MaterialProperty _Splat3 = FindProperty("_Splat3", properties);
+        MaterialProperty _Normal0 = FindProperty("_Normal0", properties);
+        MaterialProperty _Normal1 = FindProperty("_Normal1", properties);
+        MaterialProperty _Normal2 = FindProperty("_Normal2", properties);
+        MaterialProperty _Normal3 = FindProperty("_Normal3", properties);
+
+        MaterialProperty _UseTerrainOverrides = FindProperty("_UseTerrainOverrides", properties);
+        MaterialProperty _TerrainOverride_Control0 = FindProperty("_TerrainOverride_Control0", properties);
+        MaterialProperty _TerrainOverride_Control1 = FindProperty("_TerrainOverride_Control1", properties);
+        MaterialProperty _TerrainOverride_Biome = FindProperty("_TerrainOverride_Biome", properties);
+        MaterialProperty _TerrainOverride_Normal = FindProperty("_TerrainOverride_Normal", properties);
+        MaterialProperty _TerrainOverride_Alpha = FindProperty("_TerrainOverride_Alpha", properties);
+
+        MaterialProperty _WetnessLayer_Mask = FindProperty("_WetnessLayer_Mask", properties);
+        MaterialProperty _PotatoDetailTexture = FindProperty("_PotatoDetailTexture", properties);
+
+        MaterialProperty _Layer0_Factor = FindProperty("_Layer0_Factor", properties);
+        MaterialProperty _Layer0_Falloff = FindProperty("_Layer0_Falloff", properties);
+        MaterialProperty _Layer0_Metallic = FindProperty("_Layer0_Metallic", properties);
+        MaterialProperty _Layer0_Smoothness = FindProperty("_Layer0_Smoothness", properties);
+        MaterialProperty _Layer0_SpecularReflectivity = FindProperty("_Layer0_SpecularReflectivity", properties);
+
+        MaterialProperty _Layer1_Factor = FindProperty("_Layer1_Factor", properties);
+        MaterialProperty _Layer1_Falloff = FindProperty("_Layer1_Falloff", properties);
+        MaterialProperty _Layer1_Metallic = FindProperty("_Layer1_Metallic", properties);
+        MaterialProperty _Layer1_Smoothness = FindProperty("_Layer1_Smoothness", properties);
+        MaterialProperty _Layer1_SpecularReflectivity = FindProperty("_Layer1_SpecularReflectivity", properties);
+
+        MaterialProperty _Layer2_Factor = FindProperty("_Layer2_Factor", properties);
+        MaterialProperty _Layer2_Falloff = FindProperty("_Layer2_Falloff", properties);
+        MaterialProperty _Layer2_Metallic = FindProperty("_Layer2_Metallic", properties);
+        MaterialProperty _Layer2_Smoothness = FindProperty("_Layer2_Smoothness", properties);
+        MaterialProperty _Layer2_SpecularReflectivity = FindProperty("_Layer2_SpecularReflectivity", properties);
+
+        MaterialProperty _Layer3_Factor = FindProperty("_Layer3_Factor", properties);
+        MaterialProperty _Layer3_Falloff = FindProperty("_Layer3_Falloff", properties);
+        MaterialProperty _Layer3_Metallic = FindProperty("_Layer3_Metallic", properties);
+        MaterialProperty _Layer3_Smoothness = FindProperty("_Layer3_Smoothness", properties);
+        MaterialProperty _Layer3_SpecularReflectivity = FindProperty("_Layer3_SpecularReflectivity", properties);
+
+        MaterialProperty _LayerFallback_Albedo = FindProperty("_LayerFallback_Albedo", properties);
+        MaterialProperty _LayerFallback_Metallic = FindProperty("_LayerFallback_Metallic", properties);
+        MaterialProperty _LayerFallback_Smoothness = FindProperty("_LayerFallback_Smoothness", properties);
+
+        MaterialProperty _WetnessLayer = FindProperty("_WetnessLayer", properties);
+        MaterialProperty _WetnessLayer_Wetness = FindProperty("_WetnessLayer_Wetness", properties);
+        MaterialProperty _WetnessLayer_WetAlbedoScale = FindProperty("_WetnessLayer_WetAlbedoScale", properties);
+        MaterialProperty _WetnessLayer_WetSmoothness = FindProperty("_WetnessLayer_WetSmoothness", properties);
+
+        MaterialProperty _ShoreWetnessLayer = FindProperty("_ShoreWetnessLayer", properties);
+        MaterialProperty _ShoreWetnessLayer_BlendFactor = FindProperty("_ShoreWetnessLayer_BlendFactor", properties);
+        MaterialProperty _ShoreWetnessLayer_BlendFalloff = FindProperty("_ShoreWetnessLayer_BlendFalloff", properties);
+        MaterialProperty _ShoreWetnessLayer_Range = FindProperty("_ShoreWetnessLayer_Range", properties);
+        MaterialProperty _ShoreWetnessLayer_WetAlbedoScale = FindProperty("_ShoreWetnessLayer_WetAlbedoScale", properties);
+        MaterialProperty _ShoreWetnessLayer_WetSmoothness = FindProperty("_ShoreWetnessLayer_WetSmoothness", properties);
+
+        MaterialProperty _PotatoDetailWorldUVScale = FindProperty("_PotatoDetailWorldUVScale", properties);
+
+        MaterialProperty _Cutoff = FindProperty("_Cutoff", properties);
+        MaterialProperty _CutoffRange = FindProperty("_CutoffRange", properties);
+        MaterialProperty _DecalLayerMask = FindProperty("_DecalLayerMask", properties);
+        MaterialProperty _Mode = FindProperty("_Mode", properties);
+        MaterialProperty _SrcBlend = FindProperty("_SrcBlend", properties);
+        MaterialProperty _DstBlend = FindProperty("_DstBlend", properties);
+        MaterialProperty _ZWrite = FindProperty("_ZWrite", properties);
+        MaterialProperty _TerrainParallax = FindProperty("_TerrainParallax", properties);
+        MaterialProperty _Terrain_Type = FindProperty("_Terrain_Type", properties);
+
+        // Splatmap Section
+        showSplatmap = EditorGUILayout.Foldout(showSplatmap, "Splatmap Properties", true);
+        if (showSplatmap)
+        {
+            EditorGUI.indentLevel++;
+            materialEditor.TexturePropertySingleLine(new GUIContent("Control (RGBA)"), _Control);
+            materialEditor.TexturePropertySingleLine(new GUIContent("Layer 0 (R) Albedo"), _Splat0);
+            materialEditor.TexturePropertySingleLine(new GUIContent("Layer 0 (R) Normal"), _Normal0);
+            materialEditor.TexturePropertySingleLine(new GUIContent("Layer 1 (G) Albedo"), _Splat1);
+            materialEditor.TexturePropertySingleLine(new GUIContent("Layer 1 (G) Normal"), _Normal1);
+            materialEditor.TexturePropertySingleLine(new GUIContent("Layer 2 (B) Albedo"), _Splat2);
+            materialEditor.TexturePropertySingleLine(new GUIContent("Layer 2 (B) Normal"), _Normal2);
+            materialEditor.TexturePropertySingleLine(new GUIContent("Layer 3 (A) Albedo"), _Splat3);
+            materialEditor.TexturePropertySingleLine(new GUIContent("Layer 3 (A) Normal"), _Normal3);
+            EditorGUI.indentLevel--;
+        }
+
+        // Override Section
+        showOverrides = EditorGUILayout.Foldout(showOverrides, "Terrain Override Properties", true);
+        if (showOverrides)
+        {
+            EditorGUI.indentLevel++;
+            materialEditor.ShaderProperty(_UseTerrainOverrides, "Use Terrain Overrides");
+            if (_UseTerrainOverrides.floatValue > 0.0f)
+            {
+                materialEditor.TexturePropertySingleLine(new GUIContent("Override Control 0"), _TerrainOverride_Control0);
+                materialEditor.TexturePropertySingleLine(new GUIContent("Override Control 1"), _TerrainOverride_Control1);
+                materialEditor.TexturePropertySingleLine(new GUIContent("Override Biome"), _TerrainOverride_Biome);
+                materialEditor.TexturePropertySingleLine(new GUIContent("Override Normal"), _TerrainOverride_Normal);
+                materialEditor.TexturePropertySingleLine(new GUIContent("Override Alpha"), _TerrainOverride_Alpha);
+            }
+            EditorGUI.indentLevel--;
+        }
+
+        // Layer Properties Section
+        showLayers = EditorGUILayout.Foldout(showLayers, "Layer Properties", true);
+        if (showLayers)
+        {
+            EditorGUI.indentLevel++;
+            EditorGUILayout.LabelField("Layer 0 (R)", EditorStyles.boldLabel);
+            materialEditor.FloatProperty(_Layer0_Factor, "Factor");
+            materialEditor.FloatProperty(_Layer0_Falloff, "Falloff");
+            materialEditor.FloatProperty(_Layer0_Metallic, "Metallic");
+            materialEditor.FloatProperty(_Layer0_Smoothness, "Smoothness");
+            materialEditor.FloatProperty(_Layer0_SpecularReflectivity, "Specular Reflectivity");
+
+            EditorGUILayout.LabelField("Layer 1 (G)", EditorStyles.boldLabel);
+            materialEditor.FloatProperty(_Layer1_Factor, "Factor");
+            materialEditor.FloatProperty(_Layer1_Falloff, "Falloff");
+            materialEditor.FloatProperty(_Layer1_Metallic, "Metallic");
+            materialEditor.FloatProperty(_Layer1_Smoothness, "Smoothness");
+            materialEditor.FloatProperty(_Layer1_SpecularReflectivity, "Specular Reflectivity");
+
+            EditorGUILayout.LabelField("Layer 2 (B)", EditorStyles.boldLabel);
+            materialEditor.FloatProperty(_Layer2_Factor, "Factor");
+            materialEditor.FloatProperty(_Layer2_Falloff, "Falloff");
+            materialEditor.FloatProperty(_Layer2_Metallic, "Metallic");
+            materialEditor.FloatProperty(_Layer2_Smoothness, "Smoothness");
+            materialEditor.FloatProperty(_Layer2_SpecularReflectivity, "Specular Reflectivity");
+
+            EditorGUILayout.LabelField("Layer 3 (A)", EditorStyles.boldLabel);
+            materialEditor.FloatProperty(_Layer3_Factor, "Factor");
+            materialEditor.FloatProperty(_Layer3_Falloff, "Falloff");
+            materialEditor.FloatProperty(_Layer3_Metallic, "Metallic");
+            materialEditor.FloatProperty(_Layer3_Smoothness, "Smoothness");
+            materialEditor.FloatProperty(_Layer3_SpecularReflectivity, "Specular Reflectivity");
+
+            EditorGUILayout.LabelField("Fallback Layer", EditorStyles.boldLabel);
+            materialEditor.ColorProperty(_LayerFallback_Albedo, "Albedo");
+            materialEditor.FloatProperty(_LayerFallback_Metallic, "Metallic");
+            materialEditor.FloatProperty(_LayerFallback_Smoothness, "Smoothness");
+            EditorGUI.indentLevel--;
+        }
+
+        // Wetness Section
+        showWetness = EditorGUILayout.Foldout(showWetness, "Wetness Properties", true);
+        if (showWetness)
+        {
+            EditorGUI.indentLevel++;
+            materialEditor.TexturePropertySingleLine(new GUIContent("Wetness Mask"), _WetnessLayer_Mask);
+            materialEditor.FloatProperty(_WetnessLayer, "Wetness Layer");
+            if (_WetnessLayer.floatValue > 0.0f)
+            {
+                materialEditor.FloatProperty(_WetnessLayer_Wetness, "Wetness Amount");
+                materialEditor.FloatProperty(_WetnessLayer_WetAlbedoScale, "Wet Albedo Scale");
+                materialEditor.FloatProperty(_WetnessLayer_WetSmoothness, "Wet Smoothness");
+            }
+            materialEditor.FloatProperty(_ShoreWetnessLayer, "Shore Wetness Layer");
+            if (_ShoreWetnessLayer.floatValue > 0.0f)
+            {
+                materialEditor.FloatProperty(_ShoreWetnessLayer_BlendFactor, "Blend Factor");
+                materialEditor.FloatProperty(_ShoreWetnessLayer_BlendFalloff, "Blend Falloff");
+                materialEditor.FloatProperty(_ShoreWetnessLayer_Range, "Range");
+                materialEditor.FloatProperty(_ShoreWetnessLayer_WetAlbedoScale, "Wet Albedo Scale");
+                materialEditor.FloatProperty(_ShoreWetnessLayer_WetSmoothness, "Wet Smoothness");
+            }
+            EditorGUI.indentLevel--;
+        }
+
+        // Detail Section
+        showDetail = EditorGUILayout.Foldout(showDetail, "Detail Properties", true);
+        if (showDetail)
+        {
+            EditorGUI.indentLevel++;
+            materialEditor.TexturePropertySingleLine(new GUIContent("Potato Detail Texture"), _PotatoDetailTexture);
+            materialEditor.FloatProperty(_PotatoDetailWorldUVScale, "Detail UV Scale");
+            EditorGUI.indentLevel--;
+        }
+
+        // Rendering Section
+        showRendering = EditorGUILayout.Foldout(showRendering, "Rendering Properties", true);
+        if (showRendering)
+        {
+            EditorGUI.indentLevel++;
+            materialEditor.FloatProperty(_Cutoff, "Alpha Cutoff");
+            materialEditor.FloatProperty(_CutoffRange, "Cutoff Range");
+            materialEditor.FloatProperty(_DecalLayerMask, "Decal Layer Mask");
+            materialEditor.FloatProperty(_Mode, "Rendering Mode (0=Opaque, 1=Cutout)");
+            materialEditor.FloatProperty(_SrcBlend, "Source Blend");
+            materialEditor.FloatProperty(_DstBlend, "Destination Blend");
+            materialEditor.FloatProperty(_ZWrite, "ZWrite");
+            materialEditor.FloatProperty(_TerrainParallax, "Terrain Parallax");
+            materialEditor.FloatProperty(_Terrain_Type, "Terrain Type");
+            EditorGUI.indentLevel--;
+        }
+
+        // Rendering Mode Handling
+        if (_Mode.floatValue == 0.0f)
+        {
+            material.SetOverrideTag("RenderType", "Opaque");
+            material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+            material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+            material.SetInt("_ZWrite", 1);
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
+        }
+        else if (_Mode.floatValue == 1.0f)
+        {
+            material.SetOverrideTag("RenderType", "TransparentCutout");
+            material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+            material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+            material.SetInt("_ZWrite", 1);
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+        }
+    }
+}

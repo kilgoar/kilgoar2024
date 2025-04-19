@@ -4,7 +4,7 @@ Shader "Custom/Rust/Standard"
     {
         _Color("Color", Color) = (1,1,1,1)
         _MainTex("Albedo", 2D) = "white" {}
-        _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
+        _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 1.0
         _Glossiness("Smoothness", Range(0.0, 1.0)) = 1.0
         _Metallic("Metallic", Range(0.0, 1.0)) = 0.3
         _MetallicGlossMap("Metallic", 2D) = "white" {}
@@ -17,7 +17,7 @@ Shader "Custom/Rust/Standard"
         _OcclusionStrength("Occlusion Strength", Range(0.0, 1.0)) = 0.0
         [HDR] _EmissionColor("Emission Color", Color) = (0.2,0.2,0.2)
         _EmissionMap("Emission", 2D) = "white" {}
-        _DetailMask("Detail Mask", 2D) = "white" {}
+        _DetailMask("Detail Mask", 2D) = "black" {}
         _DetailAlbedoMap("Detail Albedo", 2D) = "grey" {}
         _DetailMetallicGlossMap("Detail Metallic", 2D) = "white" {}
         _DetailSpecGlossMap("Detail Specular", 2D) = "white" {}
@@ -149,18 +149,27 @@ Shader "Custom/Rust/Standard"
             float2 uv = IN.uv_MainTex;
             fixed4 albedo = tex2D(_MainTex, uv) * _Color;
 
-			
+
             // Detail pass (controlled by _DetailLayer)
-            if (_DetailLayer > 0.0)
-            {
-                fixed detailMask = tex2D(_DetailMask, uv).r;
-                fixed4 detailAlbedo = tex2D(_DetailAlbedoMap, uv);
-                albedo.rgb = lerp(albedo.rgb, detailAlbedo.rgb * _DetailColor, detailMask);
-                //o.Metallic = tex2D(_DetailMetallicGlossMap, uv).r * _Metallic;
-                //o.Smoothness = tex2D(_DetailMetallicGlossMap, uv).a * _Glossiness;
-                o.Normal = UnpackScaleNormal(tex2D(_DetailNormalMap, uv), _DetailNormalMapScale);
-                o.Occlusion = lerp(1.0, tex2D(_DetailOcclusionMap, uv).r, _DetailOcclusionStrength);
-            }
+		if (_DetailLayer > 0.0)
+		{
+			fixed detailMask = tex2D(_DetailMask, uv).rgb;
+			fixed4 detailAlbedo = tex2D(_DetailAlbedoMap, uv);
+			
+			// Check if detailMask is effectively uniform (close to 0 or 1)
+			// We'll use a threshold to decide if the mask is "flat"
+			if (detailMask == 0) // If detailMask is nearly 0 or 1
+			{
+			
+			}
+			else
+			{
+				albedo.rgb = lerp(albedo.rgb, detailAlbedo.rgb * _DetailColor, detailMask);
+			}
+			
+			o.Normal = UnpackScaleNormal(tex2D(_DetailNormalMap, uv), _DetailNormalMapScale);
+			//o.Occlusion = lerp(1.0, tex2D(_DetailOcclusionMap, uv).r, _DetailOcclusionStrength);
+		}
 			
 
 			/*
@@ -180,17 +189,17 @@ Shader "Custom/Rust/Standard"
                 o.Smoothness = lerp(o.Smoothness, _ShoreWetnessLayer_WetSmoothness, shoreWetness);
             }
 			*/
+			o.Normal = UnpackScaleNormal(tex2D(_BumpMap, uv), _BumpScale);
+            o.Occlusion = lerp(1.0, tex2D(_DetailOcclusionMap, uv).r, _DetailOcclusionStrength);
+            // Use SpecGlossMap for Metallic and Smoothness
+            fixed4 specGloss = tex2D(_SpecGlossMap, uv);
+            //o.Metallic = specGloss.rgb; // Fully control Metallic with red channel
+            o.Smoothness = specGloss.rgb; // Use alpha channel for Smoothness
+
 
             o.Albedo = albedo.rgb;
-            //o.Metallic = tex2D(_MetallicGlossMap, uv).r * _Metallic;
-            //o.Smoothness = tex2D(_MetallicGlossMap, uv).a * _Glossiness;
-            //o.Normal = UnpackScaleNormal(tex2D(_BumpMap, uv), _BumpScale);
-            //o.Occlusion = lerp(1.0, tex2D(_OcclusionMap, uv).r, _OcclusionStrength);
             o.Emission = tex2D(_EmissionMap, uv).rgb * _EmissionColor.rgb;
-            o.Alpha = albedo.a;
-			
-            
-			o.Albedo = albedo.rgb;
+            o.Alpha = albedo.a; // Use alpha for blending
 			clip(albedo.a - _Cutoff);
         }
         ENDCG

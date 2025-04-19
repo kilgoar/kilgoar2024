@@ -24,11 +24,11 @@ public class TerrainConfig : ScriptableObject
     [SerializeField] private float shaderLodMin;
     [SerializeField] private float shaderLodMax;
     [SerializeField] private SplatType[] splats = new SplatType[8];
-    [SerializeField] private string[] splatNames; // Maps to %41e60d7eb8cd4c8063a737b77917ababecf9c13e
-    [SerializeField] private string groundMaskName; // Maps to %7dcd1154ffe3369eaecda66f8a8c231e1bab07e6
-    [SerializeField] private string waterMaskName; // Maps to %16a73e57be56192b70d211e967fab10c5a3ae76d
-    [SerializeField] private string[] topologyNames; // Maps to %3c3ff0c28ec8f6ba29d5ce5eb3b69cbbfd7809af
-    [SerializeField] private string genericMaterialName; // Maps to %d621a81838f0a6a53d30e6724de95aa256925cc3
+    [SerializeField] private string[] splatNames; 
+    [SerializeField] private string groundMaskName; 
+    [SerializeField] private string waterMaskName;
+    [SerializeField] private string[] topologyNames; 
+    [SerializeField] private string genericMaterialName; 
 
     // Properties for direct access
     public bool CastShadows { get => castShadows; set => castShadows = value; }
