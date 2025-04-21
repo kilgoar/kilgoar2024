@@ -98,159 +98,263 @@ Shader "Custom/Rust/StandardTerrain"
         [HideInInspector] _ZWrite("ZWrite", Float) = 1.0
         _TerrainParallax("Terrain Parallax", Float) = 0.0
         _Terrain_Type("Terrain Type", Float) = 0.0
-		
-
     }
+
 
     SubShader
     {
         Tags { "RenderType"="Opaque" "Queue"="Geometry" "TerrainCompatible"="True" }
         LOD 300
 
-        Blend [_SrcBlend] [_DstBlend]
-        ZWrite [_ZWrite]
-
         CGPROGRAM
         #pragma target 3.0
-        #pragma surface surf Standard fullforwardshadows
+        #pragma surface surf Standard vertex:vert
         #pragma multi_compile _ ALPHA_TEST
-        #pragma multi_compile _ USE_TERRAIN_OVERRIDES
+		#define TERRAIN_SPLATMAP_COMMON_CGINC_INCLUDED
         #include "UnityCG.cginc"
         #include "Lighting.cginc"
         #include "AutoLight.cginc"
-
+        #include "TerrainSplatmapCommon.cginc"
+		
 		UNITY_DECLARE_TEX2D(Terrain_Control0);
-        UNITY_DECLARE_TEX2D(Terrain_Control1);
-        UNITY_DECLARE_TEX2D(Terrain_HeightTexture);
-        UNITY_DECLARE_TEX2D(Terrain_Alpha);
-        UNITY_DECLARE_TEX2D(Terrain_Biome);
-        UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD0);
-        UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD1);
-        UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD2);
-        UNITY_DECLARE_TEX2DARRAY(Terrain_NormalArray_LOD0);
-        UNITY_DECLARE_TEX2DARRAY(Terrain_NormalArray_LOD1);
-        UNITY_DECLARE_TEX2DARRAY(Terrain_NormalArray_LOD2);
-
-
-        
+		UNITY_DECLARE_TEX2D(Terrain_Control1);
+		UNITY_DECLARE_TEX2D(Terrain_HeightTexture);
+		UNITY_DECLARE_TEX2D(Terrain_Alpha);
+		UNITY_DECLARE_TEX2D(Terrain_Biome);
+		UNITY_DECLARE_TEX2D(Terrain_Biome1);
+		UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD0);
+		UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD1);
+		UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD2);
+		UNITY_DECLARE_TEX2DARRAY(Terrain_NormalArray_LOD0);
+		UNITY_DECLARE_TEX2DARRAY(Terrain_NormalArray_LOD1);
+		UNITY_DECLARE_TEX2DARRAY(Terrain_NormalArray_LOD2);
 		
-        // Biome Color Placeholders
-        float4 Terrain_Arid0, Terrain_Arid1, Terrain_Arid2, Terrain_Arid3;
-        float4 Terrain_Temperate0, Terrain_Temperate1, Terrain_Temperate2, Terrain_Temperate3;
-        float4 Terrain_Tundra0, Terrain_Tundra1, Terrain_Tundra2, Terrain_Tundra3;
-        float4 Terrain_Arctic0, Terrain_Arctic1, Terrain_Arctic2, Terrain_Arctic3;
-
-        // Global UV Mix Parameters
-        float4 UVMixParameter0; // For Dirt (layer 0): (mult, start, distance, unused)
-
-        // Properties
-		float Terrain_Tiling[8];
+	    float Terrain_Tiling[8];
+		float _LODTransitionDistance;
+		float _UseTerrainOverrides;
+		float _Cutoff;
+		float _CutoffRange;
+		float _DecalLayerMask;
+		float _SrcBlend;
+		float _DstBlend;
+		float _ZWrite;
+		float _TerrainParallax;
+		float _Terrain_Type;
 		
-        float _LODTransitionDistance;
-        float _UseTerrainOverrides;
-        float _Cutoff;
-        float _CutoffRange;
-        float _DecalLayerMask;
-        float _SrcBlend;
-        float _DstBlend;
-        float _ZWrite;
-        float _TerrainParallax;
-        float _Terrain_Type;
-        float _Layer0_Factor, _Layer0_Falloff, _Layer0_Metallic, _Layer0_Smoothness, _Layer0_SpecularReflectivity;
-        float _Layer1_Factor, _Layer1_Falloff, _Layer1_Metallic, _Layer1_Smoothness, _Layer1_SpecularReflectivity;
-        float _Layer2_Factor, _Layer2_Falloff, _Layer2_Metallic, _Layer2_Smoothness, _Layer2_SpecularReflectivity;
-        float _Layer3_Factor, _Layer3_Falloff, _Layer3_Metallic, _Layer3_Smoothness, _Layer3_SpecularReflectivity;
-        float _Layer4_Factor, _Layer4_Falloff, _Layer4_Metallic, _Layer4_Smoothness, _Layer4_SpecularReflectivity;
-        float _Layer5_Factor, _Layer5_Falloff, _Layer5_Metallic, _Layer5_Smoothness, _Layer5_SpecularReflectivity;
-        float _Layer6_Factor, _Layer6_Falloff, _Layer6_Metallic, _Layer6_Smoothness, _Layer6_SpecularReflectivity;
-        float _Layer7_Factor, _Layer7_Falloff, _Layer7_Metallic, _Layer7_Smoothness, _Layer7_SpecularReflectivity;
-        fixed4 _LayerFallback_Albedo;
-        float _LayerFallback_Metallic, _LayerFallback_Smoothness;
-        float _WetnessLayer, _WetnessLayer_Wetness, _WetnessLayer_WetAlbedoScale, _WetnessLayer_WetSmoothness;
-        float _ShoreWetnessLayer, _ShoreWetnessLayer_BlendFactor, _ShoreWetnessLayer_BlendFalloff;
-        float _ShoreWetnessLayer_Range, _ShoreWetnessLayer_WetAlbedoScale, _ShoreWetnessLayer_WetSmoothness;
-        float _PotatoDetailWorldUVScale;
-        float _Mode;
 
-        // Splat tiling scales from TerrainManager
-        float4 _Terrain_TexelSize0; // Splat tiling for layers 0-3
-        float4 _Terrain_TexelSize1; // Splat tiling for layers 4-7
+        float4 BiomeColors[40];
+        // Arid biome colors (8 layers)
+        float4 Splat0_AridColor, Splat1_AridColor, Splat2_AridColor, Splat3_AridColor,
+               Splat4_AridColor, Splat5_AridColor, Splat6_AridColor, Splat7_AridColor;
+        // Temperate biome colors (8 layers)
+        float4 Splat0_TemperateColor, Splat1_TemperateColor, Splat2_TemperateColor, Splat3_TemperateColor,
+               Splat4_TemperateColor, Splat5_TemperateColor, Splat6_TemperateColor, Splat7_TemperateColor;
+        // Tundra biome colors (8 layers)
+        float4 Splat0_TundraColor, Splat1_TundraColor, Splat2_TundraColor, Splat3_TundraColor,
+               Splat4_TundraColor, Splat5_TundraColor, Splat6_TundraColor, Splat7_TundraColor;
+        // Arctic biome colors (8 layers)
+        float4 Splat0_ArcticColor, Splat1_ArcticColor, Splat2_ArcticColor, Splat3_ArcticColor,
+               Splat4_ArcticColor, Splat5_ArcticColor, Splat6_ArcticColor, Splat7_ArcticColor;
+        // Jungle biome colors (8 layers)
+        float4 Splat0_JungleColor, Splat1_JungleColor, Splat2_JungleColor, Splat3_JungleColor,
+               Splat4_JungleColor, Splat5_JungleColor, Splat6_JungleColor, Splat7_JungleColor;
+
+		
+		float _Layer0_Factor, _Layer0_Falloff, _Layer0_Metallic, _Layer0_Smoothness, _Layer0_SpecularReflectivity;
+		float _Layer1_Factor, _Layer1_Falloff, _Layer1_Metallic, _Layer1_Smoothness, _Layer1_SpecularReflectivity;
+		float _Layer2_Factor, _Layer2_Falloff, _Layer2_Metallic, _Layer2_Smoothness, _Layer2_SpecularReflectivity;
+		float _Layer3_Factor, _Layer3_Falloff, _Layer3_Metallic, _Layer3_Smoothness, _Layer3_SpecularReflectivity;
+		float _Layer4_Factor, _Layer4_Falloff, _Layer4_Metallic, _Layer4_Smoothness, _Layer4_SpecularReflectivity;
+		float _Layer5_Factor, _Layer5_Falloff, _Layer5_Metallic, _Layer5_Smoothness, _Layer5_SpecularReflectivity;
+		float _Layer6_Factor, _Layer6_Falloff, _Layer6_Metallic, _Layer6_Smoothness, _Layer6_SpecularReflectivity;
+		float _Layer7_Factor, _Layer7_Falloff, _Layer7_Metallic, _Layer7_Smoothness, _Layer7_SpecularReflectivity;
+ 
+		float LayerFactors[8];
+        sampler2D _Control0, _Control1;
+
+		float4 _Terrain_TexelSize0; 
+		float4 _Terrain_TexelSize1; 
+
 
         struct Input
         {
-            float2 uv_Terrain_Control0; // UVs for global textures
-            float2 uv_TerrainOverride_Control0; // UVs for override textures
+            float2 tc_Control0; // Terrain control UVs
             float3 worldPos;
-            float3 worldNormal; INTERNAL_DATA
+            float4 terrainData; // Additional terrain data
         };
+
+        void vert(inout appdata_full v, out Input o)
+        {
+            UNITY_INITIALIZE_OUTPUT(Input, o);
+
+            // Compute world position
+            float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
+            o.worldPos = worldPos.xyz;
+
+            // Set up terrain UVs for control textures
+            o.tc_Control0 = v.texcoord.xy; // Typically, terrain control UVs are in texcoord0
+
+            // Initialize terrain data to avoid undefined behavior
+            o.terrainData = float4(v.texcoord.xy, 0, 0); // Example: store control UVs or placeholder
+
+            // Ensure tangents and normals are passed correctly for lighting
+            v.tangent = float4(cross(v.normal, float3(0, 0, 1)), 1.0); // Simple tangent for flat terrain
+        }
 
         void surf(Input IN, inout SurfaceOutputStandard o)
         {
-            // Calculate distance to camera for LOD
-            float3 cameraPos = _WorldSpaceCameraPos;
-            float distance = length(IN.worldPos - cameraPos);
-
-            float2 baseUV = IN.worldPos.xz;
-            float uvScale = 1.0 / (Terrain_Tiling[0]); // Inverse for texel size or large scale
-            float uvOffset = UVMixParameter0.y; // UV offset
-            float2 uv = baseUV * uvScale + uvOffset;
+			float4 control0 = tex2D(_Control0, IN.tc_Control0);
+            float4 control1 = tex2D(_Control1, IN.tc_Control0);
 			
-            // Sample albedo based on LOD
-            float3 albedo;
-            if (distance < _LODTransitionDistance * 0.5)
-            {
-                albedo = UNITY_SAMPLE_TEX2DARRAY(Terrain_AlbedoArray_LOD0, float3(uv, 0)).rgb;
-            }
-            else if (distance < _LODTransitionDistance)
-            {
-                // Blend LOD0 and LOD1
-                float t = (distance - _LODTransitionDistance * 0.5) / (_LODTransitionDistance * 0.5);
-                float3 albedo0 = UNITY_SAMPLE_TEX2DARRAY(Terrain_AlbedoArray_LOD0, float3(uv, 0)).rgb;
-                float3 albedo1 = UNITY_SAMPLE_TEX2DARRAY(Terrain_AlbedoArray_LOD1, float3(uv, 0)).rgb;
-                albedo = lerp(albedo0, albedo1, t);
-            }
-            else
-            {
-                albedo = UNITY_SAMPLE_TEX2DARRAY(Terrain_AlbedoArray_LOD1, float3(uv, 0));
-            }
+			float3 cameraPos = _WorldSpaceCameraPos;
+			float distance = length(IN.worldPos - cameraPos);
+			
+			float controlWeights[8];
+			controlWeights[0] = control0.r;
+			controlWeights[1] = control0.g;
+			controlWeights[2] = control0.b;
+			controlWeights[3] = control0.a;
+			controlWeights[4] = control1.r;
+			controlWeights[5] = control1.g;
+			controlWeights[6] = control1.b;
+			controlWeights[7] = control1.a;
+			
+			LayerFactors[0] = _Layer0_Factor;
+			LayerFactors[1] = _Layer1_Factor;
+			LayerFactors[2] = _Layer2_Factor;
+			LayerFactors[3] = _Layer3_Factor;
+			LayerFactors[4] = _Layer4_Factor;
+			LayerFactors[5] = _Layer5_Factor;
+			LayerFactors[6] = _Layer6_Factor;
+			LayerFactors[7] = _Layer7_Factor;
 
-			albedo *= Terrain_Temperate0;
-            // Sample normal based on LOD
-			/*
-            float3 normal;
-            if (distance < _LODTransitionDistance * 0.5)
-            {
-                normal = UnpackNormal(UNITY_SAMPLE_TEX2DARRAY(Terrain_NormalArray_LOD0, float3(uv, 0)));
-            }
-            else if (distance < _LODTransitionDistance)
-            {
-                float t = (distance - _LODTransitionDistance * 0.5) / (_LODTransitionDistance * 0.5);
-                float3 normal0 = UnpackNormal(UNITY_SAMPLE_TEX2DARRAY(Terrain_NormalArray_LOD0, float3(uv, 0)));
-                float3 normal1 = UnpackNormal(UNITY_SAMPLE_TEX2DARRAY(Terrain_NormalArray_LOD1, float3(uv, 0)));
-                normal = normalize(lerp(normal0, normal1, t));
+            // Biome 0: Arid (8 layers)
+            BiomeColors[0] = Splat0_AridColor; BiomeColors[1] = Splat1_AridColor; BiomeColors[2] = Splat2_AridColor;
+            BiomeColors[3] = Splat3_AridColor; BiomeColors[4] = Splat4_AridColor; BiomeColors[5] = Splat5_AridColor;
+            BiomeColors[6] = Splat6_AridColor; BiomeColors[7] = Splat7_AridColor;
+            // Biome 1: Temperate (8 layers)
+            BiomeColors[8] = Splat0_TemperateColor; BiomeColors[9] = Splat1_TemperateColor; BiomeColors[10] = Splat2_TemperateColor;
+            BiomeColors[11] = Splat3_TemperateColor; BiomeColors[12] = Splat4_TemperateColor; BiomeColors[13] = Splat5_TemperateColor;
+            BiomeColors[14] = Splat6_TemperateColor; BiomeColors[15] = Splat7_TemperateColor;
+            // Biome 2: Tundra (8 layers)
+            BiomeColors[16] = Splat0_TundraColor; BiomeColors[17] = Splat1_TundraColor; BiomeColors[18] = Splat2_TundraColor;
+            BiomeColors[19] = Splat3_TundraColor; BiomeColors[20] = Splat4_TundraColor; BiomeColors[21] = Splat5_TundraColor;
+            BiomeColors[22] = Splat6_TundraColor; BiomeColors[23] = Splat7_TundraColor;
+            // Biome 3: Arctic (8 layers)
+            BiomeColors[24] = Splat0_ArcticColor; BiomeColors[25] = Splat1_ArcticColor; BiomeColors[26] = Splat2_ArcticColor;
+            BiomeColors[27] = Splat3_ArcticColor; BiomeColors[28] = Splat4_ArcticColor; BiomeColors[29] = Splat5_ArcticColor;
+            BiomeColors[30] = Splat6_ArcticColor; BiomeColors[31] = Splat7_ArcticColor;
+            // Biome 4: Jungle (8 layers)
+            BiomeColors[32] = Splat0_JungleColor; BiomeColors[33] = Splat1_JungleColor; BiomeColors[34] = Splat2_JungleColor;
+            BiomeColors[35] = Splat3_JungleColor; BiomeColors[36] = Splat4_JungleColor; BiomeColors[37] = Splat5_JungleColor;
+            BiomeColors[38] = Splat6_JungleColor; BiomeColors[39] = Splat7_JungleColor;
+
+		// Initialize output values
+		float3 albedo = float3(0, 0, 0);
+		float3 normal = float3(0, 0, 0);
+		float metallic = 0.0;
+		float smoothness = 0.0;
+		float specularReflectivity = 0.0;
+		float alpha = 1.0;
+		float totalWeight = 0.0;
+		
+		
+		            // Sample biome weights from Terrain_Biome and Terrain_Biome1
+        float4 biomeWeights0 = UNITY_SAMPLE_TEX2D(Terrain_Biome, IN.tc_Control0); // RGBA for biomes 0-3
+        float jungleWeight = UNITY_SAMPLE_TEX2D(Terrain_Biome1, IN.tc_Control0).r; // R for biome 4 (Jungle)
+
+        
+            float biomeWeights[5];
+            biomeWeights[0] = biomeWeights0.r; // Arid
+            biomeWeights[1] = biomeWeights0.g; // Temperate
+            biomeWeights[2] = biomeWeights0.b; // Tundra
+            biomeWeights[3] = biomeWeights0.a; // Arctic
+            biomeWeights[4] = jungleWeight;    // Jungle
+		
+
+		// Determine biome index (assuming terrainData.x encodes biome info, 0-4 for Arid, Temperate, Tundra, Arctic, Jungle)
+		int biomeIndex = clamp(floor(IN.terrainData.x * 5.0), 0, 4); // Map to 0-4
+
+		// LOD transition factor
+		float lodFactor = saturate(distance / _LODTransitionDistance);
+		lodFactor = pow(lodFactor, 2.0); // Smooth transition curve
+
+		// Layer properties array for metallic and smoothness
+		float layerMetallic[8] = { _Layer0_Metallic, _Layer1_Metallic, _Layer2_Metallic, _Layer3_Metallic, 
+								  _Layer4_Metallic, _Layer5_Metallic, _Layer6_Metallic, _Layer7_Metallic };
+		float layerSmoothness[8] = { _Layer0_Smoothness, _Layer1_Smoothness, _Layer2_Smoothness, _Layer3_Smoothness, 
+									_Layer4_Smoothness, _Layer5_Smoothness, _Layer6_Smoothness, _Layer7_Smoothness };
+		float layerSpecular[8] = { _Layer0_SpecularReflectivity, _Layer1_SpecularReflectivity, _Layer2_SpecularReflectivity, 
+								  _Layer3_SpecularReflectivity, _Layer4_SpecularReflectivity, _Layer5_SpecularReflectivity, 
+								  _Layer6_SpecularReflectivity, _Layer7_SpecularReflectivity };
+		float layerFalloff[8] = { _Layer0_Falloff, _Layer1_Falloff, _Layer2_Falloff, _Layer3_Falloff, 
+								 _Layer4_Falloff, _Layer5_Falloff, _Layer6_Falloff, _Layer7_Falloff };
+
+		
+		
+		
+		for (int i = 0; i < 8; i++)
+		{
+                float2 worldUV = IN.worldPos.xz; // Already in xz plane from vert shader
+                float tilingFrequency = Terrain_Tiling[i];
+                float2 tiledUV = worldUV / tilingFrequency;	
+				
+			float3 layerAlbedo;
+            
+			if (lodFactor <= 0.5)
+                    {
+                        // LOD0 to LOD1 transition
+                        float3 albedoLOD0 = UNITY_SAMPLE_TEX2DARRAY(Terrain_AlbedoArray_LOD0, float3(tiledUV, i)).rgb;
+                        float3 albedoLOD1 = UNITY_SAMPLE_TEX2DARRAY(Terrain_AlbedoArray_LOD1, float3(tiledUV, i)).rgb;
+                        layerAlbedo = lerp(albedoLOD0, albedoLOD1, lodFactor * 2.0);
+                    }
+                    else
+                    {
+                        // LOD1 to LOD2 transition
+                        float3 albedoLOD1 = UNITY_SAMPLE_TEX2DARRAY(Terrain_AlbedoArray_LOD1, float3(tiledUV, i)).rgb;
+                        float3 albedoLOD2 = UNITY_SAMPLE_TEX2DARRAY(Terrain_AlbedoArray_LOD2, float3(tiledUV, i)).rgb;
+                        layerAlbedo = lerp(albedoLOD1, albedoLOD2, (lodFactor - 0.5) * 2.0);
+                    }
+			
+            float3 layerNormal;
+					if (lodFactor <= 0.5)
+					{
+						float4 normalLOD0 = UNITY_SAMPLE_TEX2DARRAY(Terrain_NormalArray_LOD0, float3(tiledUV, i));
+						float4 normalLOD1 = UNITY_SAMPLE_TEX2DARRAY(Terrain_NormalArray_LOD1, float3(tiledUV, i));
+						layerNormal = UnpackNormal(lerp(normalLOD0, normalLOD1, lodFactor * 2.0));
+					}
+					else
+					{
+						float4 normalLOD1 = UNITY_SAMPLE_TEX2DARRAY(Terrain_NormalArray_LOD1, float3(tiledUV, i));
+						float4 normalLOD2 = UNITY_SAMPLE_TEX2DARRAY(Terrain_NormalArray_LOD2, float3(tiledUV, i));
+						layerNormal = UnpackNormal(lerp(normalLOD1, normalLOD2, (lodFactor - 0.5) * 2.0));
+					}
+			
+			
+			float weight = controlWeights[i];
+			
+			normal += weight * layerNormal;
+				
+			float3 biomeColor = float3(0, 0, 0);
+			float totalBiomeWeight = 0.0;
+			for (int b = 0; b < 5; b++)
+			{
+				biomeColor += biomeWeights[b] * GammaToLinearSpace(BiomeColors[b * 8 + i]);
 			}
-            else
-            {
-				normal = UnpackNormal(UNITY_SAMPLE_TEX2DARRAY(Terrain_NormalArray_LOD1, float3(uv, 0)));
-            }
-			
-			_Layer0_Factor("Layer 0 Factor", Float) = 1.0
-			_Layer0_Falloff("Layer 0 Falloff", Float) = 1.0
-			_Layer0_Metallic("Layer 0 Metallic", Range(0.0, 1.0)) = 0.0
-			_Layer0_Smoothness("Layer 0 Smoothness", Range(0.0, 1.0)) = 0.5
-			_Layer0_SpecularReflectivity("Layer 0 Specular Reflectivity", Range(0.0, 1.0)) = 0.0
-			
-			*/
-			float4 normalTex = UNITY_SAMPLE_TEX2DARRAY(Terrain_NormalArray_LOD0, float3(uv, 0));
-			float3 normal = normalTex.rgb;
-			
-            // Output
+				
+				float3 tintedAlbedo = layerAlbedo * biomeColor;
+				albedo += tintedAlbedo * weight;
+		}
+
+
+
             o.Albedo = albedo;
-            o.Normal = normal;
-			o.Metallic = _Layer0_Metallic;
-            //o.Smoothness = _Layer0_Smoothness;
-            o.Alpha = 1.0;
-        }
+		
+		o.Albedo = albedo;
+	}
+
+	
+
         ENDCG
     }
 

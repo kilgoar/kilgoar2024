@@ -977,6 +977,7 @@ private static void ConfigureShaderGlobals(Terrain terrain)
     if (alphamaps.Length > 0) Shader.SetGlobalTexture("Terrain_Control0", alphamaps[0]); // First 4 splat channels
     if (alphamaps.Length > 1) Shader.SetGlobalTexture("Terrain_Control1", alphamaps[1]); // Next 4 splat channels (if 8 splats)
 
+	Shader.SetGlobalVector("Terrain_Size", TerrainSize);
     // Texture arrays from TerrainConfig
     Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD0", TerrainManager._config.AlbedoArrays[0]);
 	Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD1", TerrainManager._config.AlbedoArrays[1]);
@@ -989,21 +990,25 @@ private static void ConfigureShaderGlobals(Terrain terrain)
 	Shader.SetGlobalColor("Terrain_Arid1" , TerrainManager._config.GetAridColors()[1]);
 	Shader.SetGlobalColor("Terrain_Arid2" , TerrainManager._config.GetAridColors()[2]);
 	Shader.SetGlobalColor("Terrain_Arid3" , TerrainManager._config.GetAridColors()[3]);
+	//Shader.SetGlobalColor("Terrain_Arid4" , TerrainManager._config.GetAridColors()[4]);
 	
 	Shader.SetGlobalColor("Terrain_Temperate0" , TerrainManager._config.GetTemperateColors()[0]);
 	Shader.SetGlobalColor("Terrain_Temperate1" , TerrainManager._config.GetTemperateColors()[1]);
 	Shader.SetGlobalColor("Terrain_Temperate2" , TerrainManager._config.GetTemperateColors()[2]);
 	Shader.SetGlobalColor("Terrain_Temperate3" , TerrainManager._config.GetTemperateColors()[3]);
+	//Shader.SetGlobalColor("Terrain_Temperate4" , TerrainManager._config.GetTemperateColors()[4]);
 	
 	Shader.SetGlobalColor("Terrain_Tundra0" , TerrainManager._config.GetTundraColors()[0]);
 	Shader.SetGlobalColor("Terrain_Tundra1" , TerrainManager._config.GetTundraColors()[1]);
 	Shader.SetGlobalColor("Terrain_Tundra2" , TerrainManager._config.GetTundraColors()[2]);
 	Shader.SetGlobalColor("Terrain_Tundra3" , TerrainManager._config.GetTundraColors()[3]);
+	//Shader.SetGlobalColor("Terrain_Tundra4" , TerrainManager._config.GetTundraColors()[4]);
 	
 	Shader.SetGlobalColor("Terrain_Arctic0" , TerrainManager._config.GetArcticColors()[0]);
 	Shader.SetGlobalColor("Terrain_Arctic1" , TerrainManager._config.GetArcticColors()[1]);
 	Shader.SetGlobalColor("Terrain_Arctic2" , TerrainManager._config.GetArcticColors()[2]);
 	Shader.SetGlobalColor("Terrain_Arctic3" , TerrainManager._config.GetArcticColors()[3]);
+	//Shader.SetGlobalColor("Terrain_Arctic4" , TerrainManager._config.GetArcticColors()[4]);
 	
 	Shader.SetGlobalVector("UVMixParameter0" , TerrainManager._config.GetUVMIXParameters()[0]);
 	Shader.SetGlobalVector("UVMixParameter1" , TerrainManager._config.GetUVMIXParameters()[1]);
@@ -2929,7 +2934,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 		#if UNITY_EDITOR
 				EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.GenerateNormalMap(HeightMapRes - 1, Progress.Start("Regenerate Normal Map")));
 		#else
-				Land.StartCoroutine(Coroutines.GenerateNormalMap(HeightMapRes - 1, -1));
+				CoroutineManager.Instance.StartCoroutine(Coroutines.GenerateNormalMap(HeightMapRes - 1, -1));
 		#endif
 				Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
 		}
@@ -2945,6 +2950,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 	
     public static void SyncHeightTexture()
     {
+		/*
         if (Height == null || Height.GetLength(0) != HeightMapRes)
         {
             Debug.LogError("Height data is not initialized or resolution mismatch." + Height.GetLength(0) + " " + HeightMapRes);
@@ -2980,6 +2986,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
         Graphics.CopyTexture(tempTexture, HeightTexture);
         UnityEngine.Object.Destroy(tempTexture);
         Shader.SetGlobalTexture("Terrain_HeightTexture", HeightTexture);
+		*/
     }
 
     #region Methods

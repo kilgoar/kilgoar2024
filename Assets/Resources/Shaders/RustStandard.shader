@@ -194,7 +194,7 @@ Shader "Custom/Rust/Standard"
             // Use SpecGlossMap for Metallic and Smoothness
             fixed4 specGloss = tex2D(_SpecGlossMap, uv);
             //o.Metallic = specGloss.rgb; // Fully control Metallic with red channel
-            o.Smoothness = specGloss.rgb; // Use alpha channel for Smoothness
+            //o.Smoothness = specGloss.rgb; // Use alpha channel for Smoothness
 
 
             o.Albedo = albedo.rgb;

@@ -387,7 +387,7 @@ Shader "Custom/Rust/StandardBlend4Way"
             // Base material properties
             o.Albedo = albedo.rgb;
             //o.Metallic = _Metallic;
-            o.Smoothness = _Glossiness;
+            //o.Smoothness = _Glossiness;
             //o.Alpha = albedo.a;
             //clip(albedo.a - _Cutoff);
         }

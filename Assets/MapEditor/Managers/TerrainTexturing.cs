@@ -236,14 +236,16 @@ public class TerrainTexturing : MonoBehaviour
         for (int i = 0; i < 8; i++)
         {
 			Shader.SetGlobalVector(shaderPropertyIds[0, i], new Vector3(layerParams[i].x, layerParams[i].y, layerParams[i].z));
-            Shader.SetGlobalColor(shaderPropertyIds[1, i], aridColors[i].linear);
-            Shader.SetGlobalColor(shaderPropertyIds[2, i], temperateColors[i].linear);
-            Shader.SetGlobalColor(shaderPropertyIds[3, i], tundraColors[i].linear);
-            Shader.SetGlobalColor(shaderPropertyIds[4, i], arcticColors[i].linear);
-            Shader.SetGlobalColor(shaderPropertyIds[5, i], aridOverlayColors[i].linear);
-            Shader.SetGlobalColor(shaderPropertyIds[6, i], temperateOverlayColors[i].linear);
-            Shader.SetGlobalColor(shaderPropertyIds[7, i], tundraOverlayColors[i].linear);
-            Shader.SetGlobalColor(shaderPropertyIds[8, i], arcticOverlayColors[i].linear);
+            Shader.SetGlobalColor(shaderPropertyIds[1, i], aridColors[i]);
+            Shader.SetGlobalColor(shaderPropertyIds[2, i], temperateColors[i]);
+            Shader.SetGlobalColor(shaderPropertyIds[3, i], tundraColors[i]);
+            Shader.SetGlobalColor(shaderPropertyIds[4, i], arcticColors[i]);
+			
+            Shader.SetGlobalColor(shaderPropertyIds[5, i], aridOverlayColors[i]);
+            Shader.SetGlobalColor(shaderPropertyIds[6, i], temperateOverlayColors[i]);
+            Shader.SetGlobalColor(shaderPropertyIds[7, i], tundraOverlayColors[i]);
+            Shader.SetGlobalColor(shaderPropertyIds[8, i], arcticOverlayColors[i]);
+			
             Shader.SetGlobalVector(shaderPropertyIds[9, i], aridOverlayParams[i]);
             Shader.SetGlobalVector(shaderPropertyIds[10, i], temperateOverlayParams[i]);
             Shader.SetGlobalVector(shaderPropertyIds[11, i], tundraOverlayParams[i]);

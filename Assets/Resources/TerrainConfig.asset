@@ -24,13 +24,13 @@ MonoBehaviour:
   material: {fileID: 0}
   marginMaterial: {fileID: 0}
   albedoArrays:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 7373932734899358533, guid: 00000000000000000000000000000000, type: 0}
+  - {fileID: 7692004307072358835, guid: 00000000000000000000000000000000, type: 0}
+  - {fileID: -693971003514803011, guid: 00000000000000000000000000000000, type: 0}
   normalArrays:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 916843833202036410, guid: 00000000000000000000000000000000, type: 0}
+  - {fileID: -3692599914005807211, guid: 00000000000000000000000000000000, type: 0}
+  - {fileID: 1440969513801370827, guid: 00000000000000000000000000000000, type: 0}
   heightMapErrorMin: 10
   heightMapErrorMax: 100
   baseMapDistanceMin: 100

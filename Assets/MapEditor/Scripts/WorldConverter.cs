@@ -138,19 +138,26 @@ public static class WorldConverter
     /// <summary>Parses World Serialization and converts into MapInfo struct.</summary>
     /// <param name="world">Serialization of the map file to parse.</param>
     public static MapInfo WorldToTerrain(WorldSerialization world)
-    {
-		
+    {		
 		
         MapInfo terrains = new MapInfo();
-			
+
+		
         var terrainSize = new Vector3(world.world.size, 1000, world.world.size);
+		
 		
         var terrainMap = new TerrainMap<short>(world.GetMap("terrain").data, 1);
         var heightMap = new TerrainMap<short>(world.GetMap("height").data, 1);
         var waterMap = new TerrainMap<short>(world.GetMap("water").data, 1);
         var splatMap = new TerrainMap<byte>(world.GetMap("splat").data, 8);
         var topologyMap = new TerrainMap<int>(world.GetMap("topology").data, 1);
-        var biomeMap = new TerrainMap<byte>(world.GetMap("biome").data, 4);
+		
+		int resolution = splatMap.res; 
+		Debug.LogError(resolution);
+		int biomeChannels = world.GetMap("biome").data.Length / (resolution * resolution); // Calculate channels (4 or 5)
+		Debug.LogError(biomeChannels + " biomes found");
+		var biomeMap = new TerrainMap<byte>(world.GetMap("biome").data, biomeChannels);
+		
         var alphaMap = new TerrainMap<byte>(world.GetMap("alpha").data, 1);
 		
         terrains.topology = topologyMap;

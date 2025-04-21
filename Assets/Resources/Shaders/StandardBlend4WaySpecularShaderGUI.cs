@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 
@@ -309,3 +310,4 @@ public class StandardBlend4WaySpecularShaderGUI : ShaderGUI
         _Cull = FindProperty("_Cull", properties);
     }
 }
+#endif

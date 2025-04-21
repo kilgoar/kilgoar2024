@@ -179,7 +179,7 @@ Shader "Custom/CoreFoliage" {
                 o.tangent = float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
                 o.vertexColor = v.color;
                 o.distance = length(_WorldSpaceCameraPos - o.worldPos);
-                TRANSFER_SHADOW(o);
+                //TRANSFER_SHADOW(o);
                 
                 return o;
             }

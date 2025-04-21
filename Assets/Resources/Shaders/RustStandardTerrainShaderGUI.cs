@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 
@@ -120,7 +121,8 @@ public class RustStandardTerrainShaderGUI : ShaderGUI
                 "Terrain_Control1",
                 "Terrain_HeightTexture",
                 "Terrain_Alpha",
-                "Terrain_Biome"
+                "Terrain_Biome",
+                "Terrain_Biome1"
             };
 
             foreach (string textureName in singleTextureNames)
@@ -195,22 +197,22 @@ public class RustStandardTerrainShaderGUI : ShaderGUI
             EditorGUILayout.LabelField("UV Mix Parameters", EditorStyles.boldLabel);
             for (int i = 0; i < 8; i++)
             {
-                Vector4 uvMix = Shader.GetGlobalVector($"UVMixParameter{i}");
-                EditorGUILayout.Vector4Field($"UVMixParameter{i} (Mult, Start, Distance, Unused)", uvMix);
+                Vector4 uvMix = Shader.GetGlobalVector($"Splat{i}_UVMIX");
+                EditorGUILayout.Vector4Field($"Splat{i}_UVMIX (Mult, Start, Distance, Unused)", uvMix);
             }
 
             // Biome Colors
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Biome Colors", EditorStyles.boldLabel);
-            string[] biomes = new string[] { "Arid", "Temperate", "Tundra", "Arctic" };
+            string[] biomes = new string[] { "Arid", "Temperate", "Tundra", "Arctic", "Jungle" };
             foreach (string biome in biomes)
             {
                 EditorGUILayout.LabelField($"{biome} Colors", EditorStyles.miniBoldLabel);
-                for (int i = 0; i < 4; i++)
+                for (int i = 0; i < 8; i++) // Display 8 colors per biome (0-7)
                 {
-                    Color color = Shader.GetGlobalColor($"Terrain_{biome}{i}");
+                    Color color = Shader.GetGlobalColor($"Splat{i}_{biome}Color");
                     Rect rect = EditorGUILayout.GetControlRect();
-                    EditorGUI.ColorField(rect, new GUIContent($"Terrain_{biome}{i}"), color, true, false, false);
+                    EditorGUI.ColorField(rect, new GUIContent($"Splat{i}_{biome}Color"), color, true, false, false);
                 }
             }
             EditorGUI.indentLevel--;
@@ -329,17 +331,18 @@ public class RustStandardTerrainShaderGUI : ShaderGUI
             materialEditor.FloatProperty(_Terrain_Type, "Terrain Type");
             EditorGUI.indentLevel--;
         }
-		
-		// Terrain Tiling Parameters
-		EditorGUILayout.Space();
-		EditorGUILayout.LabelField("Terrain Tiling Parameters", EditorStyles.boldLabel);
-		float[] terrainTiling = Shader.GetGlobalFloatArray("Terrain_Tiling");
-		for (int i = 0; i < terrainTiling.Length; i++)
-		{
-			EditorGUILayout.FloatField($"Terrain_Tiling[{i}]", terrainTiling[i]);
-		}
+
+        // Terrain Tiling Parameters
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Terrain Tiling Parameters", EditorStyles.boldLabel);
+        float[] terrainTiling = Shader.GetGlobalFloatArray("Terrain_Tiling");
+        for (int i = 0; i < terrainTiling.Length; i++)
+        {
+            EditorGUILayout.FloatField($"Terrain_Tiling[{i}]", terrainTiling[i]);
+        }
 
         // Ensure material properties are applied
         materialEditor.PropertiesChanged();
     }
 }
+#endif

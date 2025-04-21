@@ -19,9 +19,10 @@
     "newBiome": 2,
     "newSplat": 16,
     "recentFiles": [
+      "E:\\smallmap.map",
       "E:\\test.map.map",
-      "E:\\Program Files (x86)\\Steam\\steamapps\\common\\Rust\\maps\\proceduralmap.4500.1337.250_b9a88dce15ae14333143e3a545f696f4.map",
-      "E:\\smallmap.map"
+      "E:\\jungletest.map",
+      "E:\\Program Files (x86)\\Steam\\steamapps\\common\\Rust\\maps\\proceduralmap.4500.1337.250_b9a88dce15ae14333143e3a545f696f4.map"
     ]
   },
   "crazing": {
@@ -279,8 +280,8 @@
     {
       "isActive": false,
       "position": {
-        "x": 215.459991,
-        "y": -81.034,
+        "x": 98.45999,
+        "y": -75.034,
         "z": 0.0
       },
       "scale": {
@@ -305,7 +306,7 @@
     {
       "isActive": false,
       "position": {
-        "x": -124.0,
+        "x": -53.5,
         "y": 68.49997,
         "z": 0.0
       },
@@ -316,10 +317,10 @@
       }
     },
     {
-      "isActive": false,
+      "isActive": true,
       "position": {
-        "x": -283.79657,
-        "y": -34.3733826,
+        "x": -198.296555,
+        "y": -13.3733826,
         "z": 0.0
       },
       "scale": {
@@ -331,7 +332,7 @@
     {
       "isActive": false,
       "position": {
-        "x": -291.79657,
+        "x": -221.29657,
         "y": 46.3503723,
         "z": 0.0
       },
@@ -344,7 +345,7 @@
     {
       "isActive": false,
       "position": {
-        "x": -54.8999939,
+        "x": 15.5999756,
         "y": 2.1,
         "z": 0.0
       },
@@ -357,7 +358,7 @@
     {
       "isActive": false,
       "position": {
-        "x": 248.789978,
+        "x": 319.289978,
         "y": -90.65698,
         "z": 0.0
       },
@@ -370,7 +371,7 @@
     {
       "isActive": false,
       "position": {
-        "x": -48.47998,
+        "x": 22.02002,
         "y": -82.1099854,
         "z": 0.0
       },
@@ -396,7 +397,7 @@
     {
       "isActive": false,
       "position": {
-        "x": 307.55,
+        "x": 378.05,
         "y": -105.47,
         "z": 0.0
       },
@@ -414,8 +415,8 @@
       "z": 1.0
     },
     "position": {
-      "x": 984.0,
-      "y": 599.0,
+      "x": 1101.0,
+      "y": 593.0,
       "z": 0.0
     }
   }

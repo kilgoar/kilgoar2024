@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 
@@ -104,3 +105,4 @@ public class RustStandardSpecularShaderGUI : ShaderGUI
         materialEditor.DoubleSidedGIField();
     }
 }
+#endif

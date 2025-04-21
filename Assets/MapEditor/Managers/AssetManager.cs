@@ -1263,11 +1263,19 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 		Shader coreFoliage = Shader.Find("Custom/CoreFoliage");
 		Shader standardFourSpecularShader = Shader.Find("Custom/Rust/StandardBlend4WaySpecular");
 		Shader standardTerrain  = Shader.Find("Custom/Rust/StandardTerrain");
+		Shader coreFoliageBillboard = Shader.Find("Custom/CoreFoliageBillboard");
 		
 		// Skip if the shader is Core/Foliage
 		if (mat.shader.name.Equals("Core/Foliage"))
 		{
 			mat.shader = coreFoliage;
+			yield break;
+		}
+		
+		// Skip if the shader is Core/Foliage
+		if (mat.shader.name.Equals("Core/Foliage Billboard"))
+		{
+			mat.shader = coreFoliageBillboard;
 			yield break;
 		}
 		
@@ -1288,7 +1296,9 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			yield break;
 		}
 		
-		if (mat.shader.name.Equals("Rust/Standard"))
+		
+		if (mat.shader.name.Equals("Standard (Specular setup)") ||mat.shader.name.Equals("Rust/Standard") || mat.shader.name.Equals("Rust/Standard + Wind") || mat.shader.name.Equals("Rust/Standard Cloth")
+			|| mat.shader.name.Equals("Rust/Standard Particle") || mat.shader.name.Equals("Rust/Standard Snow Area") || mat.shader.name.Equals("Rust/Standard Wire") || mat.shader.name.Equals("Rust/Standard + Specular Glare"))
 		{
 			mat.shader = standardShader;
 			yield break;
@@ -1300,25 +1310,25 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			yield break;
 		}
 		
-		if (mat.shader.name.Equals("Rust/Standard (Specular setup)"))
+		if ( mat.shader.name.Equals("Rust/Standard (Specular setup)") || mat.shader.name.Equals("Rust/Standard + Wind (Specular setup)") || mat.shader.name.Equals("Rust/Standard + Decal (Specular setup)"))
 		{
 			mat.shader = standardShaderSpecular;
 			yield break;
 		}
 		
-		if (mat.shader.name.Equals("Rust/Standard Blend Layer"))
+		if (mat.shader.name.Equals("Rust/Standard Blend Layer") || mat.shader.name.Equals("Rust/Standard Terrain Blend (Specular setup)") || mat.shader.name.Equals("Rust/Standard Blend Layer (Specular setup)"))
 		{
 			mat.shader = standardShaderBlend;
 			yield break;
 		}
 		
-		if (mat.shader.name.Equals("Rust/Standard Blend 4-Way (Specular setup)"))
+		if (mat.shader.name.Equals("Rust/Standard Blend 4-Way (Specular setup)") )
 		{
 			mat.shader = standardFourSpecularShader;
 			yield break;
 		}
 		
-		if (mat.shader.name.Equals("Rust/StandardDecal"))
+		if (mat.shader.name.Contains("Rust/StandardDecal"))
 		{
 			mat.shader = standardDecal;
 			yield break;
