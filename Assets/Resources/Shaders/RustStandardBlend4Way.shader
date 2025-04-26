@@ -386,6 +386,7 @@ Shader "Custom/Rust/StandardBlend4Way"
 
             // Base material properties
             o.Albedo = albedo.rgb;
+			o.Emission = tex2D(_EmissionMap, uv).rgb * _EmissionColor.rgb;
             //o.Metallic = _Metallic;
             //o.Smoothness = _Glossiness;
             //o.Alpha = albedo.a;

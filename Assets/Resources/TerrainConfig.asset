@@ -24,13 +24,13 @@ MonoBehaviour:
   material: {fileID: 0}
   marginMaterial: {fileID: 0}
   albedoArrays:
-  - {fileID: 7373932734899358533, guid: 00000000000000000000000000000000, type: 0}
-  - {fileID: 7692004307072358835, guid: 00000000000000000000000000000000, type: 0}
-  - {fileID: -693971003514803011, guid: 00000000000000000000000000000000, type: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   normalArrays:
-  - {fileID: 916843833202036410, guid: 00000000000000000000000000000000, type: 0}
-  - {fileID: -3692599914005807211, guid: 00000000000000000000000000000000, type: 0}
-  - {fileID: 1440969513801370827, guid: 00000000000000000000000000000000, type: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   heightMapErrorMin: 10
   heightMapErrorMax: 100
   baseMapDistanceMin: 100
@@ -61,12 +61,19 @@ MonoBehaviour:
       BlendFactor: 1
       BlendFalloff: 32
     ArcticColor: {r: 0.704098, g: 0.7391568, b: 0.745, a: 1}
+    JungleColor: {r: 0, g: 0, b: 0, a: 0}
     ArcticOverlay:
       Color: {r: 0.97, g: 0.9861538, b: 1, a: 1}
       Smoothness: 0.6
       NormalIntensity: 0.282
       BlendFactor: 0.64
       BlendFalloff: 6.1
+    JungleOverlay:
+      Color: {r: 0, g: 0, b: 0, a: 1}
+      Smoothness: 0.5
+      NormalIntensity: 0
+      BlendFactor: 0
+      BlendFalloff: 0
     Material: {fileID: 0}
     SplatTiling: 4.5
     UVMixMult: 0.33
@@ -95,12 +102,19 @@ MonoBehaviour:
       BlendFactor: 0.5
       BlendFalloff: 0.5
     ArcticColor: {r: 0.8742, g: 0.9035684, b: 0.93, a: 1}
+    JungleColor: {r: 0, g: 0, b: 0, a: 0}
     ArcticOverlay:
       Color: {r: 1, g: 1, b: 1, a: 0}
       Smoothness: 0
       NormalIntensity: 1
       BlendFactor: 0.5
       BlendFalloff: 0.5
+    JungleOverlay:
+      Color: {r: 0, g: 0, b: 0, a: 1}
+      Smoothness: 0.5
+      NormalIntensity: 0
+      BlendFactor: 0
+      BlendFalloff: 0
     Material: {fileID: 0}
     SplatTiling: 6
     UVMixMult: 0.05
@@ -129,12 +143,19 @@ MonoBehaviour:
       BlendFactor: 0.5
       BlendFalloff: 0.5
     ArcticColor: {r: 0.530689, g: 0.5773377, b: 0.589, a: 1}
+    JungleColor: {r: 0, g: 0, b: 0, a: 0}
     ArcticOverlay:
       Color: {r: 1, g: 1, b: 1, a: 0}
       Smoothness: 0
       NormalIntensity: 1
       BlendFactor: 0.5
       BlendFalloff: 0.5
+    JungleOverlay:
+      Color: {r: 0, g: 0, b: 0, a: 1}
+      Smoothness: 0.5
+      NormalIntensity: 0
+      BlendFactor: 0
+      BlendFalloff: 0
     Material: {fileID: 0}
     SplatTiling: 4.5
     UVMixMult: 0.1
@@ -163,12 +184,19 @@ MonoBehaviour:
       BlendFactor: 0.5
       BlendFalloff: 0.5
     ArcticColor: {r: 0.6365, g: 0.661625, b: 0.67, a: 1}
+    JungleColor: {r: 0, g: 0, b: 0, a: 0}
     ArcticOverlay:
       Color: {r: 0.874, g: 0.912, b: 0.95, a: 1}
       Smoothness: 0.4
       NormalIntensity: 0.25
       BlendFactor: 0.6
       BlendFalloff: 20
+    JungleOverlay:
+      Color: {r: 0, g: 0, b: 0, a: 1}
+      Smoothness: 0.5
+      NormalIntensity: 0
+      BlendFactor: 0
+      BlendFalloff: 0
     Material: {fileID: 0}
     SplatTiling: 10
     UVMixMult: 0.125
@@ -197,12 +225,19 @@ MonoBehaviour:
       BlendFactor: 0
       BlendFalloff: 16
     ArcticColor: {r: 0.7588235, g: 0.8051961, b: 0.8431373, a: 1}
+    JungleColor: {r: 0, g: 0, b: 0, a: 0}
     ArcticOverlay:
       Color: {r: 0.892562, g: 0.946281, b: 1, a: 1}
       Smoothness: 0.6
       NormalIntensity: 0
       BlendFactor: 0.66
       BlendFalloff: 8
+    JungleOverlay:
+      Color: {r: 0, g: 0, b: 0, a: 1}
+      Smoothness: 0.5
+      NormalIntensity: 0
+      BlendFactor: 0
+      BlendFalloff: 0
     Material: {fileID: 0}
     SplatTiling: 4
     UVMixMult: 0.1
@@ -231,12 +266,19 @@ MonoBehaviour:
       BlendFactor: 0.2
       BlendFalloff: 4
     ArcticColor: {r: 0.851, g: 0.8465748, b: 0.784622, a: 1}
+    JungleColor: {r: 0, g: 0, b: 0, a: 0}
     ArcticOverlay:
       Color: {r: 0.9, g: 0.9434782, b: 1, a: 1}
       Smoothness: 0.5
       NormalIntensity: 0.5
       BlendFactor: 0.3
       BlendFalloff: 6
+    JungleOverlay:
+      Color: {r: 0, g: 0, b: 0, a: 1}
+      Smoothness: 0.5
+      NormalIntensity: 0
+      BlendFactor: 0
+      BlendFalloff: 0
     Material: {fileID: 0}
     SplatTiling: 3.5
     UVMixMult: 0.2
@@ -265,12 +307,19 @@ MonoBehaviour:
       BlendFactor: 0.5
       BlendFalloff: 0.5
     ArcticColor: {r: 0.558, g: 0.58425, b: 0.6, a: 1}
+    JungleColor: {r: 0, g: 0, b: 0, a: 0}
     ArcticOverlay:
       Color: {r: 0.93, g: 0.9608, b: 1, a: 0.8039216}
       Smoothness: 0
       NormalIntensity: 0.5
       BlendFactor: 0.4
       BlendFalloff: 16
+    JungleOverlay:
+      Color: {r: 0, g: 0, b: 0, a: 1}
+      Smoothness: 0.5
+      NormalIntensity: 0
+      BlendFactor: 0
+      BlendFalloff: 0
     Material: {fileID: 0}
     SplatTiling: 10
     UVMixMult: 0.75
@@ -299,12 +348,19 @@ MonoBehaviour:
       BlendFactor: 0.5
       BlendFalloff: 0.5
     ArcticColor: {r: 0.65, g: 0.65, b: 0.65, a: 1}
+    JungleColor: {r: 0, g: 0, b: 0, a: 0}
     ArcticOverlay:
       Color: {r: 0.93, g: 0.9766666, b: 1, a: 0.4196078}
       Smoothness: 0.6
       NormalIntensity: 1
       BlendFactor: 2
       BlendFalloff: 24
+    JungleOverlay:
+      Color: {r: 0, g: 0, b: 0, a: 1}
+      Smoothness: 0.5
+      NormalIntensity: 0
+      BlendFactor: 0
+      BlendFalloff: 0
     Material: {fileID: 0}
     SplatTiling: 5
     UVMixMult: 0.25

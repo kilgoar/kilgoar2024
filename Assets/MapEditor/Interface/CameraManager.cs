@@ -1316,6 +1316,8 @@ private void EmissionHighlight(List<Renderer> selection, bool enable)
 	}
 	
 	public void OnMapLoaded(string mapName=""){
+		
+		
 		if (ItemsWindow.Instance!=null){
 			ItemsWindow.Instance.PopulateList();
 		}

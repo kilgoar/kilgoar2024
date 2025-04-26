@@ -61,7 +61,7 @@ public static class TerrainManager
     public static LayerType CurrentLayerType { get; private set; }
     public static int TopologyLayer => TerrainTopology.TypeToIndex((int)TopologyLayerEnum);
     public static TerrainTopology.Enum TopologyLayerEnum { get; private set; }
-    public static bool LayerDirty { get; private set; }
+    public static bool LayerDirty { get; set; }
     public static bool AlphaDirty { get; set; } = true;
     public static int Layers => LayerCount(CurrentLayerType);
 
@@ -111,7 +111,7 @@ public static class TerrainManager
         TerrainCallbacks.heightmapChanged += HeightMapChanged;
         TerrainCallbacks.textureChanged += SplatMapChanged;
         EditorApplication.update += OnProjectLoad;
-		ShowLandMask();
+		
     }
 
     private static void OnProjectLoad()
@@ -123,6 +123,19 @@ public static class TerrainManager
     #endregion
 	#endif
 	
+	public static void SyncTerrainResolutions()
+	{
+		if (Land != null && Land.terrainData != null)
+		{
+			HeightMapRes = Land.terrainData.heightmapResolution;
+			SplatMapRes = Land.terrainData.alphamapResolution;
+			Debug.Log($"Synced terrain resolutions: HeightMapRes={HeightMapRes}, SplatMapRes={SplatMapRes}");
+		}
+		else
+		{
+			Debug.LogWarning("Cannot sync terrain resolutions: Land or Land.terrainData is null.");
+		}
+	}
 	
 	public static void RuntimeInit()
 	{
@@ -133,7 +146,8 @@ public static class TerrainManager
 		
 		FilterTexture = Resources.Load<Texture>("Textures/Brushes/White128");
         SetTerrainReferences();
-		
+		SyncTerrainResolutions();
+		HideLandMask();
 		/*
 		#if UNITY_EDITOR
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.GenerateNormalMap(HeightMapRes - 1, Progress.Start("Generate Normal Map")));
@@ -144,19 +158,21 @@ public static class TerrainManager
 	}
 	
 	public static void OnBundlesLoaded()
-	{		
+	{	
+		
 		_config = Resources.Load<TerrainConfig>("TerrainConfig");
         if (_config == null)
         {
             Debug.LogError("TerrainConfig not found at Resources/TerrainConfig!");
         }
 
+
 		SetTerrainLayers();
-		LoadTerrainAssets();
 		
-		ConfigureShaderGlobals(Land);
-		
+		LoadTerrainAssets();		
+		ConfigureShaderGlobals(Land);		
 		ApplyConfigToTerrain(Land);
+		
 	}
 	
 	public static void PopulateTerrainArrays()
@@ -169,7 +185,7 @@ public static class TerrainManager
 
 		// Populate Height array
 		Height = Land.terrainData.GetHeights(0, 0, HeightMapRes, HeightMapRes);
-		SyncHeightTexture();
+		//SyncHeightTexture();
 
 		// Populate Alpha array
 		Alpha = Land.terrainData.GetHoles(0, 0, AlphaMapRes, AlphaMapRes);
@@ -179,7 +195,7 @@ public static class TerrainManager
 		Ground = Land.terrainData.GetAlphamaps(0, 0, SplatMapRes, SplatMapRes);
 		//Biome = Ground; // Assuming Biome shares the same alphamap data initially; adjust if separate biome data exists
 		//SyncBiomeTexture();
-		SyncAlphaTexture();
+		//SyncAlphaTexture();
 		LayerDirty = false;
 
 	/*
@@ -255,6 +271,36 @@ public static class TerrainManager
         SyncAlphaTexture();
     }
 
+	public static void SyncSplatTexture()
+	{
+		if (Ground == null || Ground.GetLength(0) != SplatMapRes || Ground.GetLength(1) != SplatMapRes || Ground.GetLength(2) != 8)
+		{
+			Debug.LogError("Ground splat data is not initialized or has incorrect dimensions.");
+			return;
+		}
+
+		// Ensure the terrain's alphamap is updated with the Ground array
+		if (LayerDirty)
+		{
+			Land.terrainData.SetAlphamaps(0, 0, Ground);
+			LayerDirty = false;
+		}
+
+		// Get the terrain's alphamap textures (Control0 and Control1)
+		Texture2D[] alphamaps = Land.terrainData.alphamapTextures;
+		if (alphamaps == null || alphamaps.Length < 2)
+		{
+			Debug.LogError("Terrain alphamap textures (Control0 and Control1) are not available.");
+			return;
+		}
+
+		// Update shader globals with the alphamap textures
+		Shader.SetGlobalTexture("Terrain_Control0", alphamaps[0]); // First 4 splat channels
+		Shader.SetGlobalTexture("Terrain_Control1", alphamaps[1]); // Next 4 splat channels
+
+		Debug.Log("Splat textures synchronized: Terrain_Control0 and Terrain_Control1 updated.");
+	}
+
     public static void SyncAlphaTexture()
     {
         if (Alpha == null || Alpha.GetLength(0) != AlphaMapRes)
@@ -318,6 +364,7 @@ public static class TerrainManager
 
 	public static void SyncHeightSlopeTexture(int targetResolution)
     {
+		/*
         if (Height == null)
         {
             Debug.LogError("[TerrainManager] Height array is null. Cannot sync HeightSlopeTexture.");
@@ -397,9 +444,10 @@ public static class TerrainManager
         RenderTexture.ReleaseTemporary(temp1);
         RenderTexture.ReleaseTemporary(temp2);
         UnityEngine.Object.DestroyImmediate(tempTexture);
+		*/
     }
 
-    private static void SyncBiomeTexture()
+    public static void SyncBiomeTexture()
     {
         if (Biome == null || Biome.GetLength(0) != SplatMapRes)
         {
@@ -974,11 +1022,13 @@ private static void ConfigureShaderGlobals(Terrain terrain)
 	
     // Splatmap (alphamap) textures for ground control
     Texture2D[] alphamaps = terrain.terrainData.alphamapTextures;
-    if (alphamaps.Length > 0) Shader.SetGlobalTexture("Terrain_Control0", alphamaps[0]); // First 4 splat channels
-    if (alphamaps.Length > 1) Shader.SetGlobalTexture("Terrain_Control1", alphamaps[1]); // Next 4 splat channels (if 8 splats)
+
+	Shader.SetGlobalTexture("Terrain_Control0", alphamaps[0]); // First 4 splat channels
+	Shader.SetGlobalTexture("Terrain_Control1", alphamaps[1]); // Next 4 splat channels (if 8 splats)
 
 	Shader.SetGlobalVector("Terrain_Size", TerrainSize);
     // Texture arrays from TerrainConfig
+	
     Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD0", TerrainManager._config.AlbedoArrays[0]);
 	Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD1", TerrainManager._config.AlbedoArrays[1]);
 	Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD2", TerrainManager._config.AlbedoArrays[2]);
@@ -990,25 +1040,25 @@ private static void ConfigureShaderGlobals(Terrain terrain)
 	Shader.SetGlobalColor("Terrain_Arid1" , TerrainManager._config.GetAridColors()[1]);
 	Shader.SetGlobalColor("Terrain_Arid2" , TerrainManager._config.GetAridColors()[2]);
 	Shader.SetGlobalColor("Terrain_Arid3" , TerrainManager._config.GetAridColors()[3]);
-	//Shader.SetGlobalColor("Terrain_Arid4" , TerrainManager._config.GetAridColors()[4]);
+	Shader.SetGlobalColor("Terrain_Arid4" , TerrainManager._config.GetAridColors()[4]);
 	
 	Shader.SetGlobalColor("Terrain_Temperate0" , TerrainManager._config.GetTemperateColors()[0]);
 	Shader.SetGlobalColor("Terrain_Temperate1" , TerrainManager._config.GetTemperateColors()[1]);
 	Shader.SetGlobalColor("Terrain_Temperate2" , TerrainManager._config.GetTemperateColors()[2]);
 	Shader.SetGlobalColor("Terrain_Temperate3" , TerrainManager._config.GetTemperateColors()[3]);
-	//Shader.SetGlobalColor("Terrain_Temperate4" , TerrainManager._config.GetTemperateColors()[4]);
+	Shader.SetGlobalColor("Terrain_Temperate4" , TerrainManager._config.GetTemperateColors()[4]);
 	
 	Shader.SetGlobalColor("Terrain_Tundra0" , TerrainManager._config.GetTundraColors()[0]);
 	Shader.SetGlobalColor("Terrain_Tundra1" , TerrainManager._config.GetTundraColors()[1]);
 	Shader.SetGlobalColor("Terrain_Tundra2" , TerrainManager._config.GetTundraColors()[2]);
 	Shader.SetGlobalColor("Terrain_Tundra3" , TerrainManager._config.GetTundraColors()[3]);
-	//Shader.SetGlobalColor("Terrain_Tundra4" , TerrainManager._config.GetTundraColors()[4]);
+	Shader.SetGlobalColor("Terrain_Tundra4" , TerrainManager._config.GetTundraColors()[4]);
 	
 	Shader.SetGlobalColor("Terrain_Arctic0" , TerrainManager._config.GetArcticColors()[0]);
 	Shader.SetGlobalColor("Terrain_Arctic1" , TerrainManager._config.GetArcticColors()[1]);
 	Shader.SetGlobalColor("Terrain_Arctic2" , TerrainManager._config.GetArcticColors()[2]);
 	Shader.SetGlobalColor("Terrain_Arctic3" , TerrainManager._config.GetArcticColors()[3]);
-	//Shader.SetGlobalColor("Terrain_Arctic4" , TerrainManager._config.GetArcticColors()[4]);
+	Shader.SetGlobalColor("Terrain_Arctic4" , TerrainManager._config.GetArcticColors()[4]);
 	
 	Shader.SetGlobalVector("UVMixParameter0" , TerrainManager._config.GetUVMIXParameters()[0]);
 	Shader.SetGlobalVector("UVMixParameter1" , TerrainManager._config.GetUVMIXParameters()[1]);
@@ -1448,10 +1498,11 @@ private static void ConfigureShaderGlobals(Terrain terrain)
         return terrainPos.z + (terrainZ / (float)HeightMapRes) * Land.terrainData.size.z;
     }
 	
-	
 [ConsoleCommand("flattens map borders")]
 public static void BorderTuck(int targetHeight, int radius, int padding)
 {
+
+	
     // Validate inputs
     if (targetHeight < 0 || targetHeight > 1000)
     {
@@ -1469,98 +1520,100 @@ public static void BorderTuck(int targetHeight, int radius, int padding)
         return;
     }
 
-    // Normalize target height to Unity's heightmap scale (0-1)
-    float normalizedHeight = targetHeight / 1000f;
+// Normalize target height to Unity's heightmap scale (0-1)
+float normalizedHeight = targetHeight / 1000f;
 
-    // Get the current heightmap
-    float[,] heightMap = GetHeightMap(TerrainType.Land);
-    int res = HeightMapRes;
+// Get the current heightmap
+float[,] heightMap = GetHeightMap(TerrainType.Land);
 
-    // Create a copy of the original heightmap for blending
-    float[,] originalHeightMap = (float[,])heightMap.Clone();
+int res = heightMap.GetLength(0);
 
-    // Register undo before modifying
-    RegisterHeightMapUndo(TerrainType.Land, $"Border Tuck to {targetHeight}m, Radius {radius}, Padding {padding}");
 
-    // Apply padding and S-shaped blending
-    for (int x = 0; x < res; x++)
+// Create a copy of the original heightmap for blending
+float[,] originalHeightMap = (float[,])heightMap.Clone();
+
+// Register undo before modifying
+RegisterHeightMapUndo(TerrainType.Land, $"Border Tuck to {targetHeight}m, Radius {radius}, Padding {padding}");
+
+// Apply padding and S-shaped blending
+for (int x = 0; x < res; x++)
+{
+    for (int z = 0; z < res; z++)
     {
-        for (int z = 0; z < res; z++)
+        // Calculate distances to edges
+        float distToLeft = x;
+        float distToRight = res - 1 - x;
+        float distToBottom = z;
+        float distToTop = res - 1 - z;
+
+        // Minimum distance to any edge (for straight edges)
+        float minEdgeDist = Mathf.Min(distToLeft, distToRight, distToBottom, distToTop);
+
+        // Check if within padding area
+        if (minEdgeDist < padding)
         {
-            // Calculate distances to edges
-            float distToLeft = x;
-            float distToRight = res - 1 - x;
-            float distToBottom = z;
-            float distToTop = res - 1 - z;
+            heightMap[x, z] = normalizedHeight; // Set outer padding to target height
+            continue; // Skip blending for padding area
+        }
 
-            // Minimum distance to any edge (for straight edges)
-            float minEdgeDist = Mathf.Min(distToLeft, distToRight, distToBottom, distToTop);
+        // Adjust edge distance for blending inside padding
+        float adjustedEdgeDist = minEdgeDist - padding;
 
-            // Check if within padding area
-            if (minEdgeDist < padding)
-            {
-                heightMap[x, z] = normalizedHeight; // Set outer padding to target height
-                continue; // Skip blending for padding area
-            }
+        // Check if in a corner quadrant and calculate distance to inward-offset center
+        bool isInCornerQuadrant = false;
+        float cornerDist = 0f;
+        if (x < radius + padding && z < radius + padding) // Bottom-left corner, center at (radius + padding, radius + padding)
+        {
+            cornerDist = Mathf.Sqrt((x - (radius + padding)) * (x - (radius + padding)) + (z - (radius + padding)) * (z - (radius + padding)));
+            isInCornerQuadrant = true;
+        }
+        else if (x > res - 1 - (radius + padding) && z < radius + padding) // Bottom-right corner, center at (res-1-(radius + padding), radius + padding)
+        {
+            cornerDist = Mathf.Sqrt((x - (res - 1 - (radius + padding))) * (x - (res - 1 - (radius + padding))) + (z - (radius + padding)) * (z - (radius + padding)));
+            isInCornerQuadrant = true;
+        }
+        else if (x < radius + padding && z > res - 1 - (radius + padding)) // Top-left corner, center at (radius + padding, res-1-(radius + padding))
+        {
+            cornerDist = Mathf.Sqrt((x - (radius + padding)) * (x - (radius + padding)) + (z - (res - 1 - (radius + padding))) * (z - (res - 1 - (radius + padding))));
+            isInCornerQuadrant = true;
+        }
+        else if (x > res - 1 - (radius + padding) && z > res - 1 - (radius + padding)) // Top-right corner, center at (res-1-(radius + padding), res-1-(radius + padding))
+        {
+            cornerDist = Mathf.Sqrt((x - (res - 1 - (radius + padding))) * (x - (res - 1 - (radius + padding))) + (z - (res - 1 - (radius + padding))) * (z - (res - 1 - (radius + padding))));
+            isInCornerQuadrant = true;
+        }
 
-            // Adjust edge distance for blending inside padding
-            float adjustedEdgeDist = minEdgeDist - padding;
-
-            // Check if in a corner quadrant and calculate distance to inward-offset center
-            bool isInCornerQuadrant = false;
-            float cornerDist = 0f;
-            if (x < radius + padding && z < radius + padding) // Bottom-left corner, center at (radius + padding, radius + padding)
+        // Apply blending inside padded area
+        if (isInCornerQuadrant)
+        {
+            if (cornerDist <= radius) // Within corner radius from adjusted center
             {
-                cornerDist = Mathf.Sqrt((x - (radius + padding)) * (x - (radius + padding)) + (z - (radius + padding)) * (z - (radius + padding)));
-                isInCornerQuadrant = true;
-            }
-            else if (x > res - 1 - (radius + padding) && z < radius + padding) // Bottom-right corner, center at (res-1-(radius + padding), radius + padding)
-            {
-                cornerDist = Mathf.Sqrt((x - (res - 1 - (radius + padding))) * (x - (res - 1 - (radius + padding))) + (z - (radius + padding)) * (z - (radius + padding)));
-                isInCornerQuadrant = true;
-            }
-            else if (x < radius + padding && z > res - 1 - (radius + padding)) // Top-left corner, center at (radius + padding, res-1-(radius + padding))
-            {
-                cornerDist = Mathf.Sqrt((x - (radius + padding)) * (x - (radius + padding)) + (z - (res - 1 - (radius + padding))) * (z - (res - 1 - (radius + padding))));
-                isInCornerQuadrant = true;
-            }
-            else if (x > res - 1 - (radius + padding) && z > res - 1 - (radius + padding)) // Top-right corner, center at (res-1-(radius + padding), res-1-(radius + padding))
-            {
-                cornerDist = Mathf.Sqrt((x - (res - 1 - (radius + padding))) * (x - (res - 1 - (radius + padding))) + (z - (res - 1 - (radius + padding))) * (z - (res - 1 - (radius + padding))));
-                isInCornerQuadrant = true;
-            }
-
-            // Apply blending inside padded area
-            if (isInCornerQuadrant)
-            {
-                if (cornerDist <= radius) // Within corner radius from adjusted center
-                {
-                    // Inverted for corners: 0 at center, 1 at corner
-                    float t = Mathf.Clamp01(cornerDist / radius);
-                    float blendFactor = Mathf.SmoothStep(0f, 1f, t); // Heights decrease toward corner
-                    heightMap[x, z] = Mathf.Lerp(originalHeightMap[x, z], normalizedHeight, blendFactor);
-                }
-                else if (minEdgeDist < radius + padding) // Inside corner quadrant but outside radius
-                {
-                    heightMap[x, z] = normalizedHeight;
-                }
-            }
-            else if (adjustedEdgeDist <= radius) // Along edges, inside padding
-            {
-                // Non-inverted for edges: 1 at inner padding edge, 0 at radius boundary
-                float t = Mathf.Clamp01(1f - (adjustedEdgeDist / radius));
-                float blendFactor = Mathf.SmoothStep(0f, 1f, t); // Heights decrease toward padding edge
+                // Inverted for corners: 0 at center, 1 at corner
+                float t = Mathf.Clamp01(cornerDist / radius);
+                float blendFactor = Mathf.SmoothStep(0f, 1f, t); // Heights decrease toward corner
                 heightMap[x, z] = Mathf.Lerp(originalHeightMap[x, z], normalizedHeight, blendFactor);
             }
-            // Interior beyond radius + padding remains unchanged
+            else if (minEdgeDist < radius + padding) // Inside corner quadrant but outside radius
+            {
+                heightMap[x, z] = normalizedHeight;
+            }
         }
+        else if (adjustedEdgeDist <= radius) // Along edges, inside padding
+        {
+            // Non-inverted for edges: 1 at inner padding edge, 0 at radius boundary
+            float t = Mathf.Clamp01(1f - (adjustedEdgeDist / radius));
+            float blendFactor = Mathf.SmoothStep(0f, 1f, t); // Heights decrease toward padding edge
+            heightMap[x, z] = Mathf.Lerp(originalHeightMap[x, z], normalizedHeight, blendFactor);
+        }
+        // Interior beyond radius + padding remains unchanged
     }
+}
 
-    // Apply the modified heightmap
-    Land.terrainData.SetHeights(0, 0, heightMap);
+// Apply the modified heightmap
+Land.terrainData.SetHeights(0, 0, heightMap);
 
-    // Notify listeners of the update
-    Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
+// Notify listeners of the update
+Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
 }
 	
 	public static bool[,] GetAlphaMap(int x, int y, int width, int height)
@@ -1786,7 +1839,6 @@ public static void SetTopologyBitview(int layer, int x, int y, int width, int he
     int scaledY = (int)(y / SplatRatio);
     int scaledWidth = (int)(width / SplatRatio);
     int scaledHeight = (int)(height / SplatRatio);
-
     TopologyData.SetTopology(layer, scaledX, scaledY, scaledWidth, scaledHeight, DownscaleBitmap(bitmap));
 }
 
@@ -1960,6 +2012,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 				RegisterSplatMapUndo($"Set {layer} Layer Array");
 				TerrainManager.ChangeLayer(LayerType.Ground, 0);
 				Land.terrainData.SetAlphamaps(0, 0, array);
+				SyncSplatTexture();
 				LayerDirty = false;
 				break;
 			case LayerType.Biome:
@@ -1967,6 +2020,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 				RegisterSplatMapUndo($"Set {layer} Layer Array");
 				TerrainManager.ChangeLayer(LayerType.Biome, 0);
 				Land.terrainData.SetAlphamaps(0, 0, array);
+				SyncBiomeTexture();
 				LayerDirty = false;
 				break;
 			case LayerType.Topology:
@@ -1977,9 +2031,8 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 					return;
 				}
 				Topology[topology] = array;
-				// Convert float[,,] to bool[,] for TopologyData
 				bool[,] bitmap = ConvertSplatToBitmap(array);
-				TopologyData.SetTopology(TerrainTopology.IndexToType(topology), 0, 0, SplatMapRes, SplatMapRes, bitmap);
+				TopologyData.SetTopology(TerrainTopology.IndexToType(topology), bitmap);
 				break;
 		}
 
@@ -2149,18 +2202,18 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 			return;
 		}
 		
-		//SyncAlphaTexture();		
-        //SyncBiomeTexture();
-		
         if (!IsLoading && Land.Equals(terrain) && Mouse.current.leftButton.isPressed)
         {
+			SyncTerrainResolutions();
             switch (textureName)
             {
                 case "holes":
                     AlphaDirty = true;
+					//SyncAlphaTexture();		
                     Callbacks.InvokeLayerUpdated(LayerType.Alpha, TopologyLayer);
                     break;
                 case "alphamap":
+					//SyncBiomeTexture();
                     LayerDirty = true;
                     Callbacks.InvokeLayerUpdated(CurrentLayerType, TopologyLayer);
                     break;
@@ -2393,66 +2446,76 @@ public static bool[,] UpscaleBitmap(bool[,] source)
             Water.terrainData.SetHeights(0, 0, RustMapEditor.Maths.Array.Normalise(GetHeightMap(TerrainType.Water), normaliseLow, normaliseHigh, dmns));
     }
 	
-	[ConsoleCommand("Squeezes the heightmap to range")]
-	public static void SqueezeHeightMap(float normaliseLow, float normaliseHigh)
-	{
-		normaliseLow /= 1000f;  // Normalize user input from meters to 0-1
-		normaliseHigh /= 1000f; // Normalize user input from meters to 0-1
+[ConsoleCommand("Squeezes the heightmap to range")]
+public static void SqueezeHeightMap(float normaliseLow, float normaliseHigh)
+{
+    if (Land == null || Land.terrainData == null)
+    {
+        Debug.LogError("Land terrain or its data is null.");
+        return;
+    }
 
-		// Validate input range
-		if (normaliseLow >= normaliseHigh)
-		{
-			Debug.LogError($"Invalid range: normaliseLow ({normaliseLow * 1000f}m) must be less than normaliseHigh ({normaliseHigh * 1000f}m).");
-			return;
-		}
+    normaliseLow /= 1000f;  // Normalize to 0-1
+    normaliseHigh /= 1000f;
 
-		// Get current heightmap
-		float[,] heights = GetHeightMap(TerrainType.Land);
-		int res = HeightMapRes; // Heightmap resolution
+    // Validate input range
+    if (normaliseLow >= normaliseHigh)
+    {
+        Debug.LogError($"Invalid range: normaliseLow ({normaliseLow * 1000f}m) must be less than normaliseHigh ({normaliseHigh * 1000f}m).");
+        return;
+    }
 
-		// Get current min/max heights
-		float minHeight = float.MaxValue;
-		float maxHeight = float.MinValue;
-		for (int y = 0; y < res; y++)
-		{
-			for (int x = 0; x < res; x++)
-			{
-				float height = heights[x, y];
-				if (height < minHeight) minHeight = height;
-				if (height > maxHeight) maxHeight = height;
-			}
-		}
+    // Ensure HeightMapRes matches terrain resolution
+    int res = Land.terrainData.heightmapResolution;
+    if (res != HeightMapRes)
+    {
+        Debug.LogWarning($"HeightMapRes ({HeightMapRes}) does not match terrain resolution ({res}). Updating HeightMapRes.");
+        HeightMapRes = res;
+    }
 
-		// Avoid division by zero if flat
-		if (Mathf.Approximately(minHeight, maxHeight))
-		{
-			Debug.LogWarning("Heightmap is flat; setting all heights to normaliseLow.");
-			for (int y = 0; y < res; y++)
-				for (int x = 0; x < res; x++)
-					heights[x, y] = normaliseLow;
-		}
-		else
-		{
-			// Remap heights to new range
-			float range = maxHeight - minHeight;
-			for (int y = 0; y < res; y++)
-			{
-				for (int x = 0; x < res; x++)
-				{
-					float normalized = (heights[x, y] - minHeight) / range; // 0-1 based on original range
-					heights[x, y] = Mathf.Lerp(normaliseLow, normaliseHigh, normalized); // Remap to new range
-				}
-			}
-		}
+    // Get current heightmap
+    float[,] heights = GetHeightMap(TerrainType.Land);
 
-		// Apply to Land terrain with undo
-		RegisterHeightMapUndo(TerrainType.Land, $"Squeeze HeightMap {normaliseLow * 1000f}m-{normaliseHigh * 1000f}m");
-		Land.terrainData.SetHeights(0, 0, heights);
-		Callbacks.InvokeHeightMapUpdated(TerrainType.Land); // Notify listeners
+    // Get current min/max heights
+    float minHeight = float.MaxValue;
+    float maxHeight = float.MinValue;
+    for (int y = 0; y < res; y++)
+    {
+        for (int x = 0; x < res; x++)
+        {
+            float height = heights[x, y];
+            if (height < minHeight) minHeight = height;
+            if (height > maxHeight) maxHeight = height;
+        }
+    }
 
-		// SplatRatio doesn’t require direct adjustment here since we’re operating on heightmap resolution
-		// Ensure splatmaps remain consistent if needed
-	}
+    // Handle flat heightmap
+    if (Mathf.Approximately(minHeight, maxHeight))
+    {
+        Debug.LogWarning("Heightmap is flat; setting all heights to normaliseLow.");
+        for (int y = 0; y < res; y++)
+            for (int x = 0; x < res; x++)
+                heights[x, y] = normaliseLow;
+    }
+    else
+    {
+        // Remap heights to new range
+        float range = maxHeight - minHeight;
+        for (int y = 0; y < res; y++)
+        {
+            for (int x = 0; x < res; x++)
+            {
+                float normalized = (heights[x, y] - minHeight) / range;
+                heights[x, y] = Mathf.Lerp(normaliseLow, normaliseHigh, normalized);
+            }
+        }
+    }
+
+    // Apply to terrain with undo
+    RegisterHeightMapUndo(TerrainType.Land, $"Squeeze HeightMap {normaliseLow * 1000f}m-{normaliseHigh * 1000f}m");
+    Land.terrainData.SetHeights(0, 0, heights);
+    Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
+}
 
     /// <summary>Increases or decreases the HeightMap by the offset.</summary>
     /// <param name="offset">The amount to offset by. Negative values offset down.</param>
@@ -2470,45 +2533,44 @@ public static bool[,] UpscaleBitmap(bool[,] source)
     }
 	
 	
-	
-	[ConsoleCommand("Moves heightmap vertically")]
-	public static void NudgeHeightMap(float offset)
-	{
-		offset /= 1000f; // Normalises user input to a value between 0 - 1f.
-
-		// Get current heightmap
-		float[,] heights = GetHeightMap(TerrainType.Land);
-		int res = HeightMapRes;
-
-		// Offset all heights
-		float[,] offsetHeights = new float[res, res];
-		for (int y = 0; y < res; y++)
-		{
-			for (int x = 0; x < res; x++)
-			{
-				offsetHeights[x, y] = Mathf.Clamp01(heights[x, y] + offset); // Apply offset and clamp to 0-1
-			}
-		}
-
-		// Apply to terrain with undo
-		RegisterHeightMapUndo(TerrainType.Land, "Offset HeightMap");
-		Land.terrainData.SetHeights(0, 0, offsetHeights);
-		Callbacks.InvokeHeightMapUpdated(TerrainType.Land); // Notify listeners
-	}
-    /// <summary>Sets the HeightMap level to the minimum if it's below.</summary>
-    /// <param name="minimumHeight">The minimum height to set.</param>
-    /// <param name="maximumHeight">The maximum height to set.</param>
-	[ConsoleCommand("flattens heightmap outside of bounds")]
-    public static void ClampHeightMap(float minimumHeight, float maximumHeight, TerrainType terrain = TerrainType.Land, Area dmns = null)
+[ConsoleCommand("Moves heightmap vertically")]
+public static void NudgeHeightMap(float offset)
+{
+    if (Land == null || Land.terrainData == null)
     {
-        minimumHeight /= 1000f; maximumHeight /= 1000f; // Normalises user input to a value between 0 - 1f.
-        RegisterHeightMapUndo(terrain, "Clamp HeightMap");
-
-        if (terrain == TerrainType.Land)
-            Land.terrainData.SetHeights(0, 0, RustMapEditor.Maths.Array.ClampValues(GetHeightMap(), minimumHeight, maximumHeight, dmns));
-        else
-            Water.terrainData.SetHeights(0, 0, RustMapEditor.Maths.Array.ClampValues(GetHeightMap(TerrainType.Water), minimumHeight, maximumHeight, dmns));
+        Debug.LogError("Land terrain or its data is null.");
+        return;
     }
+
+    // Normalize offset to Unity's heightmap scale (0-1)
+    offset /= 1000f;
+
+    // Ensure HeightMapRes matches terrain resolution
+    int res = Land.terrainData.heightmapResolution;
+    if (res != HeightMapRes)
+    {
+        Debug.LogWarning($"HeightMapRes ({HeightMapRes}) does not match terrain resolution ({res}). Updating HeightMapRes.");
+        HeightMapRes = res;
+    }
+
+    // Get current heightmap
+    float[,] heights = GetHeightMap(TerrainType.Land);
+
+    // Offset all heights
+    float[,] offsetHeights = new float[res, res];
+    for (int y = 0; y < res; y++)
+    {
+        for (int x = 0; x < res; x++)
+        {
+            offsetHeights[x, y] = Mathf.Clamp01(heights[x, y] + offset);
+        }
+    }
+
+    // Apply to terrain with undo
+    RegisterHeightMapUndo(TerrainType.Land, $"Nudge HeightMap by {offset * 1000f}m");
+    Land.terrainData.SetHeights(0, 0, offsetHeights);
+    Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
+}
 
     /// <summary>Terraces the HeightMap.</summary>
     /// <param name="featureSize">The height of each terrace.</param>
@@ -2891,6 +2953,157 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 
     #region Layers
 
+		/// <summary>Sets a region of the biome map and updates the BiomeTexture.</summary>
+	/// <param name="biomeData">3D array containing biome weights for the region [height, width, 4].</param>
+	/// <param name="x">Starting x-coordinate in splatmap resolution.</param>
+	/// <param name="y">Starting y-coordinate in splatmap resolution.</param>
+	/// <param name="width">Width of the region in splatmap resolution.</param>
+	/// <param name="height">Height of the region in splatmap resolution.</param>
+	public static void SetBiomeRegion(float[,,] biomeData, int x, int y, int width, int height)
+	{
+		if (biomeData == null || biomeData.GetLength(0) != height || biomeData.GetLength(1) != width || biomeData.GetLength(2) != 4)
+		{
+			Debug.LogError($"Invalid biomeData dimensions: Expected [{height}, {width}, 4], got [{biomeData?.GetLength(0)}, {biomeData?.GetLength(1)}, {biomeData?.GetLength(2)}].");
+			return;
+		}
+
+		if (Biome == null || Biome.GetLength(0) != SplatMapRes)
+		{
+			Biome = new float[SplatMapRes, SplatMapRes, 4];
+			Debug.LogWarning("Biome array was not initialized. Initialized with zeros.");
+		}
+
+		// Validate region bounds
+		if (x < 0 || y < 0 || x + width > SplatMapRes || y + height > SplatMapRes)
+		{
+			Debug.LogError($"Invalid biome region: x={x}, y={y}, width={width}, height={height}. Must be within [0, {SplatMapRes}).");
+			return;
+		}
+
+		// Update Biome array with the provided data
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				for (int k = 0; k < 4; k++)
+				{
+					Biome[y + i, x + j, k] = biomeData[i, j, k];
+				}
+			}
+		}
+
+		// Create a temporary texture for the region
+		Texture2D tempTexture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
+		Color32[] colors = new Color32[width * height];
+
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				colors[i * width + j] = new Color(
+					biomeData[i, j, 0],
+					biomeData[i, j, 1],
+					biomeData[i, j, 2],
+					biomeData[i, j, 3]
+				);
+			}
+		}
+
+		tempTexture.SetPixels32(colors);
+		tempTexture.Apply(true, false);
+
+		// Ensure BiomeTexture exists
+		if (BiomeTexture == null || !BiomeTexture.IsCreated())
+		{
+			BiomeTexture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+			{
+				wrapMode = TextureWrapMode.Clamp,
+				enableRandomWrite = true
+			};
+			BiomeTexture.Create();
+		}
+
+		// Copy the region to the BiomeTexture at the correct position
+		RenderTexture.active = BiomeTexture;
+		Graphics.CopyTexture(tempTexture, 0, 0, 0, 0, width, height, BiomeTexture, 0, 0, x, y);
+		RenderTexture.active = null;
+
+		UnityEngine.Object.Destroy(tempTexture);
+		Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture);
+	}
+
+	/// <summary>Sets a region of the alpha map and updates the AlphaTexture.</summary>
+	/// <param name="alphaData">2D array containing alpha values for the region [height, width].</param>
+	/// <param name="x">Starting x-coordinate in alphamap resolution.</param>
+	/// <param name="y">Starting y-coordinate in alphamap resolution.</param>
+	/// <param name="width">Width of the region in alphamap resolution.</param>
+	/// <param name="height">Height of the region in alphamap resolution.</param>
+	public static void SetAlphaRegion(bool[,] alphaData, int x, int y, int width, int height)
+	{
+		if (alphaData == null || alphaData.GetLength(0) != height || alphaData.GetLength(1) != width)
+		{
+			Debug.LogError($"Invalid alphaData dimensions: Expected [{height}, {width}], got [{alphaData?.GetLength(0)}, {alphaData?.GetLength(1)}].");
+			return;
+		}
+
+		if (Alpha == null || Alpha.GetLength(0) != AlphaMapRes)
+		{
+			Alpha = new bool[AlphaMapRes, AlphaMapRes];
+			Debug.LogWarning("Alpha array was not initialized. Initialized with zeros.");
+		}
+
+		// Validate region bounds
+		if (x < 0 || y < 0 || x + width > AlphaMapRes || y + height > AlphaMapRes)
+		{
+			Debug.LogError($"Invalid alpha region: x={x}, y={y}, width={width}, height={height}. Must be within [0, {AlphaMapRes}).");
+			return;
+		}
+
+		// Update Alpha array with the provided data
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				Alpha[y + i, x + j] = alphaData[i, j];
+			}
+		}
+
+		// Create a temporary texture for the region
+		Texture2D tempTexture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
+		Color32[] colors = new Color32[width * height];
+
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				float value = alphaData[i, j] ? 1f : 0f;
+				colors[i * width + j] = new Color(value, value, value, value);
+			}
+		}
+
+		tempTexture.SetPixels32(colors);
+		tempTexture.Apply(true, false);
+
+		// Ensure AlphaTexture exists
+		if (AlphaTexture == null || !AlphaTexture.IsCreated())
+		{
+			AlphaTexture = new RenderTexture(AlphaMapRes, AlphaMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+			{
+				wrapMode = TextureWrapMode.Clamp,
+				enableRandomWrite = true
+			};
+			AlphaTexture.Create();
+		}
+
+		// Copy the region to the AlphaTexture at the correct position
+		RenderTexture.active = AlphaTexture;
+		Graphics.CopyTexture(tempTexture, 0, 0, 0, 0, width, height, AlphaTexture, 0, 0, x, y);
+		RenderTexture.active = null;
+
+		UnityEngine.Object.Destroy(tempTexture);
+		Shader.SetGlobalTexture("Terrain_Alpha", AlphaTexture);
+	}
+
     public static void SetHeightMapRegion(float[,] array, int x, int y, int width, int height, TerrainType terrain = TerrainType.Land)
     {
         float[,] fullMap = GetHeightMap(terrain);
@@ -2911,7 +3124,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
         if (terrain == TerrainType.Land)
         {
             Land.terrainData.SetHeights(x, y, array);
-            SyncHeightTexture(); 
+            //SyncHeightTexture(); 
             Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
         }
         else
@@ -2931,18 +3144,13 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 		
 		if (terrain == Land)
 		{
-		#if UNITY_EDITOR
-				EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.GenerateNormalMap(HeightMapRes - 1, Progress.Start("Regenerate Normal Map")));
-		#else
-				CoroutineManager.Instance.StartCoroutine(Coroutines.GenerateNormalMap(HeightMapRes - 1, -1));
-		#endif
 				Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
 		}
 		
 
         if (terrain.Equals(Land))
         {
-            SyncHeightTexture();
+            //SyncHeightTexture();
         }
         ResetHeightCache();
         Callbacks.InvokeHeightMapUpdated(terrain.Equals(Land) ? TerrainType.Land : TerrainType.Water);
@@ -3015,6 +3223,46 @@ public static bool[,] UpscaleBitmap(bool[,] source)
         SetSplatMap(fullMap, layer, topology);
     }
 
+	public static void InitializeTextures()
+		{
+			// Initialize BiomeTexture
+			if (BiomeTexture != null && (BiomeTexture.width != SplatMapRes || !BiomeTexture.IsCreated()))
+			{
+				UnityEngine.Object.Destroy(BiomeTexture);
+				BiomeTexture = null;
+			}
+			if (BiomeTexture == null)
+			{
+				BiomeTexture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+				{
+					wrapMode = TextureWrapMode.Clamp,
+					enableRandomWrite = true,
+					name = "Terrain_Biome"
+				};
+				BiomeTexture.Create();
+				Debug.Log($"Initialized BiomeTexture with resolution {SplatMapRes}x{SplatMapRes}");
+			}
+
+			// Initialize AlphaTexture
+			if (AlphaTexture != null && (AlphaTexture.width != AlphaMapRes || !AlphaTexture.IsCreated()))
+			{
+				UnityEngine.Object.Destroy(AlphaTexture);
+				AlphaTexture = null;
+			}
+			if (AlphaTexture == null)
+			{
+				AlphaTexture = new RenderTexture(AlphaMapRes, AlphaMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+				{
+					wrapMode = TextureWrapMode.Clamp,
+					enableRandomWrite = true,
+					name = "Terrain_Alpha"
+				};
+				AlphaTexture.Create();
+				Debug.Log($"Initialized AlphaTexture with resolution {AlphaMapRes}x{AlphaMapRes}");
+			}
+
+	}
+
     // Convert world corners to terrain grid bounds
     public static int[] WorldCornersToGrid(Vector3 bottomLeft, Vector3 bottomRight, Vector3 topLeft, Vector3 topRight)
     {
@@ -3028,46 +3276,57 @@ public static bool[,] UpscaleBitmap(bool[,] source)
     /// <summary>Changes the active Land and Topology Layers.</summary>
     /// <param name="layer">The LayerType to change to.</param>
     /// <param name="topology">The Topology layer to change to.</param>
-	public static void ChangeLayer(LayerType layer, int topology = -1)
-	{
-		if (layer == LayerType.Alpha)
-			return;
+public static void ChangeLayer(LayerType layer, int topology = -1)
+{
+    if (layer == LayerType.Alpha)
+        return;
 
-		if (layer == LayerType.Topology && (topology < 0 || topology >= TerrainTopology.COUNT))
-		{
-			Debug.LogError($"ChangeLayer({layer}, {topology}) topology parameter out of bounds. Should be between 0 - {TerrainTopology.COUNT - 1}");
-			return;
-		}
+    if (layer == LayerType.Topology && (topology < 0 || topology >= TerrainTopology.COUNT))
+    {
+        Debug.LogError($"ChangeLayer({layer}, {topology}) topology parameter out of bounds. Should be between 0 - {TerrainTopology.COUNT - 1}");
+        return;
+    }
 
-		if (LayerDirty)
-		{
-			SaveLayer();
-		}
+    if (LayerDirty)
+    {
+        SaveLayer(); // Saves current layer’s splatmap to Ground, Biome, or Topology
+    }
 
-		CurrentLayerType = layer;
-		// Check if TerrainTopology.IndexToType returns a valid enum before casting
-		int typeIndex = TerrainTopology.IndexToType(topology);
-		if (Enum.IsDefined(typeof(TerrainTopology.Enum), typeIndex))
-		{
-			TopologyLayerEnum = (TerrainTopology.Enum)typeIndex;
-		}
-		else
-		{
-			Debug.LogError($"Invalid TerrainTopology.Enum for topology index: {topology}");
-		}
+    if (layer == LayerType.Biome)
+    {
+        Land.materialTemplate.SetFloat("_BiomeMode", 1.0f);
+        Debug.Log("Switched to biome mode.");
+    }
+    else
+    {
+        Land.materialTemplate.SetFloat("_BiomeMode", 0.0f);
+        Debug.Log("Switched to splat mode.");
+    }
 
-		// Assuming GetSplatMap returns a non-null value or has its own null check
-		var splatMap = GetSplatMap(layer, topology);
-		SetSplatMap(splatMap, layer, topology);
-		
-		// Check if ClearSplatMapUndo method exists before calling
+    CurrentLayerType = layer;
+    int typeIndex = TerrainTopology.IndexToType(topology);
+    if (Enum.IsDefined(typeof(TerrainTopology.Enum), typeIndex))
+    {
+        TopologyLayerEnum = (TerrainTopology.Enum)typeIndex;
+    }
+    else
+    {
+        Debug.LogError($"Invalid TerrainTopology.Enum for topology index: {topology}");
+    }
 
-		ClearSplatMapUndo();
-		
+    var splatMap = GetSplatMap(layer, topology);
+    SetSplatMap(splatMap, layer, topology);
 
-		Callbacks.InvokeLayerChanged(layer, topology);
-		
-	}
+    // Ensure shader bindings are updated for ground mode to restore Terrain_Control1
+    if (layer == LayerType.Ground)
+    {
+        ConfigureShaderGlobals(Land);
+        Debug.Log("Reconfigured shader globals after switching to ground mode.");
+    }
+
+    ClearSplatMapUndo();
+    Callbacks.InvokeLayerChanged(layer, topology);
+}
 
     /// <summary>Layer count in layer chosen, used for determining the size of the splatmap array.</summary>
     /// <param name="layer">The LayerType to return the texture count from. (Ground, Biome or Topology)</param>
@@ -3155,6 +3414,8 @@ public static bool[,] UpscaleBitmap(bool[,] source)
             IsLoading = true;
 			yield return SetTerrains(mapInfo, progressID);
             yield return SetSplatMaps(mapInfo, progressID);
+			
+			InitializeTextures();
 			
 			//SyncHeightTexture();
 			SyncAlphaTexture();

@@ -1290,6 +1290,7 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 		}
 		*/
 		
+		
 		if (mat.shader.name.Equals("Rust/Standard Terrain"))
 		{
 			mat.shader = standardTerrain;
@@ -1328,15 +1329,15 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			yield break;
 		}
 		
-		if (mat.shader.name.Contains("Rust/StandardDecal"))
+		if (mat.shader.name.Contains("Rust/Standard Decal"))
 		{
-			mat.shader = standardDecal;
+			mat.shader = standardShader;
 			yield break;
 		}
 		
 		if (mat.shader.name.Contains("Nature/Water"))
 		{
-			mat.shader = specularShader;
+			mat.shader = standardShaderBlend;
 			mat.SetOverrideTag("RenderType", "Transparent");
 			yield break;
 		}
@@ -1361,7 +1362,7 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 		*/
 		
 		
-		int renderQueue = mat.renderQueue;
+		//int renderQueue = mat.renderQueue;
 
 		// Determine mode based on render queue
 		/*
@@ -1399,10 +1400,10 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 		}
 		*/
 		
-		
+		/*
 		if (renderQueue > 2450) // Transparent range
 		{
-			mat.shader = specularShader;
+			mat.shader =  standardShader;
 			mat.SetOverrideTag("RenderType", "Transparent");
 			mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
 			mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
@@ -1418,7 +1419,7 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			//Debug.LogWarning($"Material {mat.name} has an unsupported render queue: {renderQueue}. No changes applied.");
 			yield break;
 		}
-		
+		*/
 
 		//Debug.Log($"Material '{mat.name}' updated successfully. Mode: {mat.GetFloat("_Mode")}, Render Queue: {mat.renderQueue}");
 		yield return null;

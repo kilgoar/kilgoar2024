@@ -113,6 +113,7 @@ public class TerrainConfig : ScriptableObject
 	
 	private void OnBundlesLoaded()
     {
+		/*
 			string materialPath = "assets/content/nature/terrain/materials/terrain.v3.mat";
 			Material material = AssetManager.LoadAsset<Material>(materialPath);
 			if (material == null)
@@ -125,7 +126,7 @@ public class TerrainConfig : ScriptableObject
 			
 			
             LoadTextureArrays();
-
+		*/
 
     }
 
@@ -251,6 +252,7 @@ public class TerrainConfig : ScriptableObject
     public Color[] GetTemperateColors() => Splats.Select(s => s.TemperateColor).ToArray();
     public Color[] GetTundraColors() => Splats.Select(s => s.TundraColor).ToArray();
     public Color[] GetArcticColors() => Splats.Select(s => s.ArcticColor).ToArray();
+	public Color[] GetJungleColors() => Splats.Select(s => s.JungleColor).ToArray();
 
     public void GetAridOverlayData(out Color[] colors, out Vector4[] parameters)
     {

@@ -87,7 +87,8 @@ Shader "Custom/Rust/StandardTerrain"
 
         // Detail Properties
         _PotatoDetailWorldUVScale("Potato Detail UV Scale", Float) = 0.0
-
+		_BiomeMode("Biome Rendering mode", Float) = 0.0
+		
         // Rendering Properties
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
         _CutoffRange("Cutoff Range", Range(0.0, 1.0)) = 0.0
@@ -116,6 +117,7 @@ Shader "Custom/Rust/StandardTerrain"
         #include "AutoLight.cginc"
         #include "TerrainSplatmapCommon.cginc"
 		
+
 		UNITY_DECLARE_TEX2D(Terrain_Control0);
 		UNITY_DECLARE_TEX2D(Terrain_Control1);
 		UNITY_DECLARE_TEX2D(Terrain_HeightTexture);
@@ -140,6 +142,7 @@ Shader "Custom/Rust/StandardTerrain"
 		float _ZWrite;
 		float _TerrainParallax;
 		float _Terrain_Type;
+		float _BiomeMode;
 		
 
         float4 BiomeColors[40];
@@ -158,6 +161,9 @@ Shader "Custom/Rust/StandardTerrain"
         // Jungle biome colors (8 layers)
         float4 Splat0_JungleColor, Splat1_JungleColor, Splat2_JungleColor, Splat3_JungleColor,
                Splat4_JungleColor, Splat5_JungleColor, Splat6_JungleColor, Splat7_JungleColor;
+			   
+			   
+
 
 		
 		float _Layer0_Factor, _Layer0_Falloff, _Layer0_Metallic, _Layer0_Smoothness, _Layer0_SpecularReflectivity;
@@ -178,7 +184,7 @@ Shader "Custom/Rust/StandardTerrain"
 
         struct Input
         {
-            float2 tc_Control0; // Terrain control UVs
+            float2 tc_Control0;// Terrain control UVs
             float3 worldPos;
             float4 terrainData; // Additional terrain data
         };
@@ -203,8 +209,15 @@ Shader "Custom/Rust/StandardTerrain"
 
         void surf(Input IN, inout SurfaceOutputStandard o)
         {
-			float4 control0 = tex2D(_Control0, IN.tc_Control0);
-            float4 control1 = tex2D(_Control1, IN.tc_Control0);
+				float3 bio[5];
+				bio[0] = float3(1.0,0.6,0.0);
+				bio[1] = float3(0.0,0.3,0.0);
+				bio[2] = float3(0.7,0.25,0.0);
+				bio[3] = float3(1.0,1.0,1.0);
+				bio[4] = float3(0.5,0.5,0.0);
+			
+			float4 control0 = UNITY_SAMPLE_TEX2D(Terrain_Control0, IN.tc_Control0);
+			float4 control1 = UNITY_SAMPLE_TEX2D(Terrain_Control1, IN.tc_Control0);
 			
 			float3 cameraPos = _WorldSpaceCameraPos;
 			float distance = length(IN.worldPos - cameraPos);
@@ -228,26 +241,26 @@ Shader "Custom/Rust/StandardTerrain"
 			LayerFactors[6] = _Layer6_Factor;
 			LayerFactors[7] = _Layer7_Factor;
 
-            // Biome 0: Arid (8 layers)
-            BiomeColors[0] = Splat0_AridColor; BiomeColors[1] = Splat1_AridColor; BiomeColors[2] = Splat2_AridColor;
-            BiomeColors[3] = Splat3_AridColor; BiomeColors[4] = Splat4_AridColor; BiomeColors[5] = Splat5_AridColor;
-            BiomeColors[6] = Splat6_AridColor; BiomeColors[7] = Splat7_AridColor;
-            // Biome 1: Temperate (8 layers)
-            BiomeColors[8] = Splat0_TemperateColor; BiomeColors[9] = Splat1_TemperateColor; BiomeColors[10] = Splat2_TemperateColor;
-            BiomeColors[11] = Splat3_TemperateColor; BiomeColors[12] = Splat4_TemperateColor; BiomeColors[13] = Splat5_TemperateColor;
-            BiomeColors[14] = Splat6_TemperateColor; BiomeColors[15] = Splat7_TemperateColor;
-            // Biome 2: Tundra (8 layers)
-            BiomeColors[16] = Splat0_TundraColor; BiomeColors[17] = Splat1_TundraColor; BiomeColors[18] = Splat2_TundraColor;
-            BiomeColors[19] = Splat3_TundraColor; BiomeColors[20] = Splat4_TundraColor; BiomeColors[21] = Splat5_TundraColor;
-            BiomeColors[22] = Splat6_TundraColor; BiomeColors[23] = Splat7_TundraColor;
-            // Biome 3: Arctic (8 layers)
-            BiomeColors[24] = Splat0_ArcticColor; BiomeColors[25] = Splat1_ArcticColor; BiomeColors[26] = Splat2_ArcticColor;
-            BiomeColors[27] = Splat3_ArcticColor; BiomeColors[28] = Splat4_ArcticColor; BiomeColors[29] = Splat5_ArcticColor;
-            BiomeColors[30] = Splat6_ArcticColor; BiomeColors[31] = Splat7_ArcticColor;
-            // Biome 4: Jungle (8 layers)
-            BiomeColors[32] = Splat0_JungleColor; BiomeColors[33] = Splat1_JungleColor; BiomeColors[34] = Splat2_JungleColor;
-            BiomeColors[35] = Splat3_JungleColor; BiomeColors[36] = Splat4_JungleColor; BiomeColors[37] = Splat5_JungleColor;
-            BiomeColors[38] = Splat6_JungleColor; BiomeColors[39] = Splat7_JungleColor;
+	// Biome 0: Arid (8 layers)
+	BiomeColors[0] = Splat0_AridColor; BiomeColors[1] = Splat1_AridColor; BiomeColors[2] = Splat2_AridColor;
+	BiomeColors[3] = Splat3_AridColor; BiomeColors[4] = Splat4_AridColor; BiomeColors[5] = Splat5_AridColor;
+	BiomeColors[6] = Splat6_AridColor; BiomeColors[7] = Splat7_AridColor;
+	// Biome 1: Temperate (8 layers)
+	BiomeColors[8] = Splat0_TemperateColor; BiomeColors[9] = Splat1_TemperateColor; BiomeColors[10] = Splat2_TemperateColor;
+	BiomeColors[11] = Splat3_TemperateColor; BiomeColors[12] = Splat4_TemperateColor; BiomeColors[13] = Splat5_TemperateColor;
+	BiomeColors[14] = Splat6_TemperateColor; BiomeColors[15] = Splat7_TemperateColor;
+	// Biome 2: Tundra (8 layers)
+	BiomeColors[16] = Splat0_TundraColor; BiomeColors[17] = Splat1_TundraColor; BiomeColors[18] = Splat2_TundraColor;
+	BiomeColors[19] = Splat3_TundraColor; BiomeColors[20] = Splat4_TundraColor; BiomeColors[21] = Splat5_TundraColor;
+	BiomeColors[22] = Splat6_TundraColor; BiomeColors[23] = Splat7_TundraColor;
+	// Biome 3: Arctic (8 layers)
+	BiomeColors[24] = Splat0_ArcticColor; BiomeColors[25] = Splat1_ArcticColor; BiomeColors[26] = Splat2_ArcticColor;
+	BiomeColors[27] = Splat3_ArcticColor; BiomeColors[28] = Splat4_ArcticColor; BiomeColors[29] = Splat5_ArcticColor;
+	BiomeColors[30] = Splat6_ArcticColor; BiomeColors[31] = Splat7_ArcticColor;
+	// Biome 4: Jungle (8 layers)
+	BiomeColors[32] = Splat0_JungleColor; BiomeColors[33] = Splat1_JungleColor; BiomeColors[34] = Splat2_JungleColor;
+	BiomeColors[35] = Splat3_JungleColor; BiomeColors[36] = Splat4_JungleColor; BiomeColors[37] = Splat5_JungleColor;
+	BiomeColors[38] = Splat6_JungleColor; BiomeColors[39] = Splat7_JungleColor;
 
 		// Initialize output values
 		float3 albedo = float3(0, 0, 0);
@@ -262,7 +275,8 @@ Shader "Custom/Rust/StandardTerrain"
 		            // Sample biome weights from Terrain_Biome and Terrain_Biome1
         float4 biomeWeights0 = UNITY_SAMPLE_TEX2D(Terrain_Biome, IN.tc_Control0); // RGBA for biomes 0-3
         float jungleWeight = UNITY_SAMPLE_TEX2D(Terrain_Biome1, IN.tc_Control0).r; // R for biome 4 (Jungle)
-
+		
+		alpha = UNITY_SAMPLE_TEX2D(Terrain_Alpha, IN.tc_Control0).a;
         
             float biomeWeights[5];
             biomeWeights[0] = biomeWeights0.r; // Arid
@@ -270,6 +284,7 @@ Shader "Custom/Rust/StandardTerrain"
             biomeWeights[2] = biomeWeights0.b; // Tundra
             biomeWeights[3] = biomeWeights0.a; // Arctic
             biomeWeights[4] = jungleWeight;    // Jungle
+		
 		
 
 		// Determine biome index (assuming terrainData.x encodes biome info, 0-4 for Arid, Temperate, Tundra, Arctic, Jungle)
@@ -341,16 +356,26 @@ Shader "Custom/Rust/StandardTerrain"
 			{
 				biomeColor += biomeWeights[b] * GammaToLinearSpace(BiomeColors[b * 8 + i]);
 			}
-				
+			
 				float3 tintedAlbedo = layerAlbedo * biomeColor;
 				albedo += tintedAlbedo * weight;
+
 		}
-
-
-
-            o.Albedo = albedo;
 		
+		if(_BiomeMode > 0.5){
+			
+			albedo = float3(0,0,0);
+				for (int b = 0; b < 5; b++)
+				{
+					albedo += bio[b] * biomeWeights[b];
+				}
+		}
+		normalize(normal);
+		clip(alpha - _Cutoff);	
+        //o.Normal = normal;
 		o.Albedo = albedo;
+		
+		//o.Albedo = control1.rgb;
 	}
 
 	

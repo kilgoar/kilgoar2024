@@ -87,6 +87,8 @@ public static class WorldConverter
                 terrains.alphaMap[i, j] = true;
         });
         terrains.topology = new TerrainMap<int>(new byte[(int)Mathf.Pow(splatRes, 2) * 4 * 1], 1);
+		
+		TerrainManager.InitializeTextures();
         return terrains;
     }
 

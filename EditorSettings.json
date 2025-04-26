@@ -14,7 +14,7 @@
     "loadbundleonlaunch": true,
     "terrainTextureSet": true,
     "loadBatch": 128,
-    "newSize": 3261,
+    "newSize": 1568,
     "newHeight": 0.589610934,
     "newBiome": 2,
     "newSplat": 16,
@@ -307,7 +307,7 @@
       "isActive": false,
       "position": {
         "x": -53.5,
-        "y": 68.49997,
+        "y": 104.999969,
         "z": 0.0
       },
       "scale": {
@@ -317,7 +317,7 @@
       }
     },
     {
-      "isActive": true,
+      "isActive": false,
       "position": {
         "x": -198.296555,
         "y": -13.3733826,
@@ -332,8 +332,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -221.29657,
-        "y": 46.3503723,
+        "x": -362.29657,
+        "y": 77.35037,
         "z": 0.0
       },
       "scale": {
@@ -356,10 +356,10 @@
       }
     },
     {
-      "isActive": false,
+      "isActive": true,
       "position": {
-        "x": 319.289978,
-        "y": -90.65698,
+        "x": 335.289978,
+        "y": 109.843018,
         "z": 0.0
       },
       "scale": {
@@ -371,8 +371,8 @@
     {
       "isActive": false,
       "position": {
-        "x": 22.02002,
-        "y": -82.1099854,
+        "x": 30.02002,
+        "y": -32.6099854,
         "z": 0.0
       },
       "scale": {
@@ -398,7 +398,7 @@
       "isActive": false,
       "position": {
         "x": 378.05,
-        "y": -105.47,
+        "y": -68.97,
         "z": 0.0
       },
       "scale": {

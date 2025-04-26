@@ -124,13 +124,17 @@ Shader "Custom/Rust/StandardDecal"
             float2 uv = (_UVSec == 0) ? IN.uv_MainTex : IN.uv2_BumpMap;
             //uv += _MainTexScroll.xy * _Time.y;
 
+			
             // Base albedo and vertex color/alpha
             fixed4 albedo = tex2D(_MainTex, uv) * _Color;
+			
+			/*
             if (_ApplyVertexColor > 0.0)
                 albedo.rgb *= lerp(fixed3(1,1,1), IN.color.rgb, _ApplyVertexColorStrength);
             if (_ApplyVertexAlpha > 0.0)
                 albedo.a *= lerp(1.0, IN.color.a, _ApplyVertexAlphaStrength);
 			
+		
             // Detail layer
             if (_DetailLayer > 0.0)
             {
@@ -138,20 +142,21 @@ Shader "Custom/Rust/StandardDecal"
                 fixed detailMask = tex2D(_DetailMask, uv).r;
                 fixed4 detailAlbedo = tex2D(_DetailAlbedoMap, detailUV) * _DetailColor;
                 albedo.rgb = lerp(albedo.rgb, detailAlbedo.rgb, detailMask * _DetailLayer);
-                o.Normal = UnpackScaleNormal(tex2D(_DetailNormalMap, detailUV), _DetailNormalMapScale);
-                o.Occlusion = lerp(1.0, tex2D(_DetailOcclusionMap, uv).r, _DetailOcclusionStrength);
+                //o.Normal = UnpackScaleNormal(tex2D(_DetailNormalMap, detailUV), _DetailNormalMapScale);
+                //o.Occlusion = lerp(1.0, tex2D(_DetailOcclusionMap, uv).r, _DetailOcclusionStrength);
                 if (_DetailBlendFlags > 0.0)
                 {
-                    o.Metallic = lerp(o.Metallic, _DetailOverlayMetallic, detailMask * _DetailLayer);
-                    o.Smoothness = lerp(o.Smoothness, _DetailOverlaySmoothness, detailMask * _DetailLayer);
+                    //o.Metallic = lerp(o.Metallic, _DetailOverlayMetallic, detailMask * _DetailLayer);
+                    //o.Smoothness = lerp(o.Smoothness, _DetailOverlaySmoothness, detailMask * _DetailLayer);
                 }
             }
             else
             {
-                o.Normal = UnpackScaleNormal(tex2D(_BumpMap, uv), _BumpScale);
-                o.Occlusion = lerp(1.0, tex2D(_OcclusionMap, uv).r, _OcclusionStrength);
+                //o.Normal = UnpackScaleNormal(tex2D(_BumpMap, uv), _BumpScale);
+                //o.Occlusion = lerp(1.0, tex2D(_OcclusionMap, uv).r, _OcclusionStrength);
             }
 
+			
             // Biome tint
             if (_BiomeLayer > 0.0)
             {
@@ -159,6 +164,7 @@ Shader "Custom/Rust/StandardDecal"
                 albedo.rgb *= lerp(fixed3(1,1,1), biomeMask, _BiomeLayer);
             }
 
+			
             // Wetness
             fixed wetness = 0.0;
             if (_WetnessLayer > 0.0)
@@ -175,19 +181,19 @@ Shader "Custom/Rust/StandardDecal"
                 o.Smoothness = lerp(o.Smoothness, _ShoreWetnessLayer_WetSmoothness, shoreWetness);
                 wetness = max(wetness, shoreWetness);
             }
-			
+			*/
 			
             // Metallic and smoothness
-            fixed4 metallicGloss = tex2D(_MetallicGlossMap, uv);
-            o.Metallic = metallicGloss.r * _Metallic;
-            o.Smoothness = metallicGloss.a * _Glossiness;
+            //fixed4 metallicGloss = tex2D(_MetallicGlossMap, uv);
+            //o.Metallic = metallicGloss.r * _Metallic;
+            //o.Smoothness = metallicGloss.a * _Glossiness;
 
             // Emission
             o.Emission = tex2D(_EmissionMap, uv).rgb * _EmissionColor.rgb;
 			
             // Final output
             o.Albedo = albedo.rgb;
-            o.Alpha = albedo.a;
+            //o.Alpha = albedo.a;
         }
         ENDCG
     }

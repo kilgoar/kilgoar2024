@@ -247,6 +247,8 @@ public class TerrainWindow : MonoBehaviour
 		brushRows.Clear();
 		brushRows.Add(brushRowParent.gameObject); // Keep the original Brush Row
 
+		Debug.LogError("made it this far 0 ");
+
 		// Get brush paths from SettingsManager
 		string brushPath = Path.Combine(SettingsManager.AppDataPath(), "Custom/Brushes");
 		brushFiles = Directory.GetFiles(brushPath, "*.png");
@@ -260,17 +262,23 @@ public class TerrainWindow : MonoBehaviour
 
 		// Load all textures and store them
 		loadedBrushTextures.Clear();
+		
+		int count= 0;
 		foreach (string file in brushFiles)
 		{
 			Texture2D texture = LoadTextureFromFile(file);
 			if (texture != null)
 			{
 				loadedBrushTextures.Add(texture);
+				count++;
 			}
 		}
+		
+		
 
 		// Pass the loaded textures to MainScript
 		MainScript.Instance.SetBrushTextures(loadedBrushTextures.ToArray());
+
 
 		// Calculate number of rows needed
 		int rowCount = Mathf.CeilToInt((float)loadedBrushTextures.Count / BRUSHES_PER_ROW);
@@ -291,6 +299,7 @@ public class TerrainWindow : MonoBehaviour
 				Destroy(child.gameObject);
 			}
 		}
+
 
 		// Create buttons for each brush
 		for (int i = 0; i < loadedBrushTextures.Count; i++)
@@ -406,32 +415,31 @@ public class TerrainWindow : MonoBehaviour
           
     }
 	
-	public void OnToggleChanged(int index)
+public void OnToggleChanged(int index)
+{
+    if (index == 0 || index == 1) { MainScript.Instance.paintMode = -1; } // splat and biome
+    else if (index == 2) { MainScript.Instance.paintMode = -3; } // alpha
+    else if (index == 3) { MainScript.Instance.paintMode = -2; } // topology
+    else if (index == 4) { MainScript.Instance.paintMode = index; } // heights
+
+    MainScript.Instance.brushType = index;
+    MainScript.Instance.selectedSplatPaint = 0; // Reset to paint mode for topology
+    SetLayer(index);
+
+    // Regenerate brush to ensure correct data for the new mode
+    MainScript.Instance.GenerateBrush();
+
+    for (int i = 0; i < layerPanels.Count; i++)
     {
-		//wow
-		//what has this project come to that i'm on this now
-		
-		//i dont recommend this "main script" whatsoever
-		
-		if (index == 0 || index == 1){MainScript.Instance.paintMode = -1;} // splat and biome
-		if (index == 2){MainScript.Instance.paintMode = -3;}  //alpha
-		if (index == 3){MainScript.Instance.paintMode = -2;}  // topology
-		if (index == 4){MainScript.Instance.paintMode = index;} // heights
-
-		MainScript.Instance.brushType = index;
-		SetLayer(index);
-		
-        for (int i = 0; i < layerPanels.Count; i++)
-        {
-            bool isActive = i == index;
-
-            layerPanels[i].SetActive(isActive);
-            layerToggles[i].SetIsOnWithoutNotify(isActive);
-            layerToggles[i].interactable = !isActive;
-        }
-		
-		LayoutRebuilder.ForceRebuildLayoutImmediate(this.GetComponent<RectTransform>());
+        bool isActive = i == index;
+        layerPanels[i].SetActive(isActive);
+        layerToggles[i].SetIsOnWithoutNotify(isActive);
+        layerToggles[i].interactable = !isActive;
     }
+
+    Debug.Log($"Switched to layer {index}, paintMode={MainScript.Instance.paintMode}, brushSize={MainScript.Instance.brushSize}");
+    LayoutRebuilder.ForceRebuildLayoutImmediate(this.GetComponent<RectTransform>());
+}
 	
 	void ClearPreview()
 	{

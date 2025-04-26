@@ -97,7 +97,7 @@ public static class SettingsManager
             }
             else
             {
-                Debug.LogWarning($"Default brushes directory not found at {defaultBrushesPath}. Creating empty Brushes folder.");
+                Debug.LogError($"Default brushes directory not found at {defaultBrushesPath}. Creating empty Brushes folder.");
                 Directory.CreateDirectory(appDataBrushesPath);
             }
         }
@@ -320,9 +320,12 @@ public static class SettingsManager
             return new List<string>();
         }
 
-        return Directory.GetFiles(brushPath, "*.png")
+        
+		List<string> paths = Directory.GetFiles(brushPath, "*.png")
             .Concat(Directory.GetFiles(brushPath, "*.jpg"))
             .ToList();
+			
+		return paths;
     }
 
 	public static List<string> GetDataPaths(string path, string root, string extension = ".prefab")    

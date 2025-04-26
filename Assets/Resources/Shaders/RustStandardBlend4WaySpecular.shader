@@ -68,6 +68,9 @@ Shader "Custom/Rust/StandardBlend4WaySpecular"
         _BlendLayer3_UVSet("Blend Layer 3 UV Set", Float) = 0.0 // Added
         _BlendLayer3_BlendMaskUVSet("Blend Layer 3 Blend Mask UV Set", Float) = 0.0 // Added
 
+		
+		[HDR] _EmissionColor("Emission Color", Color) = (0,0,0,0)
+        _EmissionMap("Emission", 2D) = "black" {}
         // Detail Layer
         _DetailLayer("Detail Layer", Float) = 0.0 // Added
         _DetailColor("Detail Color", Color) = (1,1,1,1) // Added
@@ -130,7 +133,8 @@ Shader "Custom/Rust/StandardBlend4WaySpecular"
         sampler2D _BlendLayer3_SpecGlossMap; // Added
         sampler2D _BlendLayer3_NormalMap; // Added
         sampler2D _BlendLayer3_BlendMaskMap; // Added
-
+        
+		sampler2D _EmissionMap;
         // Detail Layer samplers
         sampler2D _DetailMask; // Added
         sampler2D _DetailAlbedoMap; // Added
@@ -154,6 +158,9 @@ Shader "Custom/Rust/StandardBlend4WaySpecular"
         float _UVSec; // Added
         float _Cull; // Added
 
+		
+		fixed4 _EmissionColor;
+		
         // Blend Layer 1
         float _BlendLayer1;
         fixed4 _BlendLayer1_Color;
@@ -214,7 +221,10 @@ Shader "Custom/Rust/StandardBlend4WaySpecular"
         void surf(Input IN, inout SurfaceOutputStandardSpecular o)
         {
             // Main texture UVs with scroll
-            float2 mainUV = IN.uv_MainTex + _MainTexScroll.xy * _Time.y;
+            float2 mainUV = IN.uv_MainTex ;
+			
+			o.Emission = tex2D(_EmissionMap, mainUV).rgb * _EmissionColor.rgb;
+			
             fixed4 albedo = tex2D(_MainTex, mainUV) * _Color;
             fixed3 normal = UnpackScaleNormal(tex2D(_BumpMap, mainUV), _BumpScale);
             fixed4 specGloss = tex2D(_SpecGlossMap, mainUV);
@@ -314,6 +324,7 @@ Shader "Custom/Rust/StandardBlend4WaySpecular"
             }
 			*/
 
+			
             // Detail Layer
             if (_DetailLayer > 0.0)
             {
@@ -330,6 +341,7 @@ Shader "Custom/Rust/StandardBlend4WaySpecular"
                 albedo.rgb = lerp(albedo.rgb, detailAlbedo.rgb, detailMask);
                 normal = lerp(normal, detailNormal, detailMask);
             }
+			
 
             // Output
             o.Albedo = albedo.rgb;

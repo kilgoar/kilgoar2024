@@ -242,10 +242,12 @@ namespace RustMapEditor.UI
 
             Elements.ToolbarMinMax(ToolTips.minHeight, ToolTips.maxHeight, ref heightLow, ref heightHigh, 0f, 1000f);
             Elements.BeginToolbarHorizontal();
-            if (Elements.ToolbarButton(ToolTips.setMinHeight))
-                ClampHeightMap(heightLow, 1000f, TerrainType.Land, Area.HeightMapDimensions());
-            if (Elements.ToolbarButton(ToolTips.setMaxHeight))
-                ClampHeightMap(0f, heightHigh, TerrainType.Land, Area.HeightMapDimensions());
+			if (Elements.ToolbarButton(ToolTips.setMinHeight)){
+					//SqueezeHeightMap(heightLow, 1000f, TerrainType.Land, Area.HeightMapDimensions());
+			}
+            if (Elements.ToolbarButton(ToolTips.setMaxHeight)){
+                //SqueezeHeightMap(0f, heightHigh, TerrainType.Land, Area.HeightMapDimensions());
+			}
             Elements.EndToolbarHorizontal();
         }
 

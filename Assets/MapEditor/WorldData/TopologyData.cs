@@ -87,6 +87,43 @@ public static class TopologyData
         Data = topologyMap.ToByteArray();
     }
 	
+	public static void SetTopology(int layer, bool[,] bitmap)
+{
+    TerrainMap<int> topologyMap = GetTerrainMap();	
+
+    if (bitmap == null)
+    {
+        return;
+    }
+
+    int height = bitmap.GetLength(0);
+    int width = bitmap.GetLength(1);
+
+    // Update the entire topology map with the new bitmap data
+    Parallel.For(0, height, i =>
+    {
+        for (int j = 0; j < width; j++)
+        {
+            // Check if the coordinate is within the bounds of the terrain
+            if (j < topologyMap.res && i < topologyMap.res)
+            {
+                // If bitmap is true, set the bit for the layer; if false, unset it
+                if (bitmap[i, j])
+                {
+                    topologyMap[i, j] |= layer; // Set the bit for this layer
+                }
+                else
+                {
+                    topologyMap[i, j] &= ~layer; // Unset the bit for this layer
+                }
+            }
+        }
+    });
+
+    // Convert updated topology back to byte array and update Data
+    Data = topologyMap.ToByteArray();
+}
+	
 	public static void SetTopology(int layer, int x, int y, int width, int height, bool[,] bitmap)
 	{
 		TerrainMap<int> topologyMap = GetTerrainMap();	
