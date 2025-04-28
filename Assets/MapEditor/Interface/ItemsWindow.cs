@@ -635,7 +635,7 @@ public void FocusFirstNode(Node node, GameObject roadObject)
 			}
 		}
 		tree.Rebuild();
-		footer.text= count + " prefabs selected";
+
 	}
 	
 	void SelectChildren(Node node, bool selected)

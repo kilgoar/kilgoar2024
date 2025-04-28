@@ -22,6 +22,7 @@ public static class GenerativeManager
 {
 	
 	public static int GeologySpawns;
+	private static Dictionary<string, List<PrefabData>> rayDataCache = new Dictionary<string, List<PrefabData>>();
 	private static Coroutine cliffCoroutine;
 
     #region Noise Generation Fields
@@ -2800,7 +2801,6 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
 
 		Terrain land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
 		List<GeologyItem> oddsList = OddsList(geo.geologyItems);
-		int selection;
 
 		Vector3 rotationRange1 = geo.rotationsLow;
 		Vector3 rotationRange2 = geo.rotationsHigh;
@@ -2822,92 +2822,113 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
 		bool prefabCollisions = geo.geologyCollisions.Exists(collision => collision.layer == ColliderLayer.Prefabs);
 		if (prefabCollisions) Debug.Log("Testing Prefab Collision, Generating may take longer than normal");
 
-		float[,] baseMap = land.terrainData.GetHeights(0, 0, land.terrainData.heightmapResolution, land.terrainData.heightmapResolution);
-
-		List<PrefabData> rayList = GetRayDataFromTemplate();
+		float[,] baseMap = land.terrainData.GetHeights(0, 0, land.terrainData.heightmapResolution, land.terrainData.heightmapResolution);		
+		
 		GeologyWindow.Instance.Progress(0f);
 
-		for (int i = 2; i < splatRes - 2; i++)
-		{
-			for (int j = 2; j < splatRes - 2; j++)
-			{
-					if (!TerrainManager.SpawnMap[i, j]) continue;
+    for (int i = 2; i < splatRes - 2; i++)
+    {
+        for (int j = 2; j < splatRes - 2; j++)
+        {
+            if (!TerrainManager.SpawnMap[i, j]) continue;
 
-					int flipX = geo.flipping ? UnityEngine.Random.Range(0, 2) * 180 : 0;
-					int flipZ = geo.flipping ? UnityEngine.Random.Range(0, 2) * 180 : 0;
-					float geology = geo.tilting ? Mathf.PerlinNoise(i * 0.0125f, j * 0.0125f) * 20 : 0f;
+            int flipX = geo.flipping ? UnityEngine.Random.Range(0, 2) * 180 : 0;
+            int flipZ = geo.flipping ? UnityEngine.Random.Range(0, 2) * 180 : 0;
+            float geology = geo.tilting ? Mathf.PerlinNoise(i * 0.0125f, j * 0.0125f) * 20 : 0f;
 
-					int heightMapsX = Mathf.Clamp((int)(i * resRatio), 0, res - 1);
-					int heightMapsY = Mathf.Clamp((int)(j * resRatio), 0, res - 1);
-					float height = baseMap[heightMapsX, heightMapsY];
+            int heightMapsX = Mathf.Clamp((int)(i * resRatio), 0, res - 1);
+            int heightMapsY = Mathf.Clamp((int)(j * resRatio), 0, res - 1);
+            float height = baseMap[heightMapsX, heightMapsY];
 
-					Vector3 normal = land.terrainData.GetInterpolatedNormal((float)j / splatRes, (float)i / splatRes).normalized;
-					Vector3 prePosition = new Vector3((j * ratio) - (size / 2f), (height * sizeZ) - (sizeZ * 0.5f), (i * ratio) - (size / 2f));
+            Vector3 normal = land.terrainData.GetInterpolatedNormal((float)j / splatRes, (float)i / splatRes).normalized;
+            Vector3 prePosition = new Vector3((j * ratio) - (size / 2f), (height * sizeZ) - (sizeZ * 0.5f), (i * ratio) - (size / 2f));
 
-					Vector3 offsetPerpendicular = Vector3.Cross(normal, Vector3.up);
-					Vector3 antiNormal = Vector3.Cross(normal, offsetPerpendicular);
+            Vector3 offsetPerpendicular = Vector3.Cross(normal, Vector3.up);
+            Vector3 antiNormal = Vector3.Cross(normal, offsetPerpendicular);
 
-					Vector3 position = prePosition
-									   + antiNormal * UnityEngine.Random.Range(geo.jitterLow.z, geo.jitterHigh.z)
-									   + normal * UnityEngine.Random.Range(geo.jitterLow.x, geo.jitterHigh.x)
-									   + offsetPerpendicular * UnityEngine.Random.Range(geo.jitterLow.y, geo.jitterHigh.y);
+            Vector3 position = prePosition
+                               + antiNormal * UnityEngine.Random.Range(geo.jitterLow.z, geo.jitterHigh.z)
+                               + normal * UnityEngine.Random.Range(geo.jitterLow.x, geo.jitterHigh.x)
+                               + offsetPerpendicular * UnityEngine.Random.Range(geo.jitterLow.y, geo.jitterHigh.y);
 
-					Vector3 rRotate = new Vector3(
-						UnityEngine.Random.Range(rotationRange1.x, rotationRange2.x) + geology + flipX,
-						UnityEngine.Random.Range(rotationRange1.y, rotationRange2.y),
-						UnityEngine.Random.Range(rotationRange1.z, rotationRange2.z) + flipZ
-					);
+            Vector3 rRotate = new Vector3(
+                UnityEngine.Random.Range(rotationRange1.x, rotationRange2.x) + geology + flipX,
+                UnityEngine.Random.Range(rotationRange1.y, rotationRange2.y),
+                UnityEngine.Random.Range(rotationRange1.z, rotationRange2.z) + flipZ
+            );
 
-					Vector3 rScale = new Vector3(
-						UnityEngine.Random.Range(scaleRange1.x, scaleRange2.x),
-						UnityEngine.Random.Range(scaleRange1.y, scaleRange2.y),
-						UnityEngine.Random.Range(scaleRange1.z, scaleRange2.z)
-					);
+            Vector3 rScale = new Vector3(
+                UnityEngine.Random.Range(scaleRange1.x, scaleRange2.x),
+                UnityEngine.Random.Range(scaleRange1.y, scaleRange2.y),
+                UnityEngine.Random.Range(scaleRange1.z, scaleRange2.z)
+            );
 
-					AdjustRotationForNormalization(ref rRotate, geo, normal, land, i, j, splatRes);
+            AdjustRotationForNormalization(ref rRotate, geo, normal, land, i, j, splatRes);
 
-					selection = UnityEngine.Random.Range(0, oddsList.Count);
-					bool placeFeature = true;
+            // Select the feature (GeologyItem) before collision testing
+            int selection = UnityEngine.Random.Range(0, oddsList.Count);
+            GeologyItem selectedItem = oddsList[selection];
 
-					
-					
-					if (testing && !PrefabManager.inTerrain(new PrefabData("f", 261440689, position, Quaternion.Euler(rRotate), rScale), rayList))
-					{
-						placeFeature = false;
-					}
+            bool placeFeature = true;
 
-					foreach (GeologyCollisions collision in geo.geologyCollisions)
-					{
-						bool sphere = PrefabManager.sphereCollision(position, collision.radius, (int)collision.layer);
-						if (collision.minMax == sphere)
-						{
-							placeFeature = false;
-							break;
-						}
-					}
-					
-					if (placeFeature)
-					{
-						SpawnFeature(oddsList[selection], position, rRotate, rScale, parentObject);
-						count++;
-						if (prefabCollisions) yield return null;
-					}
-					else
-					{
-						cullcount++;			
-					}
-					
-					if(GeologyWindow.Instance !=null){
-						GeologyWindow.Instance.footer.text = geo.title + ": " + GeologySpawns + " spawns, " + cullcount + " excluded, " + count + " items placed";
-						GeologyWindow.Instance.Progress((1f*count+cullcount) / (1f*GeologySpawns));
-				}
-			
-				yield return null;
-			
-			}
-			
+            // Handle cliffTest (ray testing) with dynamic ray data loading
+            if (testing)
+            {
+                // Determine the prefab path based on GeologyItem
+                string prefabPath;
+                if (selectedItem.custom && !string.IsNullOrEmpty(selectedItem.customPrefab))
+                {
+                    // Use custom prefab path if available
+                    prefabPath = selectedItem.customPrefab;
+                }
+                else
+                {
+                    // Use prefabID as filename (e.g., "123456789.prefab")
+                    prefabPath = $"{selectedItem.prefabID}.prefab";
+                }
 
-		}
+                // Load ray data for the selected prefab
+                List<PrefabData> rayList = GetRayDataFromPrefab(prefabPath);
+
+                // Perform terrain collision test
+                if (!PrefabManager.inTerrain(new PrefabData("f", 261440689, position, Quaternion.Euler(rRotate), rScale), rayList))
+                {
+                    placeFeature = false;
+                }
+            }
+
+            // Check other collision conditions
+            foreach (GeologyCollisions collision in geo.geologyCollisions)
+            {
+                bool sphere = PrefabManager.sphereCollision(position, collision.radius, (int)collision.layer);
+                if (collision.minMax == sphere)
+                {
+                    placeFeature = false;
+                    break;
+                }
+            }
+
+            // Place the feature if all conditions are met
+            if (placeFeature)
+            {
+                SpawnFeature(selectedItem, position, rRotate, rScale, parentObject);
+                count++;
+                if (prefabCollisions) yield return null;
+            }
+            else
+            {
+                cullcount++;
+            }
+
+            if (GeologyWindow.Instance != null)
+            {
+                GeologyWindow.Instance.footer.text = geo.title + ": " + GeologySpawns + " spawns, " + cullcount + " excluded, " + count + " items placed";
+                GeologyWindow.Instance.Progress((1f * count + cullcount) / (1f * GeologySpawns));
+            }
+
+            yield return null;
+        }
+    }
 
 		Debug.LogError($"Geology Complete: {count} Features Placed.");
 		if (cullcount > 0) Debug.LogError($"{cullcount} prefabs culled");
@@ -2917,6 +2938,99 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
 		PrefabManager.NotifyItemsChanged();
 
 		
+	}
+
+	public static List<PrefabData> GetRayDataFromPrefab(string prefabPath)
+	{
+		// Initialize cache if null (defensive programming)
+		if (rayDataCache == null)
+		{
+			rayDataCache = new Dictionary<string, List<PrefabData>>();
+			Debug.LogWarning("rayDataCache was null, initialized new instance.");
+		}
+
+		// Construct the full path to the prefab file
+		string fullPath = Path.Combine(SettingsManager.AppDataPath(), "Presets/Geology/", prefabPath);
+		Debug.Log($"Attempting to load REPrefab file: {fullPath}");
+
+		// Check if data is already cached
+		if (rayDataCache.ContainsKey(fullPath))
+		{
+			Debug.Log($"Returning cached ray data for: {fullPath} with {rayDataCache[fullPath].Count} entries");
+			return rayDataCache[fullPath];
+		}
+
+		// Initialize an empty list for this path
+		List<PrefabData> rayDataList = new List<PrefabData>();
+
+		// Check if the file exists
+		if (!File.Exists(fullPath))
+		{
+			Debug.LogError($"Raycasting prefab not found at: {fullPath}");
+			rayDataCache[fullPath] = rayDataList;
+			return rayDataList;
+		}
+
+		try
+		{
+			// Load the prefab using WorldSerialization
+			Debug.Log("Initializing WorldSerialization...");
+			var world = new WorldSerialization();
+			if (world == null)
+			{
+				Debug.LogError("Failed to create WorldSerialization instance.");
+				rayDataCache[fullPath] = rayDataList;
+				return rayDataList;
+			}
+
+			Debug.Log($"Loading REPrefab file: {fullPath}");
+			world.LoadREPrefab(fullPath);
+
+			// Convert to MapInfo to extract PrefabData using WorldToREPrefab
+			Debug.Log("Converting WorldSerialization to REPrefab MapInfo...");
+			WorldConverter.MapInfo mapInfo = WorldConverter.WorldToREPrefab(world);
+			if (mapInfo.prefabData == null || mapInfo.prefabData.Length == 0)
+			{
+				Debug.LogError($"Invalid REPrefab file (no prefabData): {fullPath}");
+				rayDataCache[fullPath] = rayDataList;
+				return rayDataList;
+			}
+
+			// Process each PrefabData entry
+			Debug.Log($"Processing {mapInfo.prefabData.Length} prefabData entries...");
+			foreach (var prefabData in mapInfo.prefabData)
+			{
+				if (prefabData == null)
+				{
+					Debug.LogWarning("Encountered null prefabData entry, skipping...");
+					continue;
+				}
+
+				if (prefabData.id == 3244004659) // Include only specific ID
+				{
+					rayDataList.Add(prefabData);
+				}
+			}
+
+			if (rayDataList.Count == 0)
+			{
+				Debug.LogWarning($"No ray test prefabs (ID 3244004659) in: {fullPath}");
+			}
+			else
+			{
+				Debug.Log($"Loaded {rayDataList.Count} ray test prefabs from: {fullPath}");
+			}
+		}
+		catch (Exception e)
+		{
+			Debug.LogError($"Error processing REPrefab file {fullPath}: {e.Message}\nStackTrace: {e.StackTrace}");
+			rayDataList = new List<PrefabData>();
+		}
+
+		// Cache the result (even if empty) to avoid reloading
+		Debug.Log($"Caching ray data for: {fullPath} with {rayDataList.Count} entries");
+		rayDataCache[fullPath] = rayDataList;
+		return rayDataList;
 	}
 
 	public static List<PrefabData> GetRayDataFromTemplate()

@@ -1817,7 +1817,7 @@ TextureImporter:
         width: 40
         height: 40
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1838,7 +1838,7 @@ TextureImporter:
         width: 40
         height: 40
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1846,6 +1846,27 @@ TextureImporter:
       bones: []
       spriteID: 9e8632cc6bbd85049a21c3bd9b6635a9
       internalID: -946144401
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: DiskIcon
+      rect:
+        serializedVersion: 2
+        x: 1140
+        y: 969
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 132106c5cc76ee84e8ff86b295152a26
+      internalID: 130147598
       vertices: []
       indices: 
       edges: []
@@ -1865,6 +1886,7 @@ TextureImporter:
       BiomesIcon: 99715383
       ButtonBright2: -2129174379
       DisabledButton: 770358251
+      DiskIcon: 130147598
       GeologyGreen: 1458959956
       GeologyWhite: 1619840099
       HolesIcon: 1897090676

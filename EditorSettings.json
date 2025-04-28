@@ -19,6 +19,7 @@
     "newBiome": 2,
     "newSplat": 16,
     "recentFiles": [
+      "F:\\Marsv12v1.0.7terrain.map",
       "E:\\smallmap.map",
       "E:\\test.map.map",
       "E:\\jungletest.map",
@@ -80,47 +81,18 @@
         "custom": false,
         "prefabID": 3464059523,
         "emphasis": 1
-      },
-      {
-        "customPrefab": "",
-        "custom": false,
-        "prefabID": 835824009,
-        "emphasis": 1
-      },
-      {
-        "customPrefab": "",
-        "custom": false,
-        "prefabID": 3043824457,
-        "emphasis": 1
-      },
-      {
-        "customPrefab": "",
-        "custom": false,
-        "prefabID": 1309014915,
-        "emphasis": 1
       }
     ],
-    "geologyCollisions": [
-      {
-        "minMax": true,
-        "radius": 8.0,
-        "layer": 256
-      },
-      {
-        "minMax": true,
-        "radius": 30.0,
-        "layer": 512
-      }
-    ],
+    "geologyCollisions": [],
     "newCollisions": {
       "minMax": true,
       "radius": 50.0,
       "layer": 256
     },
     "filename": "Presets/Geology/mars overhang rocks.json",
-    "title": "china cliffs",
+    "title": "testing 2",
     "density": 132,
-    "frequency": 11,
+    "frequency": 92,
     "floor": 505,
     "ceiling": 1000,
     "biomeIndex": 0,
@@ -129,7 +101,7 @@
     "biomeLayer": 1,
     "colliderLayer": 0,
     "closeColliderLayer": 0,
-    "avoidTopo": true,
+    "avoidTopo": false,
     "flipping": false,
     "tilting": false,
     "normalizeX": false,
@@ -147,8 +119,8 @@
     "monument": false,
     "dither": false,
     "useSeed": false,
-    "slopeRange": true,
-    "curveRange": false,
+    "slopeRange": false,
+    "curveRange": true,
     "heightRange": true,
     "featureMenu": true,
     "rotationMenu": true,
@@ -179,12 +151,12 @@
       "z": 0.0
     },
     "jitterLow": {
-      "x": -1.22622788,
+      "x": 3.38088036,
       "y": 0.0183773041,
       "z": 0.1830864
     },
     "jitterHigh": {
-      "x": 2.73039341,
+      "x": 7.349634,
       "y": 0.132356882,
       "z": 0.193626881
     },
@@ -195,16 +167,16 @@
     "slopeLow": 26.4105377,
     "slopeHigh": 147.507172,
     "heights": {
-      "slopeLow": 49.59922,
+      "slopeLow": 3.24258256,
       "slopeHigh": 180.0,
       "heightMin": 0.0,
       "heightMax": 1.0,
-      "curveMin": -1.08392239,
-      "curveMax": -0.427132368,
+      "curveMin": -1.152844,
+      "curveMax": 0.9463973,
       "slopeWeight": 1.0,
       "curveWeight": 1.0
     },
-    "topologies": 2145905663
+    "topologies": 2147483647
   },
   "replacer": {
     "prefabID0": 0,
@@ -306,21 +278,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -53.5,
-        "y": 104.999969,
-        "z": 0.0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.6,
-        "z": 1.0
-      }
-    },
-    {
-      "isActive": false,
-      "position": {
-        "x": -198.296555,
-        "y": -13.3733826,
+        "x": 58.69995,
+        "y": -143.999969,
         "z": 0.0
       },
       "scale": {
@@ -330,10 +289,23 @@
       }
     },
     {
+      "isActive": true,
+      "position": {
+        "x": -344.29657,
+        "y": -8.873383,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 0.0
+      }
+    },
+    {
       "isActive": false,
       "position": {
-        "x": -362.29657,
-        "y": 77.35037,
+        "x": -344.29657,
+        "y": 40.8503723,
         "z": 0.0
       },
       "scale": {
@@ -352,14 +324,14 @@
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 0.6
+        "z": 0.0
       }
     },
     {
-      "isActive": true,
+      "isActive": false,
       "position": {
         "x": 335.289978,
-        "y": 109.843018,
+        "y": 276.343018,
         "z": 0.0
       },
       "scale": {
@@ -372,7 +344,7 @@
       "isActive": false,
       "position": {
         "x": 30.02002,
-        "y": -32.6099854,
+        "y": 133.890015,
         "z": 0.0
       },
       "scale": {
@@ -397,14 +369,14 @@
     {
       "isActive": false,
       "position": {
-        "x": 378.05,
-        "y": -68.97,
+        "x": 182.049988,
+        "y": 11.5299988,
         "z": 0.0
       },
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 0.0
+        "z": 0.6
       }
     }
   ],
@@ -415,8 +387,8 @@
       "z": 1.0
     },
     "position": {
-      "x": 1101.0,
-      "y": 593.0,
+      "x": 1069.0,
+      "y": 588.0,
       "z": 0.0
     }
   }

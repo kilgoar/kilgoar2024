@@ -867,7 +867,7 @@ public static class SettingsManager
 	
 	public static void LoadPresets()
 	{
-		geologyPresets = Directory.GetFiles(AppDataPath() + "Presets/Geology/");
+		geologyPresets = Directory.GetFiles(AppDataPath() + "Presets/Geology/", "*.json");
 		breakerPresets = Directory.GetFiles(AppDataPath() + "Presets/Breaker");
 	}
 	

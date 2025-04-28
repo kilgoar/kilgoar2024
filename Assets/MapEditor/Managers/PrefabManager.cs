@@ -1598,7 +1598,7 @@ public static class PrefabManager
 	{
 		int groundMask = 1 << 10;
 		Quaternion prefabRotation = Quaternion.Euler(prefab.rotation.x, prefab.rotation.y, prefab.rotation.z);
-		Quaternion additionalRotation = Quaternion.Euler(0, 90, 0);
+		Quaternion additionalRotation = Quaternion.Euler(0, 0, 0);
 		
 		
 		foreach (PrefabData rayPrefab in rayData)    {
@@ -1609,15 +1609,15 @@ public static class PrefabManager
 			
 			bool rayhit=false;
 
-			if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, 5f * rayPrefab.scale.y, groundMask))        {
+			if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, 3f * rayPrefab.scale.y, groundMask))        {
 				
 				rayhit = true;
 			}
 			else        {
 				return false;
 			}
-			//Color rayColor = (rayhit) ? Color.green : Color.red;
-			//Debug.DrawRay(rayOrigin, rayDirection * 5f * rayPrefab.scale.y, rayColor, 1.5f);
+			Color rayColor = (rayhit) ? Color.green : Color.red;
+			Debug.DrawRay(rayOrigin, rayDirection * 3f * rayPrefab.scale.y, rayColor, 1.5f);
 		}
 
 		return true;
