@@ -90,9 +90,9 @@
       "layer": 256
     },
     "filename": "Presets/Geology/mars overhang rocks.json",
-    "title": "testing 2",
+    "title": "",
     "density": 132,
-    "frequency": 92,
+    "frequency": 25,
     "floor": 505,
     "ceiling": 1000,
     "biomeIndex": 0,
@@ -119,8 +119,8 @@
     "monument": false,
     "dither": false,
     "useSeed": false,
-    "slopeRange": false,
-    "curveRange": true,
+    "slopeRange": true,
+    "curveRange": false,
     "heightRange": true,
     "featureMenu": true,
     "rotationMenu": true,
@@ -151,12 +151,12 @@
       "z": 0.0
     },
     "jitterLow": {
-      "x": 3.38088036,
+      "x": 12.9399395,
       "y": 0.0183773041,
       "z": 0.1830864
     },
     "jitterHigh": {
-      "x": 7.349634,
+      "x": 15.6544132,
       "y": 0.132356882,
       "z": 0.193626881
     },
@@ -167,12 +167,12 @@
     "slopeLow": 26.4105377,
     "slopeHigh": 147.507172,
     "heights": {
-      "slopeLow": 3.24258256,
+      "slopeLow": 5.44846153,
       "slopeHigh": 180.0,
       "heightMin": 0.0,
       "heightMax": 1.0,
       "curveMin": -1.152844,
-      "curveMax": 0.9463973,
+      "curveMax": 1.20718145,
       "slopeWeight": 1.0,
       "curveWeight": 1.0
     },
@@ -278,7 +278,7 @@
     {
       "isActive": false,
       "position": {
-        "x": 58.69995,
+        "x": -146.300049,
         "y": -143.999969,
         "z": 0.0
       },
@@ -289,7 +289,7 @@
       }
     },
     {
-      "isActive": true,
+      "isActive": false,
       "position": {
         "x": -344.29657,
         "y": -8.873383,
@@ -305,7 +305,7 @@
       "isActive": false,
       "position": {
         "x": -344.29657,
-        "y": 40.8503723,
+        "y": 41.5704041,
         "z": 0.0
       },
       "scale": {
@@ -324,7 +324,7 @@
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 0.0
+        "z": 0.6
       }
     },
     {

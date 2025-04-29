@@ -122,7 +122,8 @@ public class RendererLOD : LODComponent
         }
         return null;
     }
-
+	
+	/*
     protected override int CalculateLODLevel(float distance)
     {
 		if(States!= null){
@@ -142,6 +143,32 @@ public class RendererLOD : LODComponent
 		}
         return -1; // This should not occur due to the previous checks
     }
+	*/
+	
+	protected override int CalculateLODLevel(float distance)
+	{
+		// Handle invalid or empty states
+		if (States == null || States.Length == 0)
+		{
+			return -1;
+		}
+
+		// Check each state range
+		for (int i = 0; i < States.Length; i++)
+		{
+			// Define the upper bound (use infinity for the last state)
+			float maxDistance = (i + 1 < States.Length) ? States[i + 1].distance : float.MaxValue;
+
+			// If distance is in the range [States[i].distance, States[i+1].distance)
+			if (distance >= States[i].distance && distance < maxDistance)
+			{
+				return i;
+			}
+		}
+
+		// If distance is less than the first state's distance
+		return -1;
+	}
 
     [Serializable]
     public class State

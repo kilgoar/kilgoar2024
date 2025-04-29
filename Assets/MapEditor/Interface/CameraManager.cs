@@ -43,6 +43,7 @@ public class CameraManager : MonoBehaviour
 	public float lastUpdateTime = 0f;
 	public float updateFrequency = .3f;
 	
+	private bool wasMoving = false;
 	private ObjectTransformGizmo _objectMoveGizmo;
     private ObjectTransformGizmo _objectRotationGizmo;
     private ObjectTransformGizmo _objectScaleGizmo;
@@ -348,19 +349,26 @@ public void InitializeGizmos()
 				
 			}
 			
-			if (globalMove!=Vector3.zero){
-			
+
+			if (globalMove != Vector3.zero)
+			{
 				cam.transform.position += globalMove;
-				position = cam.transform.position;			
+				position = cam.transform.position;
 				currentTime = Time.time;
-				
+
 				if (currentTime - lastUpdateTime > updateFrequency)
 				{
 					AreaManager.UpdateSectors(position, settings.prefabRenderDistance);
+					lastUpdateTime = currentTime;
 				}
-				lastUpdateTime = currentTime;
+				wasMoving = true; // Mark that the camera is moving
 			}
-			
+			else if (wasMoving) // Camera stopped this frame
+			{
+				AreaManager.UpdateSectors(position, settings.prefabRenderDistance);
+				wasMoving = false; // Reset moving state
+			}
+						
 			
 			if(ItemsWindow.Instance!=null){
 				if(ItemsWindow.Instance.gameObject.activeInHierarchy){

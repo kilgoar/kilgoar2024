@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16c437c744b3d4b4eb10c147ae6b5798, type: 3}
   m_Name: JitterX
   m_EditorClassIdentifier: 
-  maxSetting: 10
+  maxSetting: 20
   minSetting: -10
   title: Jitter Vertical
   whole: 0

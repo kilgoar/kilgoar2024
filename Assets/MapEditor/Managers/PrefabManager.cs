@@ -1603,9 +1603,13 @@ public static class PrefabManager
 		
 		foreach (PrefabData rayPrefab in rayData)    {
 			Vector3 rotatedRayPosition = prefabRotation * additionalRotation * (Vector3)rayPrefab.position;
+			
 			Vector3 rayOrigin = prefab.position + rotatedRayPosition + PrefabParent.position;
-			Vector3 rayDirection = prefabRotation * Vector3.down;
-			Vector3 prefabDirection = prefabRotation * Vector3.up;
+
+			// Combine prefab rotation with rayPrefab rotation, using Vector3.up as the base
+			Quaternion rayPrefabRotation = Quaternion.Euler(rayPrefab.rotation.x, rayPrefab.rotation.y, rayPrefab.rotation.z);
+			Quaternion combinedRotation = prefabRotation * rayPrefabRotation; // Combine rotations
+			Vector3 rayDirection = combinedRotation * Vector3.up; // Apply to Vector3.up
 			
 			bool rayhit=false;
 
@@ -1614,6 +1618,8 @@ public static class PrefabManager
 				rayhit = true;
 			}
 			else        {
+				
+				//comment return here to debug
 				return false;
 			}
 			Color rayColor = (rayhit) ? Color.green : Color.red;
