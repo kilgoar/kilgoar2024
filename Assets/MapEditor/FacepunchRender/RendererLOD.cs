@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class RendererLOD : LODComponent
 {
-    public float LODBias = 0.7f;
+    public float LODBias = 0.5f;
     public State[] States;
 
     private MaterialPropertyBlock materialPropertyBlock;
@@ -147,6 +147,7 @@ public class RendererLOD : LODComponent
 	
 	protected override int CalculateLODLevel(float distance)
 	{
+		distance *= LODBias;
 		// Handle invalid or empty states
 		if (States == null || States.Length == 0)
 		{

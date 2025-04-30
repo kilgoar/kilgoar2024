@@ -243,10 +243,7 @@
   },
   "macroSources": false,
   "faves": {
-    "favoriteCustoms": [
-      "assets/bundled/prefabs/autospawn/monument/medium/bandit_town",
-      "assets/bundled/prefabs/autospawn/monument/large/trainyard_1"
-    ]
+    "favoriteCustoms": []
   },
   "windowStates": [
     {
@@ -278,8 +275,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -146.300049,
-        "y": -143.999969,
+        "x": -75.30005,
+        "y": -118.999969,
         "z": 0.0
       },
       "scale": {
@@ -292,7 +289,7 @@
       "isActive": false,
       "position": {
         "x": -344.29657,
-        "y": -8.873383,
+        "y": 74.6865845,
         "z": 0.0
       },
       "scale": {
@@ -341,10 +338,10 @@
       }
     },
     {
-      "isActive": false,
+      "isActive": true,
       "position": {
-        "x": 30.02002,
-        "y": 133.890015,
+        "x": 204.97998,
+        "y": -90.6099854,
         "z": 0.0
       },
       "scale": {
@@ -369,8 +366,8 @@
     {
       "isActive": false,
       "position": {
-        "x": 182.049988,
-        "y": 11.5299988,
+        "x": 274.55,
+        "y": -96.97,
         "z": 0.0
       },
       "scale": {
