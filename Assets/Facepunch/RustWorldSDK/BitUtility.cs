@@ -17,6 +17,107 @@ public class BitUtility
 	{
 		return b * byte2float;
 	}
+	
+	public static float DecodeHeight(Color c)
+	{
+		// Convert the [0, 1] Color channels to [0, 255] Color32 channels
+		byte r = Float2Byte(c.r);
+		byte b = Float2Byte(c.b);
+
+		// Combine red and blue into a short (mimicking DecodeShort)
+		Union16 u = new Union16();
+		u.b1 = r;
+		u.b2 = b;
+		short shortValue = u.i;
+
+		// Convert the short to a float (mimicking Short2Float)
+		return Short2Float(shortValue);
+	}
+
+
+    // Count the number of set bits in a 32-bit integer
+    public static int CountSetBits(int value)
+    {
+        int count = 0;
+        for (int i = 0; i < 32; i++)
+        {
+            if ((value & (1 << i)) != 0) count++;
+        }
+        return count;
+    }
+
+    public static int ApplyTopologyAdditive(int existing, int newValue)
+    {
+        return existing | newValue;
+    }
+
+
+
+	public static float SampleAlphaBilinear(Texture2D texture, float u, float v)
+	{
+		if (texture == null) return 0f;
+
+		int width = texture.width;
+		int height = texture.height;
+
+		float pixelX = u * (float)(width - 1);
+		float pixelY = v * (float)(height - 1);
+
+		int x0 = Mathf.Clamp((int)pixelX, 1, width - 2);
+		int y0 = Mathf.Clamp((int)pixelY, 1, height - 2);
+		int x1 = Mathf.Min(x0 + 1, width - 2);
+		int y1 = Mathf.Min(y0 + 1, height - 2);
+
+		float tx = pixelX - (float)x0;
+		float ty = pixelY - (float)y0;
+
+		float a00 = texture.GetPixel(x0, y0).a;
+		float a10 = texture.GetPixel(x1, y0).a;
+		float a01 = texture.GetPixel(x0, y1).a;
+		float a11 = texture.GetPixel(x1, y1).a;
+
+		float a0 = Mathf.Lerp(a00, a10, tx);
+		float a1 = Mathf.Lerp(a01, a11, tx);
+		return Mathf.Lerp(a0, a1, ty);
+	}
+	
+	public static float SampleHeightBilinear(Texture2D texture, float u, float v)
+	{
+		if (texture == null) return 0f;
+
+		int width = texture.width;
+		int height = texture.height;
+
+		// Map UV coordinates to pixel coordinates
+		float pixelX = u * (float)(width - 1);
+		float pixelY = v * (float)(height - 1);
+
+		// Clamp to [1, width - 2] and [1, height - 2] to avoid edge pixels
+		int x0 = Mathf.Clamp((int)pixelX, 1, width - 2);
+		int y0 = Mathf.Clamp((int)pixelY, 1, height - 2);
+		int x1 = Mathf.Min(x0 + 1, width - 2);
+		int y1 = Mathf.Min(y0 + 1, height - 2);
+
+		// Fractional parts for interpolation
+		float tx = pixelX - (float)x0;
+		float ty = pixelY - (float)y0;
+
+		// Sample the four neighboring pixels and combine their heights
+		Color c00 = texture.GetPixel(x0, y0);
+		Color c10 = texture.GetPixel(x1, y0);
+		Color c01 = texture.GetPixel(x0, y1);
+		Color c11 = texture.GetPixel(x1, y1);
+
+		float h00 = DecodeHeight(c00);
+		float h10 = DecodeHeight(c10);
+		float h01 = DecodeHeight(c01);
+		float h11 = DecodeHeight(c11);
+
+		// Bilinear interpolation
+		float h0 = Mathf.Lerp(h00, h10, tx); // Interpolate along x (bottom edge)
+		float h1 = Mathf.Lerp(h01, h11, tx); // Interpolate along x (top edge)
+		return Mathf.Lerp(h0, h1, ty); // Interpolate along y
+	}
 
     public static byte Bool2Byte(bool b)
     {

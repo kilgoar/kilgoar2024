@@ -72,7 +72,7 @@ public class ItemsWindow : MonoBehaviour
         bool isCollection = go.CompareTag("Collection");
 		saveCustom.interactable = false;
 		
-		TerrainPlacement terrainPlacement = go.GetComponent<TerrainPlacement>();
+		Monument terrainPlacement = go.GetComponent<Monument>();
         applyTerrain.interactable = (terrainPlacement != null);
         
 		
@@ -280,18 +280,18 @@ public class ItemsWindow : MonoBehaviour
         if (CameraManager.Instance._selectedObjects.Count == 0) return;
         
         GameObject selected = CameraManager.Instance._selectedObjects[^1];
-        TerrainPlacement terrainPlacement = selected.GetComponent<TerrainPlacement>();
-        
+        Monument terrainPlacement = selected.GetComponent<Monument>();
+		
         if (terrainPlacement != null && terrainPlacement.ShouldHeight())
         {
             TerrainBounds dimensions = new TerrainBounds();
             Vector3 position = selected.transform.position;
             Quaternion rotation = selected.transform.rotation;
             Vector3 scale = selected.transform.localScale;
-            
+			
             terrainPlacement.ApplyHeight(position, rotation, scale, dimensions);
 			terrainPlacement.ApplySplat(position, rotation, scale, dimensions);
-            Debug.Log($"Applied height map to terrain at {position}");
+			terrainPlacement.ApplyTopology(position, rotation, scale, dimensions);
         }
         else
         {

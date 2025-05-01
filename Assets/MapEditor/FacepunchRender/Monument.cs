@@ -5,13 +5,11 @@ public class Monument : TerrainPlacement
     [SerializeField] public float Radius; // Radius of influence in world units
     [SerializeField] public float Fade;   // Fade distance for blending in world units
 	
-	
 protected override void ApplyHeightMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
 {
     if (!ShouldHeight() || (heightmap == null || !heightmap.IsValid)) return;
-
     Texture2D heightTexture = heightmap?.cachedInstance ?? heightmap?.GetResource();
-    Texture2D blendTexture = blendmap.GetResource();
+    Texture2D blendTexture = blendmap?.GetResource();
 
     float radius = Radius == 0f ? extents.x : Radius;
     bool useBlendMap = blendTexture != null && blendmap.IsValid;
@@ -19,17 +17,36 @@ protected override void ApplyHeightMap(Matrix4x4 localToWorld, Matrix4x4 worldTo
     float radiusZ = useBlendMap ? extents.z : radius;
     Vector3 position = localToWorld.MultiplyPoint3x4(Vector3.zero);
 
+    // Extract the rotation from localToWorld
+    Quaternion rotation = localToWorld.rotation;
+
+    // Compute the world-space X and Z axes of the rotated rectangle
+    Vector3 localXAxis = rotation * Vector3.right;
+    Vector3 localZAxis = rotation * Vector3.forward;
+
+    // Project the local extents onto the world axes to find the maximum extent
+    float extentX = Mathf.Abs(Vector3.Dot(new Vector3(radiusX, 0f, 0f), localXAxis)) +
+                    Mathf.Abs(Vector3.Dot(new Vector3(0f, 0f, radiusZ), localXAxis));
+    float extentZ = Mathf.Abs(Vector3.Dot(new Vector3(radiusX, 0f, 0f), localZAxis)) +
+                    Mathf.Abs(Vector3.Dot(new Vector3(0f, 0f, radiusZ), localZAxis));
+
+    // Define the world-space AABB using the projected extents
     Vector3[] corners = new Vector3[]
     {
-        localToWorld.MultiplyPoint3x4(offset + new Vector3(-radiusX, 0f, -radiusZ)),
-        localToWorld.MultiplyPoint3x4(offset + new Vector3(radiusX, 0f, -radiusZ)),
-        localToWorld.MultiplyPoint3x4(offset + new Vector3(-radiusX, 0f, radiusZ)),
-        localToWorld.MultiplyPoint3x4(offset + new Vector3(radiusX, 0f, radiusZ))
+        position + new Vector3(-extentX, 0f, -extentZ),
+        position + new Vector3(extentX, 0f, -extentZ),
+        position + new Vector3(-extentX, 0f, extentZ),
+        position + new Vector3(extentX, 0f, extentZ)
     };
+
+    // Convert the corners to grid bounds
     int[] gridBounds = TerrainManager.WorldCornersToGrid(corners[0], corners[1], corners[2], corners[3]);
     int minX = Mathf.Max(0, gridBounds[0]), minZ = Mathf.Max(0, gridBounds[1]);
     int maxX = Mathf.Min(TerrainManager.HeightMapRes - 1, gridBounds[2]), maxZ = Mathf.Min(TerrainManager.HeightMapRes - 1, gridBounds[3]);
     int width = maxX - minX + 1, height = maxZ - minZ + 1;
+
+    // Log the bounds for debugging
+    //Debug.Log($"Grid Bounds: minX={minX}, minZ={minZ}, maxX={maxX}, maxZ={maxZ}, width={width}, height={height}");
 
     if (width <= 0 || height <= 0) return;
 
@@ -40,8 +57,6 @@ protected override void ApplyHeightMap(Matrix4x4 localToWorld, Matrix4x4 worldTo
     Vector3 terrainSize = TerrainManager.TerrainSize;
     Vector3 rcpSize = new Vector3(1f / terrainSize.x, 1f / terrainSize.y, 1f / terrainSize.z);
 
-
-    int logCount = 0;
     for (int x = minX; x <= maxX; x++)
     {
         for (int z = minZ; z <= maxZ; z++)
@@ -56,26 +71,24 @@ protected override void ApplyHeightMap(Matrix4x4 localToWorld, Matrix4x4 worldTo
             );
             Vector3 localPos = worldToLocal.MultiplyPoint3x4(worldPos) - offset;
 
-            float u = (localPos.x + extents.x) / size.x;
-            float v = (localPos.z + extents.z) / size.z;
+            float u = Mathf.Clamp01((localPos.x + extents.x) / size.x);
+            float v = Mathf.Clamp01((localPos.z + extents.z) / size.z);
             float fade = useBlendMap
                 ? (blendTexture?.GetPixelBilinear(u, v).a ?? 0f)
                 : Mathf.InverseLerp(radius, radius - Fade, localPos.Magnitude2D());
 
-            float currentHeight = heightMap[z, x];
-            if (fade > 0f)
+            if (fade <= 0f)
             {
-                float heightValue = heightTexture != null ? heightTexture.GetPixelBilinear(u, v).r : 0f;
-                float worldHeight = position.y + offset.y + heightValue * (size.y/100f);
-                float normalizedHeight = (worldHeight - terrainPosition.y) * rcpSize.y;
-
-                regionHeights[z - minZ, x - minX] = Mathf.SmoothStep(currentHeight, normalizedHeight, fade);
-            }
-            else
-            {
-                regionHeights[z - minZ, x - minX] = currentHeight;
+                regionHeights[z - minZ, x - minX] = heightMap[z, x];
+                continue;
             }
 
+            float combinedHeight = BitUtility.SampleHeightBilinear(heightTexture, u, v);
+
+            float worldHeight = position.y + offset.y + combinedHeight * size.y;
+            float normalizedHeight = (worldHeight - terrainPosition.y) * rcpSize.y;
+
+            regionHeights[z - minZ, x - minX] = Mathf.SmoothStep(heightMap[z, x], normalizedHeight, fade);
             dimensions.IncludeRect(new RectInt(x, z, 1, 1));
         }
     }
@@ -185,19 +198,21 @@ protected override void ApplyHeightMap(Matrix4x4 localToWorld, Matrix4x4 worldTo
         TerrainManager.SetBiomeMapRegion(regionBiomes, minX, minZ, width, height);
         dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
     }
-
 protected override void ApplySplatMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
 {
     if (!ShouldSplat() || (splatmap0 == null || !splatmap0.IsValid) && (splatmap1 == null || !splatmap1.IsValid)) return;
 
     Texture2D splat0Texture = splatmap0?.cachedInstance ?? splatmap0?.GetResource();
     Texture2D splat1Texture = splatmap1?.cachedInstance ?? splatmap1?.GetResource();
+    Texture2D blendTexture = blendmap?.cachedInstance ?? blendmap?.GetResource();
 
     if (splat0Texture == null && splat1Texture == null)
     {
         Debug.LogWarning($"No splat textures available for {this}.");
         return;
     }
+
+    bool useBlendMap = blendTexture != null && blendmap.IsValid;
 
     Vector3[] corners = GetWorldCorners(localToWorld);
     int[] gridBounds = TerrainManager.WorldCornersToGrid(corners[0], corners[1], corners[2], corners[3]);
@@ -210,7 +225,7 @@ protected override void ApplySplatMap(Matrix4x4 localToWorld, Matrix4x4 worldToL
     float[,,] splatMap = TerrainManager.GetSplatMap(TerrainManager.LayerType.Ground);
     float[,,] regionSplats = new float[height, width, TerrainManager.LayerCount(TerrainManager.LayerType.Ground)];
     int layerCount = TerrainManager.LayerCount(TerrainManager.LayerType.Ground);
-    Debug.Log($"Splat Layer Count: {layerCount}"); // Verify this
+    Debug.Log($"Splat Layer Count: {layerCount}");
 
     for (int x = minX; x <= maxX; x++)
     {
@@ -219,42 +234,62 @@ protected override void ApplySplatMap(Matrix4x4 localToWorld, Matrix4x4 worldToL
             Vector3 worldPos = new Vector3(TerrainManager.ToWorldX(x), 0, TerrainManager.ToWorldZ(z));
             Vector3 localPos = worldToLocal.MultiplyPoint3x4(worldPos) - offset;
 
-            float dist = localPos.Magnitude2D();
-            float fade = Mathf.InverseLerp(Radius, Radius - Fade, dist);
-            if (fade > 0f)
+            float u = Mathf.Clamp01((localPos.x + extents.x) / size.x);
+            float v = Mathf.Clamp01((localPos.z + extents.z) / size.z);
+            float fade = useBlendMap
+                ? BitUtility.SampleAlphaBilinear(blendTexture, u, v)
+                : Mathf.InverseLerp(Radius, Radius - Fade, localPos.Magnitude2D());
+
+            Vector4 splat0 = splat0Texture != null ? splat0Texture.GetPixelBilinear(u, v) : Vector4.zero;
+            Vector4 splat1 = splat1Texture != null ? splat1Texture.GetPixelBilinear(u, v) : Vector4.zero;
+
+            float[] splatValues = new float[8];
+            splatValues[0] = ShouldSplat(1) ? splat0.x : 0f;   // Dirt
+            splatValues[1] = ShouldSplat(2) ? splat0.y : 0f;   // Snow
+            splatValues[2] = ShouldSplat(4) ? splat0.z : 0f;   // Sand
+            splatValues[3] = ShouldSplat(8) ? splat0.w : 0f;   // Rock
+            splatValues[4] = ShouldSplat(16) ? splat1.x : 0f;  // Grass
+            splatValues[5] = ShouldSplat(32) ? splat1.y : 0f;  // Forest
+            splatValues[6] = ShouldSplat(64) ? splat1.z : 0f;  // Stones
+            splatValues[7] = ShouldSplat(128) ? splat1.w : 0f; // Gravel
+
+            // Compute the total splat contribution
+            float totalSplatContribution = 0f;
+            for (int i = 0; i < 8; i++) totalSplatContribution += splatValues[i];
+
+            // Normalize splat values (if non-zero contribution)
+            if (totalSplatContribution > 0f)
             {
-                float u = (localPos.x + extents.x) / (2f * extents.x);
-                float v = (localPos.z + extents.z) / (2f * extents.z);
-                Vector4 splat0 = splat0Texture != null ? splat0Texture.GetPixelBilinear(u, v) : Vector4.zero;
-                Vector4 splat1 = splat1Texture != null ? splat1Texture.GetPixelBilinear(u, v) : Vector4.zero;
-
-                // Map all 8 layers explicitly
-                float[] splatValues = new float[8];
-                splatValues[0] = ShouldSplat(1) ? splat0.x : 0f;   // Dirt
-                splatValues[1] = ShouldSplat(2) ? splat0.y : 0f;   // Snow
-                splatValues[2] = ShouldSplat(4) ? splat0.z : 0f;   // Sand
-                splatValues[3] = ShouldSplat(8) ? splat0.w : 0f;   // Rock
-                splatValues[4] = ShouldSplat(16) ? splat1.x : 0f;  // Grass
-                splatValues[5] = ShouldSplat(32) ? splat1.y : 0f;  // Forest
-                splatValues[6] = ShouldSplat(64) ? splat1.z : 0f;  // Stones
-                splatValues[7] = ShouldSplat(128) ? splat1.w : 0f; // Gravel
-
-                // Normalize if needed (optional, depending on TerrainManager requirements)
-                float sum = 0f;
-                for (int i = 0; i < 8; i++) sum += splatValues[i];
-                if (sum > 0f) for (int i = 0; i < 8; i++) splatValues[i] /= sum;
-
-                // Ensure k doesn’t exceed layerCount or splatValues length
-                for (int k = 0; k < Mathf.Min(layerCount, 8); k++)
-                {
-                    regionSplats[z - minZ, x - minX, k] = Mathf.Lerp(splatMap[z, x, k], splatValues[k], fade);
-                }
+                for (int i = 0; i < 8; i++) splatValues[i] /= totalSplatContribution;
             }
-            else
+
+            // Adjust the fade factor based on the total splat contribution
+            // When totalSplatContribution approaches 0, the effective fade should also approach 0
+            float effectiveFade = fade * totalSplatContribution;
+
+            // Blend all layers using the effective fade factor
+            for (int k = 0; k < Mathf.Min(layerCount, 8); k++)
+            {
+                regionSplats[z - minZ, x - minX, k] = Mathf.Lerp(splatMap[z, x, k], splatValues[k], effectiveFade);
+            }
+        }
+    }
+
+    // Final normalization pass to ensure splat values sum to 1
+    for (int x = 0; x < width; x++)
+    {
+        for (int z = 0; z < height; z++)
+        {
+            float sum = 0f;
+            for (int k = 0; k < layerCount; k++)
+            {
+                sum += regionSplats[z, x, k];
+            }
+            if (sum > 0f)
             {
                 for (int k = 0; k < layerCount; k++)
                 {
-                    regionSplats[z - minZ, x - minX, k] = splatMap[z, x, k];
+                    regionSplats[z, x, k] /= sum;
                 }
             }
         }
@@ -264,73 +299,116 @@ protected override void ApplySplatMap(Matrix4x4 localToWorld, Matrix4x4 worldToL
     dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
 }
 
-    protected override void ApplyTopologyMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
+protected override void ApplyTopologyMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
+{
+	Debug.LogError("attempting to apply topos");
+    //if (!ShouldTopology() || topologymap == null || !topologymap.IsValid) return;
+    Texture2D topologyTexture = topologymap.GetResource();
+
+    if (topologyTexture == null)
     {
-        if (!ShouldTopology() || topologymap == null || !topologymap.IsValid) return;
+        Debug.LogWarning($"No topology texture available for {this}.");
+        return;
+    }
 
-        Texture2D topologyTexture = topologymap.cachedInstance ?? topologymap.GetResource();
-        if (topologyTexture == null)
+    Vector3[] corners = GetWorldCorners(localToWorld);
+    int[] gridBounds = TerrainManager.WorldCornersToGrid(corners[0], corners[1], corners[2], corners[3]);
+    int minX = Mathf.Max(0, gridBounds[0]), minZ = Mathf.Max(0, gridBounds[1]);
+    int maxX = Mathf.Min(TerrainManager.AlphaMapRes - 1, gridBounds[2]), maxZ = Mathf.Min(TerrainManager.AlphaMapRes - 1, gridBounds[3]);
+    int width = maxX - minX + 1, height = maxZ - minZ + 1;
+
+    if (width <= 0 || height <= 0) return;
+
+    int[,] topologyMap = TerrainManager.GetTopologyMap();
+    int[,] regionTopology = new int[height, width];
+
+    // Debug extents, size, and topology mask
+
+    for (int x = minX; x <= maxX; x++)
+    {
+        for (int z = minZ; z <= maxZ; z++)
         {
-            Debug.LogWarning($"No topology texture available for {this}.");
-            return;
-        }
+            Vector3 worldPos = new Vector3(TerrainManager.ToWorldX(x), 0, TerrainManager.ToWorldZ(z));
+            Vector3 localPos = worldToLocal.MultiplyPoint3x4(worldPos) - offset;
 
-        Vector3[] corners = GetWorldCorners(localToWorld);
-        int[] gridBounds = TerrainManager.WorldCornersToGrid(corners[0], corners[1], corners[2], corners[3]);
-        int minX = Mathf.Max(0, gridBounds[0]), minZ = Mathf.Max(0, gridBounds[1]);
-        int maxX = Mathf.Min(TerrainManager.SplatMapRes - 1, gridBounds[2]), maxZ = Mathf.Min(TerrainManager.SplatMapRes - 1, gridBounds[3]);
-        int width = maxX - minX + 1, height = maxZ - minZ + 1;
+            float u = Mathf.Clamp01((localPos.x + extents.x) / size.x);
+            float v = Mathf.Clamp01((localPos.z + extents.z) / size.z);
 
-        if (width <= 0 || height <= 0) return;
+            float pixelX = u * (float)(topologyTexture.width - 1);
+            float pixelY = v * (float)(topologyTexture.height - 1);
+            int px = Mathf.Clamp(Mathf.RoundToInt(pixelX), 1, topologyTexture.width - 2);
+            int py = Mathf.Clamp(Mathf.RoundToInt(pixelY), 1, topologyTexture.height - 2);
 
-        int[,] topologyMap = TerrainManager.GetTopologyMap();
-        int[,] regionTopology = new int[height, width];
+            Color32 topologySample = topologyTexture.GetPixelData<Color32>(0)[py * topologyTexture.width + px];
 
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int z = minZ; z <= maxZ; z++)
+            // Use BitUtility.DecodeInt to construct topology value
+            int topologyValue = BitUtility.DecodeInt(topologySample);
+
+            bool shouldApply = ShouldTopology(topologyValue);
+
+            if (!shouldApply)
             {
-                Vector3 worldPos = new Vector3(TerrainManager.ToWorldX(x), 0, TerrainManager.ToWorldZ(z));
-                Vector3 localPos = worldToLocal.MultiplyPoint3x4(worldPos) - offset;
+                regionTopology[z - minZ, x - minX] = topologyMap[z, x];
+                continue;
+            }
 
-                float dist = localPos.Magnitude2D();
-                if (dist <= Radius)
-                {
-                    float u = (localPos.x + extents.x) / (2f * extents.x);
-                    float v = (localPos.z + extents.z) / (2f * extents.z);
-                    int topologyValue = (int)(topologyTexture.GetPixelBilinear(u, v).r * 255f);
-                    if (ShouldTopology(topologyValue))
-                    {
-                        regionTopology[z - minZ, x - minX] = topologyValue & (int)TopologyMask;
-                    }
-                    else
-                    {
-                        regionTopology[z - minZ, x - minX] = topologyMap[z, x];
-                    }
-                }
-                else
-                {
-                    regionTopology[z - minZ, x - minX] = topologyMap[z, x];
-                }
+            // Apply topology mask
+            topologyValue &= (int)TopologyMask;
+
+            // Apply topology additively
+            int existingTopology = topologyMap[z, x];
+            int newTopology = BitUtility.ApplyTopologyAdditive(existingTopology, topologyValue);
+
+            regionTopology[z - minZ, x - minX] = newTopology;
+        }
+    }
+
+    // Debug the regionTopology array before applying
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            if (regionTopology[i, j] != topologyMap[minZ + i, minX + j])
+            {
+                Debug.Log($"Topology changed at ({minX + j}, {minZ + i}): 0x{regionTopology[i, j]:X8} (was 0x{topologyMap[minZ + i, minX + j]:X8})");
             }
         }
-
-        TerrainManager.SetTopologyMapRegion(regionTopology, minX, minZ, width, height);
-        dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
     }
+
+    TopologyData.SetTopologyRegion(regionTopology, minX, minZ, width, height);
+
+    dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
+}
 
     protected override void ApplyWaterMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
     {
     }
 
-    private Vector3[] GetWorldCorners(Matrix4x4 localToWorld)
-    {
-        Vector3 bottomLeft = localToWorld.MultiplyPoint3x4(new Vector3(-Radius, 0, -Radius) + offset);
-        Vector3 bottomRight = localToWorld.MultiplyPoint3x4(new Vector3(Radius, 0, -Radius) + offset);
-        Vector3 topLeft = localToWorld.MultiplyPoint3x4(new Vector3(-Radius, 0, Radius) + offset);
-        Vector3 topRight = localToWorld.MultiplyPoint3x4(new Vector3(Radius, 0, Radius) + offset);
-        return new[] { bottomLeft, bottomRight, topLeft, topRight };
-    }
+	private Vector3[] GetWorldCorners(Matrix4x4 localToWorld)
+	{
+		float radius = Radius == 0f ? extents.x : Radius;
+		bool useBlendMap = blendmap != null && blendmap.IsValid;
+		float radiusX = useBlendMap ? extents.x : radius;
+		float radiusZ = useBlendMap ? extents.z : radius;
+		Vector3 position = localToWorld.MultiplyPoint3x4(Vector3.zero);
+
+		Quaternion rotation = localToWorld.rotation;
+		Vector3 localXAxis = rotation * Vector3.right;
+		Vector3 localZAxis = rotation * Vector3.forward;
+
+		float extentX = Mathf.Abs(Vector3.Dot(new Vector3(radiusX, 0f, 0f), localXAxis)) +
+						Mathf.Abs(Vector3.Dot(new Vector3(0f, 0f, radiusZ), localXAxis));
+		float extentZ = Mathf.Abs(Vector3.Dot(new Vector3(radiusX, 0f, 0f), localZAxis)) +
+						Mathf.Abs(Vector3.Dot(new Vector3(0f, 0f, radiusZ), localZAxis));
+
+		return new Vector3[]
+		{
+			position + new Vector3(-extentX, 0f, -extentZ),
+			position + new Vector3(extentX, 0f, -extentZ),
+			position + new Vector3(-extentX, 0f, extentZ),
+			position + new Vector3(extentX, 0f, extentZ)
+		};
+	}
 
     private void GenerateCliffSplat(Vector3 worldPos, float[,,] splatMap, int z, int x)
     {

@@ -42,11 +42,17 @@ public static class AssetManager
 		Callbacks.BundlesLoaded += HideLoadScreen;
 		Callbacks.BundlesDisposed += FileWindowUpdate;
 
-		string bundlePath = SettingsManager.application.rustDirectory + SettingsManager.BundlePathExt;
+		Debug.LogError(SettingsManager.application.rustDirectory);
 		
-		string bundleTry = Path.GetFullPath(bundlePath).Substring(Path.GetPathRoot(bundlePath).Length);
-
-		if (!Directory.Exists(bundlePath))		{
+		string bundleExt = 	Path.Combine("Bundles", "Bundles");
+		
+		string bundlePath = Path.Combine(SettingsManager.application.rustDirectory);
+		
+		string[] pathSegments = { "Program Files (x86)", "Steam", "steamapps", "common", "Rust"};
+		string bundleTry = Path.Combine(pathSegments);
+		
+		Debug.LogError(bundlePath);
+		if (!ValidBundlePath(bundlePath)){
 			List<string> drives = Directory.GetLogicalDrives().ToList();
 			
 			foreach (string drive in drives)			{
@@ -57,12 +63,16 @@ public static class AssetManager
 					app.rustDirectory = alternativePath;
 					SettingsManager.application = app;
 					SettingsManager.SaveSettings();
-					bundlePath = alternativePath;
+					bundlePath = Path.Combine(alternativePath, bundleExt);
 					break;
 				}
 			}
-			
 		}
+		else {
+			
+			bundlePath = Path.Combine(bundlePath, bundleExt);
+		}
+
 		
 		if (!IsInitialised && SettingsManager.application.loadbundleonlaunch )		{
 			Initialise(bundlePath);
@@ -74,11 +84,16 @@ public static class AssetManager
 		}
 	}
 	
+	public static bool AreBundlesLoaded()
+	{
+		return IsInitialised && BundleLookup.Count > 0 && Manifest != null;
+	}
+	
 	public static bool ValidBundlePath(string bundleRoot)
 	{
 		
 		if (!Directory.Exists(SettingsManager.application.rustDirectory))		{
-				Debug.LogError("Directory does not exist: " + bundleRoot);
+				Debug.LogError("Directory invalidated: " + bundleRoot);
 			return false;
 		}
 		
@@ -243,7 +258,12 @@ public static class AssetManager
 	}
 
 	/// <summary>Loads the Rust bundles at the currently set directory.</summary>
-	public static void Initialise() => Initialise(SettingsManager.application.rustDirectory + SettingsManager.BundlePathExt);
+	public static void Initialise()
+	{
+		string bundleExt = Path.Combine("Bundles", "Bundles");
+		Initialise(SettingsManager.application.rustDirectory + bundleExt);
+		
+	}
 
 	public static void Dispose()
 	{

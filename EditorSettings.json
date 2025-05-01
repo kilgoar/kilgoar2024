@@ -243,7 +243,9 @@
   },
   "macroSources": false,
   "faves": {
-    "favoriteCustoms": []
+    "favoriteCustoms": [
+      "assets/bundled/prefabs/autospawn/monument/harbor/harbor_1"
+    ]
   },
   "windowStates": [
     {
@@ -275,7 +277,7 @@
     {
       "isActive": false,
       "position": {
-        "x": -75.30005,
+        "x": -73.30005,
         "y": -118.999969,
         "z": 0.0
       },
@@ -288,8 +290,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -344.29657,
-        "y": 74.6865845,
+        "x": -315.79657,
+        "y": -57.8733826,
         "z": 0.0
       },
       "scale": {
@@ -301,8 +303,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -344.29657,
-        "y": 41.5704041,
+        "x": -268.79657,
+        "y": 37.8503723,
         "z": 0.0
       },
       "scale": {
@@ -314,7 +316,7 @@
     {
       "isActive": false,
       "position": {
-        "x": 15.5999756,
+        "x": 17.5999756,
         "y": 2.1,
         "z": 0.0
       },
@@ -325,10 +327,10 @@
       }
     },
     {
-      "isActive": false,
+      "isActive": true,
       "position": {
-        "x": 335.289978,
-        "y": 276.343018,
+        "x": 321.289978,
+        "y": 13.0180054,
         "z": 0.0
       },
       "scale": {
@@ -338,10 +340,10 @@
       }
     },
     {
-      "isActive": true,
+      "isActive": false,
       "position": {
-        "x": 204.97998,
-        "y": -90.6099854,
+        "x": 85.97998,
+        "y": -84.6099854,
         "z": 0.0
       },
       "scale": {
@@ -366,7 +368,7 @@
     {
       "isActive": false,
       "position": {
-        "x": 274.55,
+        "x": 276.55,
         "y": -96.97,
         "z": 0.0
       },

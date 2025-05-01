@@ -148,6 +148,7 @@ public static class TerrainManager
         SetTerrainReferences();
 		SyncTerrainResolutions();
 		HideLandMask();
+		
 		/*
 		#if UNITY_EDITOR
 		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.GenerateNormalMap(HeightMapRes - 1, Progress.Start("Generate Normal Map")));
@@ -159,20 +160,19 @@ public static class TerrainManager
 	
 	public static void OnBundlesLoaded()
 	{	
-		
-		_config = Resources.Load<TerrainConfig>("TerrainConfig");
-        if (_config == null)
-        {
-            Debug.LogError("TerrainConfig not found at Resources/TerrainConfig!");
-        }
-
-
 		SetTerrainLayers();
-		
-		LoadTerrainAssets();		
-		ConfigureShaderGlobals(Land);		
-		ApplyConfigToTerrain(Land);
-		
+		if(AssetManager.AreBundlesLoaded()){
+			_config = Resources.Load<TerrainConfig>("TerrainConfig");
+			if (_config == null)
+			{
+				Debug.LogError("TerrainConfig not found at Resources/TerrainConfig!");
+			}
+			
+
+			LoadTerrainAssets();		
+			ConfigureShaderGlobals(Land);		
+			ApplyConfigToTerrain(Land);
+		}
 	}
 	
 	public static void PopulateTerrainArrays()
@@ -1433,7 +1433,7 @@ private static void ConfigureShaderGlobals(Terrain terrain)
         }
 
         RegisterSplatMapUndo($"Set Topology Map Region Layer {layer}");
-        SetSplatMap(fullMap, LayerType.Topology, layer);
+        //SetSplatMap(fullMap, LayerType.Topology, layer);
     }
 
     /// <summary>Gets the alpha map as a float[,] for blending purposes (0 = hole, 1 = visible).</summary>
@@ -3104,35 +3104,64 @@ public static void NudgeHeightMap(float offset)
 		Shader.SetGlobalTexture("Terrain_Alpha", AlphaTexture);
 	}
 
-    public static void SetHeightMapRegion(float[,] array, int x, int y, int width, int height, TerrainType terrain = TerrainType.Land)
+public static void SetHeightMapRegion(float[,] array, int x, int y, int width, int height, TerrainType terrain = TerrainType.Land)
+{
+    if (array == null)
     {
-        float[,] fullMap = GetHeightMap(terrain);
-        for (int i = 0; i < height; i++)
+        Debug.LogError("Input array is null");
+        return;
+    }
+    if (array.GetLength(0) < height || array.GetLength(1) < width)
+    {
+        Debug.LogError($"Input array dimensions ({array.GetLength(0)}, {array.GetLength(1)}) are too small for requested region ({height}, {width})");
+        return;
+    }
+
+    float[,] fullMap = GetHeightMap(terrain);
+    if (fullMap == null)
+    {
+        Debug.LogError("fullMap is null");
+        return;
+    }
+    if (fullMap.GetLength(0) < HeightMapRes || fullMap.GetLength(1) < HeightMapRes)
+    {
+        Debug.LogError($"fullMap dimensions ({fullMap.GetLength(0)}, {fullMap.GetLength(1)}) are too small for HeightMapRes ({HeightMapRes})");
+        return;
+    }
+
+    if (terrain == TerrainType.Land && Height == null)
+    {
+        Debug.LogError("Height array is null");
+        return;
+    }
+
+
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
         {
-            for (int j = 0; j < width; j++)
+            if (x + j < HeightMapRes && y + i < HeightMapRes)
             {
-                if (x + j < HeightMapRes && y + i < HeightMapRes)
+                fullMap[y + i, x + j] = array[i, j];
+                if (terrain == TerrainType.Land)
                 {
-                    fullMap[y + i, x + j] = array[i, j];
-                    if (terrain == TerrainType.Land)
-                    {
-                        Height[y + i, x + j] = array[i, j]; // Sync Height array
-                    }
+                    Height[y + i, x + j] = array[i, j]; // Sync Height array
                 }
             }
         }
-        if (terrain == TerrainType.Land)
-        {
-            Land.terrainData.SetHeights(x, y, array);
-            //SyncHeightTexture(); 
-            Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
-        }
-        else
-        {
-            Water.terrainData.SetHeights(x, y, array);
-            Callbacks.InvokeHeightMapUpdated(TerrainType.Water);
-        }
     }
+
+    if (terrain == TerrainType.Land)
+    {
+        Land.terrainData.SetHeights(x, y, array);
+        Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
+    }
+    else
+    {
+        Water.terrainData.SetHeights(x, y, array);
+        Callbacks.InvokeHeightMapUpdated(TerrainType.Water);
+    }
+}
 
 
     private static void HeightMapChanged(Terrain terrain, RectInt heightRegion, bool synched)
@@ -3150,9 +3179,8 @@ public static void NudgeHeightMap(float offset)
 
         if (terrain.Equals(Land))
         {
-            //SyncHeightTexture();
+			UpdateHeightCache();
         }
-        ResetHeightCache();
         Callbacks.InvokeHeightMapUpdated(terrain.Equals(Land) ? TerrainType.Land : TerrainType.Water);
     }
 	

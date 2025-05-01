@@ -5,7 +5,7 @@ public abstract class TerrainPlacement : PrefabAttribute
 {
     public void ApplyHeight(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
     {
-        if (!ShouldHeight()) return;
+        //if (!ShouldHeight()) return;
         Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
         Matrix4x4 worldToLocal = localToWorld.inverse;
         ApplyHeightMap(localToWorld, worldToLocal, dimensions);
@@ -13,7 +13,7 @@ public abstract class TerrainPlacement : PrefabAttribute
 
     public void ApplySplat(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
     {
-        if (!ShouldSplat(-1)) return;
+        //if (!ShouldSplat(-1)) return;
         Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
         Matrix4x4 worldToLocal = localToWorld.inverse;
         ApplySplatMap(localToWorld, worldToLocal, dimensions);
@@ -21,7 +21,7 @@ public abstract class TerrainPlacement : PrefabAttribute
 
     public void ApplyAlpha(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
     {
-        if (!ShouldAlpha()) return;
+        //if (!ShouldAlpha()) return;
         Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
         Matrix4x4 worldToLocal = localToWorld.inverse;
         ApplyAlphaMap(localToWorld, worldToLocal, dimensions);
@@ -29,7 +29,7 @@ public abstract class TerrainPlacement : PrefabAttribute
 
     public void ApplyBiome(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
     {
-        if (!ShouldBiome(-1)) return;
+        //if (!ShouldBiome(-1)) return;
         Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
         Matrix4x4 worldToLocal = localToWorld.inverse;
         ApplyBiomeMap(localToWorld, worldToLocal, dimensions);
@@ -37,7 +37,7 @@ public abstract class TerrainPlacement : PrefabAttribute
 
     public void ApplyTopology(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
     {
-        if (!ShouldTopology(-1)) return;
+        //if (!ShouldTopology(-1)) return;
         Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
         Matrix4x4 worldToLocal = localToWorld.inverse;
         ApplyTopologyMap(localToWorld, worldToLocal, dimensions);

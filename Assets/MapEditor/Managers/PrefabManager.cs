@@ -64,14 +64,14 @@ public static class PrefabManager
 		
 		EditorSpace = GameObject.FindGameObjectWithTag("EditorSpace").transform;
 		
-		
+		/*
         if (DefaultPrefab != null && PrefabParent != null)
         {
             //EditorApplication.update -= OnProjectLoad;
             if (!AssetManager.IsInitialised && SettingsManager.LoadBundleOnLaunch)
                 AssetManager.Initialise(SettingsManager.RustDirectory + SettingsManager.BundlePathExt);
         }
-		
+		*/
 		//TransformToolManager.ToggleTransformTool(false);
 	}
 	
@@ -160,7 +160,7 @@ public static class PrefabManager
 		
 		if(networking){ return; }  // short circuit notifications when loading via network
 		
-		Debug.LogError("updating items list\n" + new System.Diagnostics.StackTrace().ToString());  //trace shitty updates
+		//Debug.LogError("updating items list\n" + new System.Diagnostics.StackTrace().ToString());  //trace shitty updates
 		
 		if(!update) {return;} // short circuit notifications if they derive from items window
 		
