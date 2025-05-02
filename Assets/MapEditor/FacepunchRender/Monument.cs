@@ -96,55 +96,45 @@ protected override void ApplyHeightMap(Matrix4x4 localToWorld, Matrix4x4 worldTo
     TerrainManager.SetHeightMapRegion(regionHeights, minX, minZ, width, height);
 }
 
-    protected override void ApplyAlphaMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
+protected override void ApplyAlphaMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
+{
+    Texture2D alphaTexture = alphamap.GetResource();
+    if (alphaTexture == null)
     {
-        if (!ShouldAlpha() || alphamap == null || !alphamap.IsValid) return;
-
-        Texture2D alphaTexture = alphamap.cachedInstance ?? alphamap.GetResource();
-        if (alphaTexture == null)
-        {
-            Debug.LogWarning($"No alpha texture available for {this}.");
-            return;
-        }
-
-        Vector3[] corners = GetWorldCorners(localToWorld);
-        int[] gridBounds = TerrainManager.WorldCornersToGrid(corners[0], corners[1], corners[2], corners[3]);
-        int minX = Mathf.Max(0, gridBounds[0]), minZ = Mathf.Max(0, gridBounds[1]);
-        int maxX = Mathf.Min(TerrainManager.AlphaMapRes - 1, gridBounds[2]), maxZ = Mathf.Min(TerrainManager.AlphaMapRes - 1, gridBounds[3]);
-        int width = maxX - minX + 1, height = maxZ - minZ + 1;
-
-        if (width <= 0 || height <= 0) return;
-
-        float[,] alphaMap = TerrainManager.GetAlphaMapFloat();
-        float[,] regionAlpha = new float[height, width];
-
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int z = minZ; z <= maxZ; z++)
-            {
-                Vector3 worldPos = new Vector3(TerrainManager.ToWorldX(x), 0, TerrainManager.ToWorldZ(z));
-                Vector3 localPos = worldToLocal.MultiplyPoint3x4(worldPos) - offset;
-
-                float dist = localPos.Magnitude2D();
-                float fade = Mathf.InverseLerp(Radius, Radius - Fade, dist);
-                if (fade > 0f)
-                {
-                    float u = (localPos.x + extents.x) / (2f * extents.x);
-                    float v = (localPos.z + extents.z) / (2f * extents.z);
-                    float alphaValue = alphaTexture.GetPixelBilinear(u, v).a;
-                    regionAlpha[z - minZ, x - minX] = Mathf.Lerp(alphaMap[z, x], alphaValue, fade);
-                }
-                else
-                {
-                    regionAlpha[z - minZ, x - minX] = alphaMap[z, x];
-                }
-            }
-        }
-
-
-        TerrainManager.SetAlphaMapRegion(regionAlpha, minX, minZ, width, height);
-        dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
+        Debug.LogWarning($"No alpha texture available for {this}.");
+        return;
     }
+
+    Vector3[] corners = GetWorldCorners(localToWorld);
+    int[] gridBounds = TerrainManager.WorldCornersToGrid(corners[0], corners[1], corners[2], corners[3]);
+    int minX = Mathf.Max(0, gridBounds[0]), minZ = Mathf.Max(0, gridBounds[1]);
+    int maxX = Mathf.Min(TerrainManager.AlphaMapRes - 1, gridBounds[2]), maxZ = Mathf.Min(TerrainManager.AlphaMapRes - 1, gridBounds[3]);
+    int width = maxX - minX + 1, height = maxZ - minZ + 1;
+
+    if (width <= 0 || height <= 0) return;
+
+    float[,] alphaMap = TerrainManager.GetAlphaMapFloat();
+    float[,] regionAlpha = new float[height, width];
+
+    for (int x = minX; x <= maxX; x++)
+    {
+        for (int z = minZ; z <= maxZ; z++)
+        {
+            Vector3 worldPos = new Vector3(TerrainManager.ToWorldX(x), 0, TerrainManager.ToWorldZ(z));
+            Vector3 localPos = worldToLocal.MultiplyPoint3x4(worldPos) - offset;
+
+            float u = (localPos.x + extents.x) / (2f * extents.x);
+            float v = (localPos.z + extents.z) / (2f * extents.z);
+            float alphaValue = alphaTexture.GetPixelBilinear(u, v).a;
+            regionAlpha[z - minZ, x - minX] = alphaValue;
+        }
+    }
+
+    TerrainManager.SetAlphaMapRegion(regionAlpha, minX, minZ, width, height);
+    dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
+}
+	
+	
 protected override void ApplyBiomeMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
 {
     Texture2D biomeTexture1 = biomemap.GetResource(); // First biome texture
@@ -417,9 +407,96 @@ protected override void ApplyTopologyMap(Matrix4x4 localToWorld, Matrix4x4 world
     dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
 }
 
-    protected override void ApplyWaterMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
+protected override void ApplyWaterMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
+{
+    Texture2D waterTexture = watermap.GetResource();
+    if (waterTexture == null)
     {
+        Debug.LogWarning($"No water heightmap texture available for {this}.");
+        return;
     }
+
+    Texture2D blendTexture =blendmap.GetResource();
+    bool useBlendMap = blendTexture != null && blendmap.IsValid;
+
+    float radius = Radius == 0f ? extents.x : Radius;
+    Vector3 position = localToWorld.MultiplyPoint3x4(Vector3.zero);
+
+    Quaternion rotation = localToWorld.rotation;
+    Vector3 localXAxis = rotation * Vector3.right;
+    Vector3 localZAxis = rotation * Vector3.forward;
+
+    float extentX = Mathf.Abs(Vector3.Dot(new Vector3(radius, 0f, 0f), localXAxis)) +
+                    Mathf.Abs(Vector3.Dot(new Vector3(0f, 0f, radius), localXAxis));
+    float extentZ = Mathf.Abs(Vector3.Dot(new Vector3(radius, 0f, 0f), localZAxis)) +
+                    Mathf.Abs(Vector3.Dot(new Vector3(0f, 0f, radius), localZAxis));
+
+    Vector3[] corners = new Vector3[]
+    {
+        position + new Vector3(-extentX, 0f, -extentZ),
+        position + new Vector3(extentX, 0f, -extentZ),
+        position + new Vector3(-extentX, 0f, extentZ),
+        position + new Vector3(extentX, 0f, extentZ)
+    };
+
+    int[] gridBounds = TerrainManager.WorldCornersToGrid(corners[0], corners[1], corners[2], corners[3]);
+    int minX = Mathf.Max(0, gridBounds[0]), minZ = Mathf.Max(0, gridBounds[1]);
+    int maxX = Mathf.Min(TerrainManager.HeightMapRes - 1, gridBounds[2]), maxZ = Mathf.Min(TerrainManager.HeightMapRes - 1, gridBounds[3]);
+    int width = maxX - minX + 1, height = maxZ - minZ + 1;
+
+    if (width <= 0 || height <= 0)
+    {
+        Debug.LogWarning($"Invalid region size for water map: width={width}, height={height}. Skipping application.");
+        return;
+    }
+
+    float[,] waterMapData = TerrainManager.GetWaterHeightMap();
+    float[,] regionWater = new float[height, width];
+    int modifiedPixels = 0;
+
+    Vector3 terrainPosition = TerrainManager.Water.transform.position;
+    Vector3 terrainSize = TerrainManager.TerrainSize;
+    Vector3 rcpSize = new Vector3(1f / terrainSize.x, 1f / terrainSize.y, 1f / terrainSize.z);
+
+    for (int x = minX; x <= maxX; x++)
+    {
+        for (int z = minZ; z <= maxZ; z++)
+        {
+            float normX = ((float)x + 0.5f) / TerrainManager.HeightMapRes;
+            float normZ = ((float)z + 0.5f) / TerrainManager.HeightMapRes;
+
+            Vector3 worldPos = new Vector3(
+                terrainPosition.x + normX * terrainSize.x,
+                0f,
+                terrainPosition.z + normZ * terrainSize.z
+            );
+            Vector3 localPos = worldToLocal.MultiplyPoint3x4(worldPos) - offset;
+
+            float u = Mathf.Clamp01((localPos.x + extents.x) / size.x);
+            float v = Mathf.Clamp01((localPos.z + extents.z) / size.z);
+
+            float combinedHeight = BitUtility.SampleHeightBilinear(waterTexture, u, v);
+            float worldHeight = position.y + offset.y + combinedHeight * size.y;
+            float normalizedHeight = (worldHeight - terrainPosition.y) * rcpSize.y;
+
+            float fade = useBlendMap ? (blendTexture?.GetPixelBilinear(u, v).a ?? 0f) : 1f;
+            if (fade <= 0f)
+            {
+                regionWater[z - minZ, x - minX] = waterMapData[z, x];
+                continue;
+            }
+
+            regionWater[z - minZ, x - minX] = Mathf.SmoothStep(waterMapData[z, x], normalizedHeight, fade);
+            if (normalizedHeight > 0f) modifiedPixels++;
+            dimensions.IncludeRect(new RectInt(x, z, 1, 1));
+        }
+    }
+
+    TerrainManager.SetHeightMapRegion(regionWater, minX, minZ, width, height, TerrainManager.TerrainType.Water);
+    dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
+
+    Debug.Log($"ApplyWaterMap: Applied {modifiedPixels} non-zero height pixels for water map in region ({minX}, {minZ}, {width}, {height}).");
+}
 
 	private Vector3[] GetWorldCorners(Matrix4x4 localToWorld)
 	{

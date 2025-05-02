@@ -244,7 +244,9 @@
   "macroSources": false,
   "faves": {
     "favoriteCustoms": [
-      "assets/bundled/prefabs/autospawn/monument/harbor/harbor_1"
+      "assets/bundled/prefabs/autospawn/monument/harbor/harbor_1",
+      "assets/bundled/prefabs/autospawn/monument/cave/cave_medium_hard",
+      "assets/bundled/prefabs/autospawn/monument/medium/bandit_town"
     ]
   },
   "windowStates": [
@@ -288,10 +290,10 @@
       }
     },
     {
-      "isActive": false,
+      "isActive": true,
       "position": {
-        "x": -322.79657,
-        "y": -26.8733826,
+        "x": -306.79657,
+        "y": -51.3733826,
         "z": 0.0
       },
       "scale": {
@@ -301,7 +303,7 @@
       }
     },
     {
-      "isActive": false,
+      "isActive": true,
       "position": {
         "x": -336.79657,
         "y": 78.35037,
@@ -327,7 +329,7 @@
       }
     },
     {
-      "isActive": true,
+      "isActive": false,
       "position": {
         "x": -367.289978,
         "y": 105.018005,

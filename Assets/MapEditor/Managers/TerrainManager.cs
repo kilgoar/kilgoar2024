@@ -1499,28 +1499,95 @@ private static void ConfigureShaderGlobals(Terrain terrain)
         return alphaFloat;
     }
 
-    /// <summary>Sets a region of the alpha map from a float[,] array.</summary>
-    public static void SetAlphaMapRegion(float[,] array, int x, int y, int width, int height)
+ public static void SetAlphaMapRegion(float[,] alphaData, int x, int y, int width, int height)
+{
+    if (alphaData == null || alphaData.GetLength(0) != height || alphaData.GetLength(1) != width)
     {
-        if (array == null || array.GetLength(0) != height || array.GetLength(1) != width)
-        {
-            Debug.LogError($"SetAlphaMapRegion: Invalid array dimensions. Expected [{height}, {width}], got [{array?.GetLength(0)}, {array?.GetLength(1)}]");
-            return;
-        }
-
-        bool[,] regionAlpha = new bool[height, width];
-        for (int i = 0; i < height; i++)
-        {
-            for (int j = 0; j < width; j++)
-            {
-                regionAlpha[i, j] = array[i, j] > 0.5f; // Threshold at 0.5 for binary conversion
-            }
-        }
-
-        SetAlphaMap(regionAlpha, x, y, width, height);
+        Debug.LogError($"SetAlphaMapRegion: Invalid alphaData dimensions. Expected [{height}, {width}], got [{alphaData?.GetLength(0)}, {alphaData?.GetLength(1)}].");
+        return;
     }
 
-    // Override the existing GetAlphaMap to clarify it's for holes
+    // Validate region bounds
+    if (x < 0 || y < 0 || x + width > AlphaMapRes || y + height > AlphaMapRes)
+    {
+        Debug.LogError($"SetAlphaMapRegion: Invalid region: x={x}, y={y}, width={width}, height={height}. Must be within [0, {AlphaMapRes}).");
+        return;
+    }
+
+    // Ensure Alpha array is initialized
+    if (Alpha == null || Alpha.GetLength(0) != AlphaMapRes || Alpha.GetLength(1) != AlphaMapRes)
+    {
+        Alpha = new bool[AlphaMapRes, AlphaMapRes];
+        Debug.LogWarning("Alpha array was not initialized. Initialized with zeros.");
+    }
+
+    // Convert float[,] to bool[,] (0 = hole, 1 = visible, threshold at 0.5)
+    bool[,] regionAlpha = new bool[height, width];
+    int holeCount = 0;
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            regionAlpha[i, j] = alphaData[i, j] > 0.5f; // Black (0) = hole, White (1) = visible
+            if (!regionAlpha[i, j]) holeCount++;
+            Alpha[y + i, x + j] = regionAlpha[i, j];
+        }
+    }
+
+    // Apply holes to terrain
+    RegisterSplatMapUndo("Set Alpha Region");
+    Land.terrainData.SetHoles(x, y, regionAlpha);
+
+    // Update AlphaTexture for the region
+    Texture2D tempTexture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
+    Color32[] colors = new Color32[width * height];
+
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            float value = regionAlpha[i, j] ? 1f : 0f;
+            colors[i * width + j] = new Color(value, value, value, value);
+        }
+    }
+
+    tempTexture.SetPixels32(colors);
+    tempTexture.Apply(true, false);
+
+    // Ensure AlphaTexture exists
+    if (AlphaTexture == null || !AlphaTexture.IsCreated())
+    {
+        AlphaTexture = new RenderTexture(AlphaMapRes, AlphaMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+        {
+            wrapMode = TextureWrapMode.Clamp,
+            enableRandomWrite = true,
+            name = "Terrain_Alpha"
+        };
+        AlphaTexture.Create();
+    }
+
+    // Copy the region to the AlphaTexture
+    RenderTexture.active = AlphaTexture;
+    Graphics.CopyTexture(tempTexture, 0, 0, 0, 0, width, height, AlphaTexture, 0, 0, x, y);
+    RenderTexture.active = null;
+
+    UnityEngine.Object.Destroy(tempTexture);
+    Shader.SetGlobalTexture("Terrain_Alpha", AlphaTexture);
+
+    AlphaDirty = false;
+    Callbacks.InvokeLayerUpdated(LayerType.Alpha, TopologyLayer);
+}
+
+	public static float[,] GetWaterHeightMap()
+	{
+		if (Water == null || Water.terrainData == null)
+		{
+			Debug.LogError("GetWaterHeightMap: Water terrain or its data is null.");
+			return new float[HeightMapRes, HeightMapRes];
+		}
+		return Water.terrainData.GetHeights(0, 0, HeightMapRes, HeightMapRes);
+	}
+
     public static bool[,] GetAlphaMap()
     {
         if (AlphaDirty || Alpha == null)
@@ -3159,21 +3226,22 @@ public static void SetBiomeRegion(float[,,] biomeData, int x, int y, int width, 
 	{
 		if (alphaData == null || alphaData.GetLength(0) != height || alphaData.GetLength(1) != width)
 		{
-			Debug.LogError($"Invalid alphaData dimensions: Expected [{height}, {width}], got [{alphaData?.GetLength(0)}, {alphaData?.GetLength(1)}].");
+			Debug.LogError($"SetAlphaRegion: Invalid alphaData dimensions. Expected [{height}, {width}], got [{alphaData?.GetLength(0)}, {alphaData?.GetLength(1)}].");
 			return;
-		}
-
-		if (Alpha == null || Alpha.GetLength(0) != AlphaMapRes)
-		{
-			Alpha = new bool[AlphaMapRes, AlphaMapRes];
-			Debug.LogWarning("Alpha array was not initialized. Initialized with zeros.");
 		}
 
 		// Validate region bounds
 		if (x < 0 || y < 0 || x + width > AlphaMapRes || y + height > AlphaMapRes)
 		{
-			Debug.LogError($"Invalid alpha region: x={x}, y={y}, width={width}, height={height}. Must be within [0, {AlphaMapRes}).");
+			Debug.LogError($"SetAlphaRegion: Invalid region: x={x}, y={y}, width={width}, height={height}. Must be within [0, {AlphaMapRes}).");
 			return;
+		}
+
+		// Ensure Alpha array is initialized
+		if (Alpha == null || Alpha.GetLength(0) != AlphaMapRes || Alpha.GetLength(1) != AlphaMapRes)
+		{
+			Alpha = new bool[AlphaMapRes, AlphaMapRes];
+			Debug.LogWarning("Alpha array was not initialized. Initialized with zeros.");
 		}
 
 		// Update Alpha array with the provided data
@@ -3185,7 +3253,11 @@ public static void SetBiomeRegion(float[,,] biomeData, int x, int y, int width, 
 			}
 		}
 
-		// Create a temporary texture for the region
+		// Apply the region to the terrain
+		RegisterSplatMapUndo("Set Alpha Region");
+		Land.terrainData.SetHoles(x, y, alphaData);
+
+		// Update AlphaTexture for the region
 		Texture2D tempTexture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
 		Color32[] colors = new Color32[width * height];
 
@@ -3207,18 +3279,22 @@ public static void SetBiomeRegion(float[,,] biomeData, int x, int y, int width, 
 			AlphaTexture = new RenderTexture(AlphaMapRes, AlphaMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
 			{
 				wrapMode = TextureWrapMode.Clamp,
-				enableRandomWrite = true
+				enableRandomWrite = true,
+				name = "Terrain_Alpha"
 			};
 			AlphaTexture.Create();
 		}
 
-		// Copy the region to the AlphaTexture at the correct position
+		// Copy the region to the AlphaTexture
 		RenderTexture.active = AlphaTexture;
 		Graphics.CopyTexture(tempTexture, 0, 0, 0, 0, width, height, AlphaTexture, 0, 0, x, y);
 		RenderTexture.active = null;
 
 		UnityEngine.Object.Destroy(tempTexture);
 		Shader.SetGlobalTexture("Terrain_Alpha", AlphaTexture);
+
+		AlphaDirty = false;
+		Callbacks.InvokeLayerUpdated(LayerType.Alpha, TopologyLayer);
 	}
 
 public static void SetHeightMapRegion(float[,] array, int x, int y, int width, int height, TerrainType terrain = TerrainType.Land)

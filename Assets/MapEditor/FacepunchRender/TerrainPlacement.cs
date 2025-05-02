@@ -42,6 +42,14 @@ public abstract class TerrainPlacement : PrefabAttribute
         Matrix4x4 worldToLocal = localToWorld.inverse;
         ApplyTopologyMap(localToWorld, worldToLocal, dimensions);
     }
+	
+	public void ApplyWater(Vector3 position, Quaternion rotation, Vector3 scale, TerrainBounds dimensions)
+    {
+        //if (!ShouldTopology(-1)) return;
+        Matrix4x4 localToWorld = Matrix4x4.TRS(position, rotation, scale);
+        Matrix4x4 worldToLocal = localToWorld.inverse;
+        ApplyWaterMap(localToWorld, worldToLocal, dimensions);
+    }
 
     public void Apply(Matrix4x4 localToWorld, Matrix4x4 worldToLocal)
     {
