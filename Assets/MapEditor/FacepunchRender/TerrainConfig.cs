@@ -277,5 +277,11 @@ public class TerrainConfig : ScriptableObject
         colors = Splats.Select(s => s.ArcticOverlay?.Color ?? Color.black).ToArray();
         parameters = Splats.Select(s => new Vector4(s.ArcticOverlay?.Smoothness ?? 0.5f, s.ArcticOverlay?.NormalIntensity ?? 0f, s.ArcticOverlay?.BlendFactor ?? 0f, s.ArcticOverlay?.BlendFalloff ?? 0f)).ToArray();
     }
+	
+	public void GetJungleOverlayData(out Color[] colors, out Vector4[] parameters)
+    {
+        colors = Splats.Select(s => s.JungleOverlay?.Color ?? Color.black).ToArray();
+        parameters = Splats.Select(s => new Vector4(s.JungleOverlay?.Smoothness ?? 0.5f, s.JungleOverlay?.NormalIntensity ?? 0f, s.JungleOverlay?.BlendFactor ?? 0f, s.JungleOverlay?.BlendFalloff ?? 0f)).ToArray();
+    }
 
 }

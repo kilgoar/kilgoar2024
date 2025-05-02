@@ -292,6 +292,7 @@ public class ItemsWindow : MonoBehaviour
             terrainPlacement.ApplyHeight(position, rotation, scale, dimensions);
 			terrainPlacement.ApplySplat(position, rotation, scale, dimensions);
 			terrainPlacement.ApplyTopology(position, rotation, scale, dimensions);
+			terrainPlacement.ApplyBiome(position, rotation, scale, dimensions);
         }
         else
         {

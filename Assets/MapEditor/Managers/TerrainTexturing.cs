@@ -68,6 +68,7 @@ public class TerrainTexturing : MonoBehaviour
         }
     }
 
+/*
     private void OnEnable()
     {
         InitializeSingleton();
@@ -76,6 +77,7 @@ public class TerrainTexturing : MonoBehaviour
             CheckAndInitializeBasicData();
         }
     }
+*/
 
     private void OnDisable()
     {
@@ -210,12 +212,14 @@ public class TerrainTexturing : MonoBehaviour
         Shader.SetGlobalVector(TexelSizeProperty, texelSize);
         Shader.SetGlobalVector(TexelSize0Property, texelSize0);
         Shader.SetGlobalVector(TexelSize1Property, texelSize1);
+		
 
         InitializeShaderPropertyIds();
         Color[] aridColors = TerrainManager._config.GetAridColors();
         Color[] temperateColors = TerrainManager._config.GetTemperateColors();
         Color[] tundraColors = TerrainManager._config.GetTundraColors();
         Color[] arcticColors = TerrainManager._config.GetArcticColors();
+		Color[] jungleColors = TerrainManager._config.GetJungleColors();
 
         Color[] aridOverlayColors; Vector4[] aridOverlayParams;
         TerrainManager._config.GetAridOverlayData(out aridOverlayColors, out aridOverlayParams);
@@ -228,6 +232,9 @@ public class TerrainTexturing : MonoBehaviour
 
         Color[] arcticOverlayColors; Vector4[] arcticOverlayParams;
         TerrainManager._config.GetArcticOverlayData(out arcticOverlayColors, out arcticOverlayParams);
+		
+		Color[] jungleOverlayColors; Vector4[] jungleOverlayParams;
+        TerrainManager._config.GetJungleOverlayData(out jungleOverlayColors, out jungleOverlayParams);
 
         float maxUVMix = layerParams[0].x;
         float minUVMixStart = layerParams[0].y;
@@ -250,6 +257,10 @@ public class TerrainTexturing : MonoBehaviour
             Shader.SetGlobalVector(shaderPropertyIds[10, i], temperateOverlayParams[i]);
             Shader.SetGlobalVector(shaderPropertyIds[11, i], tundraOverlayParams[i]);
             Shader.SetGlobalVector(shaderPropertyIds[12, i], arcticOverlayParams[i]);
+			
+			Shader.SetGlobalColor(shaderPropertyIds[16, i], jungleColors[i]);
+            Shader.SetGlobalColor(shaderPropertyIds[17, i], jungleOverlayColors[i]);
+            Shader.SetGlobalVector(shaderPropertyIds[18, i], jungleOverlayParams[i]);
 
             maxUVMix = Mathf.Max(maxUVMix, layerParams[i].x);
             minUVMixStart = Mathf.Min(minUVMixStart, layerParams[i].y);
@@ -448,7 +459,7 @@ public class TerrainTexturing : MonoBehaviour
     {
         if (shaderPropertyIds != null) return;
 
-        shaderPropertyIds = new int[16, 8];
+        shaderPropertyIds = new int[19, 8];
         for (int i = 0; i < 8; i++)
         {
             shaderPropertyIds[0, i] = Shader.PropertyToID($"Splat{i}_UVMIX");
@@ -466,7 +477,10 @@ public class TerrainTexturing : MonoBehaviour
             shaderPropertyIds[12, i] = Shader.PropertyToID($"Splat{i}_ArcticOverlayParam");
             shaderPropertyIds[13, i] = Shader.PropertyToID($"_Layer{i}_Metallic");
             shaderPropertyIds[14, i] = Shader.PropertyToID($"_Layer{i}_Factor");
-            shaderPropertyIds[15, i] = Shader.PropertyToID($"_Layer{i}_Falloff");
+            shaderPropertyIds[15, i] = Shader.PropertyToID($"_Layer{i}_Falloff");			
+			shaderPropertyIds[16, i] = Shader.PropertyToID($"Splat{i}_JungleColor");
+            shaderPropertyIds[17, i] = Shader.PropertyToID($"Splat{i}_JungleOverlayColor");
+            shaderPropertyIds[18, i] = Shader.PropertyToID($"Splat{i}_JungleOverlayParam");
         }
     }
 

@@ -71,6 +71,7 @@ public static class TerrainManager
     public static RenderTexture HeightSlopeTexture;
     private static RenderTexture AlphaTexture;
     private static RenderTexture BiomeTexture;
+	private static RenderTexture Biome1Texture;
     public static Texture2D RuntimeNormalMap { get; private set; }
 
     // Configuration
@@ -160,18 +161,26 @@ public static class TerrainManager
 	
 	public static void OnBundlesLoaded()
 	{	
+		Debug.LogError("set terrain layers");
 		SetTerrainLayers();
+		
 		if(AssetManager.AreBundlesLoaded()){
-			_config = Resources.Load<TerrainConfig>("TerrainConfig");
+		
+		_config = Resources.Load<TerrainConfig>("TerrainConfig");
+		Debug.LogError("config loaded");
+		
 			if (_config == null)
 			{
 				Debug.LogError("TerrainConfig not found at Resources/TerrainConfig!");
 			}
+		
 			
-
-			LoadTerrainAssets();		
+			LoadTerrainAssets();
+			Debug.LogError("terrain assets loaded");
 			ConfigureShaderGlobals(Land);		
+			Debug.LogError("shader globals configured");
 			ApplyConfigToTerrain(Land);
+			Debug.LogError("config applied");
 		}
 	}
 	
@@ -193,27 +202,11 @@ public static class TerrainManager
 
 		// Populate Ground and Biome arrays
 		Ground = Land.terrainData.GetAlphamaps(0, 0, SplatMapRes, SplatMapRes);
-		//Biome = Ground; // Assuming Biome shares the same alphamap data initially; adjust if separate biome data exists
-		//SyncBiomeTexture();
-		//SyncAlphaTexture();
+		
+		Biome = new float[SplatMapRes, SplatMapRes, 5];
+		
 		LayerDirty = false;
 
-	/*
-		// Populate Topology arrays
-		if (Topology == null || Topology.Length != TerrainTopology.COUNT)
-		{
-			Topology = new float[TerrainTopology.COUNT][,,];
-		}
-		for (int i = 0; i < TerrainTopology.COUNT; i++)
-		{
-			// Assuming TopologyData provides the topology layer data; adjust if sourced differently
-			Topology[i] = TopologyData.GetTopologyLayer(TerrainTopology.IndexToType(i));
-			if (Topology[i] == null || Topology[i].GetLength(0) != SplatMapRes || Topology[i].GetLength(1) != SplatMapRes)
-			{
-				Topology[i] = new float[SplatMapRes, SplatMapRes, 2]; // Default to 2 channels (active/inactive)
-			}
-		}
-*/
 
 	}
 	
@@ -341,18 +334,18 @@ public static class TerrainManager
 	
     public static void BytesToBiomeTexture(byte[] data)
     {
-        int res = Mathf.RoundToInt(Mathf.Sqrt(data.Length / 4f));
+        int res = Mathf.RoundToInt(Mathf.Sqrt(data.Length / 5f));
         if (res != SplatMapRes)
         {
             Debug.LogWarning($"Biome data resolution ({res}) does not match SplatMapRes ({SplatMapRes}).");
         }
         
-        Biome = new float[SplatMapRes, SplatMapRes, 4];
+        Biome = new float[SplatMapRes, SplatMapRes, 5];
         for (int i = 0; i < SplatMapRes; i++)
         {
             for (int j = 0; j < SplatMapRes; j++)
             {
-                for (int k = 0; k < 4; k++)
+                for (int k = 0; k < 5; k++)
                 {
                     int dataIndex = (k * res + i) * res + j;
                     Biome[i, j, k] = (dataIndex < data.Length) ? BitUtility.Byte2Float(data[dataIndex]) : 0f;
@@ -447,47 +440,85 @@ public static class TerrainManager
 		*/
     }
 
-    public static void SyncBiomeTexture()
-    {
-        if (Biome == null || Biome.GetLength(0) != SplatMapRes)
-        {
-            Debug.LogError("Biome data is not initialized or resolution mismatch.");
-            return;
-        }
+	public static void SyncBiomeTexture()
+	{
+		if (Biome == null || Biome.GetLength(0) != SplatMapRes || Biome.GetLength(2) < 4)
+		{
+			Debug.LogError("Biome data is not initialized, resolution mismatch, or insufficient layers.");
+			return;
+		}
 
-        Texture2D tempTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.RGBA32, false, true);
-        Color32[] colors = new Color32[SplatMapRes * SplatMapRes];
+		// Initialize BiomeTexture for Arid, Temperate, Tundra, Arctic (4 layers)
+		Texture2D tempTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.RGBA32, false, true);
+		Color32[] colors = new Color32[SplatMapRes * SplatMapRes];
 
-        for (int z = 0; z < SplatMapRes; z++)
-        {
-            for (int x = 0; x < SplatMapRes; x++)
-            {
-                colors[z * SplatMapRes + x] = new Color(
-                    Biome[z, x, 0],
-                    Biome[z, x, 1],
-                    Biome[z, x, 2],
-                    Biome[z, x, 3]
-                );
-            }
-        }
+		// Initialize Biome1Texture for Jungle (1 layer)
+		Texture2D tempJungleTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.R8, false, true);
+		Color32[] jungleColors = new Color32[SplatMapRes * SplatMapRes];
 
-        tempTexture.SetPixels32(colors);
-        tempTexture.Apply(true, false);
+		for (int z = 0; z < SplatMapRes; z++)
+		{
+			for (int x = 0; x < SplatMapRes; x++)
+			{
+				// Store first four biome layers in BiomeTexture
+				colors[z * SplatMapRes + x] = new Color(
+					Biome[z, x, 0], // Arid
+					Biome[z, x, 1], // Temperate
+					Biome[z, x, 2], // Tundra
+					Biome[z, x, 3]  // Arctic
+				);
 
-        if (BiomeTexture == null || !BiomeTexture.IsCreated())
-        {
-            BiomeTexture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
-            {
-                wrapMode = TextureWrapMode.Clamp,
-                enableRandomWrite = true
-            };
-            BiomeTexture.Create();
-        }
+				// Store fifth biome layer (Jungle) in Biome1Texture red channel
+				if (Biome.GetLength(2) > 4)
+				{
+					float jungleValue = Biome[z, x, 4];
+					jungleColors[z * SplatMapRes + x] = new Color(jungleValue, 0f, 0f, 1f);
+				}
+				else
+				{
+					jungleColors[z * SplatMapRes + x] = new Color(0f, 0f, 0f, 1f); // Default to 0 if Jungle layer is missing
+				}
+			}
+		}
 
-        Graphics.Blit(tempTexture, BiomeTexture);
-        UnityEngine.Object.Destroy(tempTexture);
-        Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture);
-    }
+		// Update BiomeTexture
+		tempTexture.SetPixels32(colors);
+		tempTexture.Apply(true, false);
+
+		if (BiomeTexture == null || !BiomeTexture.IsCreated())
+		{
+			BiomeTexture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+			{
+				wrapMode = TextureWrapMode.Clamp,
+				enableRandomWrite = true,
+				name = "Terrain_Biome"
+			};
+			BiomeTexture.Create();
+		}
+
+		Graphics.Blit(tempTexture, BiomeTexture);
+		UnityEngine.Object.Destroy(tempTexture);
+		Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture);
+
+		// Update Biome1Texture
+		tempJungleTexture.SetPixels32(jungleColors);
+		tempJungleTexture.Apply(true, false);
+
+		if (Biome1Texture == null || !Biome1Texture.IsCreated())
+		{
+			Biome1Texture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear)
+			{
+				wrapMode = TextureWrapMode.Clamp,
+				enableRandomWrite = true,
+				name = "Terrain_Biome1"
+			};
+			Biome1Texture.Create();
+		}
+
+		Graphics.Blit(tempJungleTexture, Biome1Texture);
+		UnityEngine.Object.Destroy(tempJungleTexture);
+		Shader.SetGlobalTexture("Terrain_Biome1", Biome1Texture);
+	}
 	
 	
 	public static void LoadTerrainAssets()
@@ -519,185 +550,201 @@ public static class TerrainManager
 	}
 	
 
-    public static void CreateTerrainConfig()
+public static void CreateTerrainConfig()
+{
+    try
     {
-        try
+        TerrainConfig config = _config ?? ScriptableObject.CreateInstance<TerrainConfig>();
+        config.name = "RebuiltTerrainConfig";
+        Debug.Log("Created new TerrainConfig instance: RebuiltTerrainConfig");
+        Debug.Log("Hardcoding TerrainConfig from prefab dump (m_PathID = 210)...");
+
+        // Scalars from dump
+        config.CastShadows = true;
+        Debug.Log($"TerrainConfig.CastShadows set to {config.CastShadows}");
+
+        config.GroundMask = 8388608;
+        Debug.Log($"TerrainConfig.GroundMask set to {config.GroundMask}");
+
+        config.WaterMask = 16;
+        Debug.Log($"TerrainConfig.WaterMask set to {config.WaterMask}");
+
+        config.HeightMapErrorMin = 10f;
+        Debug.Log($"TerrainConfig.HeightMapErrorMin set to {config.HeightMapErrorMin}");
+
+        config.HeightMapErrorMax = 100f;
+        Debug.Log($"TerrainConfig.HeightMapErrorMax set to {config.HeightMapErrorMax}");
+
+        config.BaseMapDistanceMin = 100f;
+        Debug.Log($"TerrainConfig.BaseMapDistanceMin set to {config.BaseMapDistanceMin}");
+
+        config.BaseMapDistanceMax = 500f;
+        Debug.Log($"TerrainConfig.BaseMapDistanceMax set to {config.BaseMapDistanceMax}");
+
+        config.ShaderLodMin = 100f;
+        Debug.Log($"TerrainConfig.ShaderLodMin set to {config.ShaderLodMin}");
+
+        config.ShaderLodMax = 600f;
+        Debug.Log($"TerrainConfig.ShaderLodMax set to {config.ShaderLodMax}");
+
+        // Splats array from dump, including Jungle biome
+        config.Splats = new SplatType[8]
         {
-            TerrainConfig config = _config ?? ScriptableObject.CreateInstance<TerrainConfig>();
-            config.name = "RebuiltTerrainConfig";
-            Debug.Log("Created new TerrainConfig instance: RebuiltTerrainConfig");
-            Debug.Log("Hardcoding TerrainConfig from prefab dump (m_PathID = 210)...");
-
-            // Scalars from dump
-            config.CastShadows = true;
-            Debug.Log($"TerrainConfig.CastShadows set to {config.CastShadows}");
-
-            config.GroundMask = 8388608;
-            Debug.Log($"TerrainConfig.GroundMask set to {config.GroundMask}");
-
-            config.WaterMask = 16;
-            Debug.Log($"TerrainConfig.WaterMask set to {config.WaterMask}");
-
-            config.HeightMapErrorMin = 10f;
-            Debug.Log($"TerrainConfig.HeightMapErrorMin set to {config.HeightMapErrorMin}");
-
-            config.HeightMapErrorMax = 100f;
-            Debug.Log($"TerrainConfig.HeightMapErrorMax set to {config.HeightMapErrorMax}");
-
-            config.BaseMapDistanceMin = 100f;
-            Debug.Log($"TerrainConfig.BaseMapDistanceMin set to {config.BaseMapDistanceMin}");
-
-            config.BaseMapDistanceMax = 500f;
-            Debug.Log($"TerrainConfig.BaseMapDistanceMax set to {config.BaseMapDistanceMax}");
-
-            config.ShaderLodMin = 100f;
-            Debug.Log($"TerrainConfig.ShaderLodMin set to {config.ShaderLodMin}");
-
-            config.ShaderLodMax = 600f;
-            Debug.Log($"TerrainConfig.ShaderLodMax set to {config.ShaderLodMax}");
-
-            // Splats array from dump
-            config.Splats = new SplatType[8]
+            new SplatType
             {
-                new SplatType
-                {
-                    Name = "Dirt",
-                    AridColor = new Color(0.8f, 0.7775281f, 0.7191011f, 1f),
-                    AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    TemperateColor = new Color(0.7f, 0.6845133f, 0.6597345f, 1f),
-                    TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    TundraColor = new Color(0.773f, 0.739761f, 0.739761f, 1f),
-                    TundraOverlay = new SplatOverlay { Color = new Color(0.1795656f, 0.184f, 0.139656f, 0f), Smoothness = 1f, NormalIntensity = 0f, BlendFactor = 1f, BlendFalloff = 32f },
-                    ArcticColor = new Color(0.704098f, 0.7391568f, 0.745f, 1f),
-                    ArcticOverlay = new SplatOverlay { Color = new Color(0.97f, 0.9861538f, 1f, 1f), Smoothness = 0.6f, NormalIntensity = 0.282f, BlendFactor = 0.64f, BlendFalloff = 6.1f },
-                    SplatTiling = 4.5f,
-                    UVMixMult = 0.33f,
-                    UVMixStart = 5f,
-                    UVMixDist = 100f
-                },
-                new SplatType
-                {
-                    Name = "Snow",
-                    AridColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
-                    AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    TemperateColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
-                    TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    TundraColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
-                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    ArcticColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
-                    ArcticOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    SplatTiling = 6f,
-                    UVMixMult = 0.05f,
-                    UVMixStart = 15f,
-                    UVMixDist = 50f
-                },
-                new SplatType
-                {
-                    Name = "Sand",
-                    AridColor = new Color(0.7098039f, 0.6536111f, 0.5749412f, 1f),
-                    AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    TemperateColor = new Color(0.6588235f, 0.6482823f, 0.6061177f, 1f),
-                    TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    TundraColor = new Color(0.5f, 0.4901961f, 0.4509804f, 1f),
-                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    ArcticColor = new Color(0.530689f, 0.5773377f, 0.589f, 1f),
-                    ArcticOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    SplatTiling = 4.5f,
-                    UVMixMult = 0.1f,
-                    UVMixStart = 5f,
-                    UVMixDist = 50f
-                },
-                new SplatType
-                {
-                    Name = "Rock",
-                    AridColor = new Color(0.85f, 0.7567085f, 0.61455f, 1f),
-                    AridOverlay = new SplatOverlay { Color = new Color(0.75f, 0.7232143f, 0.6734694f, 1f), Smoothness = 0f, NormalIntensity = 0.5f, BlendFactor = 0.5f, BlendFalloff = 16f },
-                    TemperateColor = new Color(0.6509804f, 0.6141859f, 0.566353f, 1f),
-                    TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    TundraColor = new Color(0.65f, 0.6047468f, 0.5224683f, 1f),
-                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    ArcticColor = new Color(0.6365f, 0.661625f, 0.67f, 1f),
-                    ArcticOverlay = new SplatOverlay { Color = new Color(0.874f, 0.912f, 0.95f, 1f), Smoothness = 0.4f, NormalIntensity = 0.25f, BlendFactor = 0.6f, BlendFalloff = 20f },
-                    SplatTiling = 10f,
-                    UVMixMult = 0.125f,
-                    UVMixStart = 10f,
-                    UVMixDist = 50f
-                },
-                new SplatType
-                {
-                    Name = "Grass",
-                    AridColor = new Color(0.74f, 0.728377f, 0.5850262f, 1f),
-                    AridOverlay = new SplatOverlay { Color = new Color(0.7215686f, 0.675817f, 0.6117647f, 1f), Smoothness = 0.1f, NormalIntensity = 1f, BlendFactor = 0.75f, BlendFalloff = 10f },
-                    TemperateColor = new Color(0.4784314f, 0.5803922f, 0.3764706f, 1f),
-                    TemperateOverlay = new SplatOverlay { Color = new Color(0.4784314f, 0.5803922f, 0.3764706f, 1f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0f, BlendFalloff = 16f },
-                    TundraColor = new Color(0.62f, 0.5783009f, 0.372f, 1f),
-                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 1f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0f, BlendFalloff = 16f },
-                    ArcticColor = new Color(0.7588235f, 0.8051961f, 0.8431373f, 1f),
-                    ArcticOverlay = new SplatOverlay { Color = new Color(0.892562f, 0.946281f, 1f, 1f), Smoothness = 0.6f, NormalIntensity = 0f, BlendFactor = 0.66f, BlendFalloff = 8f },
-                    SplatTiling = 4f,
-                    UVMixMult = 0.1f,
-                    UVMixStart = 10f,
-                    UVMixDist = 150f
-                },
-                new SplatType
-                {
-                    Name = "Forest",
-                    AridColor = new Color(0.8f, 0.7267974f, 0.5803922f, 1f),
-                    AridOverlay = new SplatOverlay { Color = new Color(0.7f, 0.6613065f, 0.5944723f, 0.9490196f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 16f },
-                    TemperateColor = new Color(0.68f, 0.68f, 0.5448193f, 1f),
-                    TemperateOverlay = new SplatOverlay { Color = new Color(0.3491461f, 0.4509804f, 0f, 0.9019608f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.2f, BlendFalloff = 4f },
-                    TundraColor = new Color(0.6f, 0.5228571f, 0.36f, 1f),
-                    TundraOverlay = new SplatOverlay { Color = new Color(0.6f, 0.5401961f, 0.3607843f, 0.5019608f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.2f, BlendFalloff = 4f },
-                    ArcticColor = new Color(0.851f, 0.8465748f, 0.784622f, 1f),
-                    ArcticOverlay = new SplatOverlay { Color = new Color(0.9f, 0.9434782f, 1f, 1f), Smoothness = 0.5f, NormalIntensity = 0.5f, BlendFactor = 0.3f, BlendFalloff = 6f },
-                    SplatTiling = 3.5f,
-                    UVMixMult = 0.2f,
-                    UVMixStart = 5f,
-                    UVMixDist = 150f
-                },
-                new SplatType
-                {
-                    Name = "Stones",
-                    AridColor = new Color(0.8509804f, 0.7333465f, 0.5795177f, 1f),
-                    AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    TemperateColor = new Color(0.72f, 0.6829715f, 0.6048f, 1f),
-                    TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    TundraColor = new Color(0.7f, 0.6488764f, 0.5623596f, 1f),
-                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    ArcticColor = new Color(0.558f, 0.58425f, 0.6f, 1f),
-                    ArcticOverlay = new SplatOverlay { Color = new Color(0.93f, 0.9608f, 1f, 0.8039216f), Smoothness = 0f, NormalIntensity = 0.5f, BlendFactor = 0.4f, BlendFalloff = 16f },
-                    SplatTiling = 10f,
-                    UVMixMult = 0.75f,
-                    UVMixStart = 5f,
-                    UVMixDist = 200f
-                },
-                new SplatType
-                {
-                    Name = "Gravel",
-                    AridColor = new Color(0.85f, 0.7416667f, 0.6375f, 1f),
-                    AridOverlay = new SplatOverlay { Color = new Color(0.348f, 0.3042722f, 0.2605445f, 1f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.1f, BlendFalloff = 4f },
-                    TemperateColor = new Color(0.64f, 0.619085f, 0.5939869f, 1f),
-                    TemperateOverlay = new SplatOverlay { Color = new Color(0.638f, 0.6161273f, 0.560802f, 1f), Smoothness = 0.25f, NormalIntensity = 0.25f, BlendFactor = 0f, BlendFalloff = 16f },
-                    TundraColor = new Color(0.6f, 0.5746988f, 0.5385543f, 1f),
-                    TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
-                    ArcticColor = new Color(0.65f, 0.65f, 0.65f, 1f),
-                    ArcticOverlay = new SplatOverlay { Color = new Color(0.93f, 0.9766666f, 1f, 0.4196078f), Smoothness = 0.6f, NormalIntensity = 1f, BlendFactor = 2f, BlendFalloff = 24f },
-                    SplatTiling = 5f,
-                    UVMixMult = 0.25f,
-                    UVMixStart = 5f,
-                    UVMixDist = 75f
-                }
-            };
-            Debug.Log($"TerrainConfig.Splats set with {config.Splats.Length} elements from prefab dump");
+                Name = "Dirt",
+                AridColor = new Color(0.8f, 0.7775281f, 0.7191011f, 1f),
+                AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                TemperateColor = new Color(0.7f, 0.6845133f, 0.6597345f, 1f),
+                TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                TundraColor = new Color(0.773f, 0.739761f, 0.739761f, 1f),
+                TundraOverlay = new SplatOverlay { Color = new Color(0.1795656f, 0.184f, 0.139656f, 0f), Smoothness = 1f, NormalIntensity = 0f, BlendFactor = 1f, BlendFalloff = 32f },
+                ArcticColor = new Color(0.704098f, 0.7391568f, 0.745f, 1f),
+                ArcticOverlay = new SplatOverlay { Color = new Color(0.97f, 0.9861538f, 1f, 1f), Smoothness = 0.6f, NormalIntensity = 0.282f, BlendFactor = 0.64f, BlendFalloff = 6.1f },
+                JungleColor = new Color(0.7f, 0.6845133f, 0.6597345f, 1f),
+                JungleOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                SplatTiling = 4.5f,
+                UVMixMult = 0.33f,
+                UVMixStart = 5f,
+                UVMixDist = 100f
+            },
+            new SplatType
+            {
+                Name = "Snow",
+                AridColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
+                AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                TemperateColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
+                TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                TundraColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
+                TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                ArcticColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
+                ArcticOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                JungleColor = new Color(0.8742f, 0.9035684f, 0.93f, 1f),
+                JungleOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                SplatTiling = 6f,
+                UVMixMult = 0.05f,
+                UVMixStart = 15f,
+                UVMixDist = 50f
+            },
+            new SplatType
+            {
+                Name = "Sand",
+                AridColor = new Color(0.7098039f, 0.6536111f, 0.5749412f, 1f),
+                AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                TemperateColor = new Color(0.6588235f, 0.6482823f, 0.6061177f, 1f),
+                TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                TundraColor = new Color(0.5f, 0.4901961f, 0.4509804f, 1f),
+                TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                ArcticColor = new Color(0.530689f, 0.5773377f, 0.589f, 1f),
+                ArcticOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                JungleColor = new Color(0.6588235f, 0.6482823f, 0.6061177f, 1f),
+                JungleOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                SplatTiling = 4.5f,
+                UVMixMult = 0.1f,
+                UVMixStart = 5f,
+                UVMixDist = 50f
+            },
+            new SplatType
+            {
+                Name = "Rock",
+                AridColor = new Color(0.85f, 0.7567085f, 0.61455f, 1f),
+                AridOverlay = new SplatOverlay { Color = new Color(0.75f, 0.7232143f, 0.6734694f, 1f), Smoothness = 0f, NormalIntensity = 0.5f, BlendFactor = 0.5f, BlendFalloff = 16f },
+                TemperateColor = new Color(0.6509804f, 0.6141859f, 0.566353f, 1f),
+                TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                TundraColor = new Color(0.65f, 0.6047468f, 0.5224683f, 1f),
+                TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                ArcticColor = new Color(0.6365f, 0.661625f, 0.67f, 1f),
+                ArcticOverlay = new SplatOverlay { Color = new Color(0.874f, 0.912f, 0.95f, 1f), Smoothness = 0.4f, NormalIntensity = 0.25f, BlendFactor = 0.6f, BlendFalloff = 20f },
+                JungleColor = new Color(0.6509804f, 0.6141859f, 0.566353f, 1f),
+                JungleOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                SplatTiling = 10f,
+                UVMixMult = 0.125f,
+                UVMixStart = 10f,
+                UVMixDist = 50f
+            },
+            new SplatType
+            {
+                Name = "Grass",
+                AridColor = new Color(0.74f, 0.728377f, 0.5850262f, 1f),
+                AridOverlay = new SplatOverlay { Color = new Color(0.7215686f, 0.675817f, 0.6117647f, 1f), Smoothness = 0.1f, NormalIntensity = 1f, BlendFactor = 0.75f, BlendFalloff = 10f },
+                TemperateColor = new Color(0.4784314f, 0.5803922f, 0.3764706f, 1f),
+                TemperateOverlay = new SplatOverlay { Color = new Color(0.4784314f, 0.5803922f, 0.3764706f, 1f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0f, BlendFalloff = 16f },
+                TundraColor = new Color(0.62f, 0.5783009f, 0.372f, 1f),
+                TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 1f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0f, BlendFalloff = 16f },
+                ArcticColor = new Color(0.7588235f, 0.8051961f, 0.8431373f, 1f),
+                ArcticOverlay = new SplatOverlay { Color = new Color(0.892562f, 0.946281f, 1f, 1f), Smoothness = 0.6f, NormalIntensity = 0f, BlendFactor = 0.66f, BlendFalloff = 8f },
+                JungleColor = new Color(0.4784314f, 0.5803922f, 0.3764706f, 1f),
+                JungleOverlay = new SplatOverlay { Color = new Color(0.4784314f, 0.5803922f, 0.3764706f, 1f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0f, BlendFalloff = 16f },
+                SplatTiling = 4f,
+                UVMixMult = 0.1f,
+                UVMixStart = 10f,
+                UVMixDist = 150f
+            },
+            new SplatType
+            {
+                Name = "Forest",
+                AridColor = new Color(0.8f, 0.7267974f, 0.5803922f, 1f),
+                AridOverlay = new SplatOverlay { Color = new Color(0.7f, 0.6613065f, 0.5944723f, 0.9490196f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 16f },
+                TemperateColor = new Color(0.68f, 0.68f, 0.5448193f, 1f),
+                TemperateOverlay = new SplatOverlay { Color = new Color(0.3491461f, 0.4509804f, 0f, 0.9019608f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.2f, BlendFalloff = 4f },
+                TundraColor = new Color(0.6f, 0.5228571f, 0.36f, 1f),
+                TundraOverlay = new SplatOverlay { Color = new Color(0.6f, 0.5401961f, 0.3607843f, 0.5019608f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.2f, BlendFalloff = 4f },
+                ArcticColor = new Color(0.851f, 0.8465748f, 0.784622f, 1f),
+                ArcticOverlay = new SplatOverlay { Color = new Color(0.9f, 0.9434782f, 1f, 1f), Smoothness = 0.5f, NormalIntensity = 0.5f, BlendFactor = 0.3f, BlendFalloff = 6f },
+                JungleColor = new Color(0.6f, 0.4885714f, 0.39f, 1f),
+                JungleOverlay = new SplatOverlay { Color = new Color(0.6298f, 0.67f, 0.402f, 1f), Smoothness = 0.4f, NormalIntensity = 1f, BlendFactor = 0.46f, BlendFalloff = 32f },
+                SplatTiling = 3.5f,
+                UVMixMult = 0.2f,
+                UVMixStart = 5f,
+                UVMixDist = 150f
+            },
+            new SplatType
+            {
+                Name = "Stones",
+                AridColor = new Color(0.8509804f, 0.7333465f, 0.5795177f, 1f),
+                AridOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                TemperateColor = new Color(0.72f, 0.6829715f, 0.6048f, 1f),
+                TemperateOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                TundraColor = new Color(0.7f, 0.6488764f, 0.5623596f, 1f),
+                TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                ArcticColor = new Color(0.558f, 0.58425f, 0.6f, 1f),
+                ArcticOverlay = new SplatOverlay { Color = new Color(0.93f, 0.9608f, 1f, 0.8039216f), Smoothness = 0f, NormalIntensity = 0.5f, BlendFactor = 0.4f, BlendFalloff = 16f },
+                JungleColor = new Color(0.72f, 0.6829715f, 0.6048f, 1f),
+                JungleOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                SplatTiling = 10f,
+                UVMixMult = 0.75f,
+                UVMixStart = 5f,
+                UVMixDist = 200f
+            },
+            new SplatType
+            {
+                Name = "Gravel",
+                AridColor = new Color(0.85f, 0.7416667f, 0.6375f, 1f),
+                AridOverlay = new SplatOverlay { Color = new Color(0.348f, 0.3042722f, 0.2605445f, 1f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.1f, BlendFalloff = 4f },
+                TemperateColor = new Color(0.64f, 0.619085f, 0.5939869f, 1f),
+                TemperateOverlay = new SplatOverlay { Color = new Color(0.638f, 0.6161273f, 0.560802f, 1f), Smoothness = 0.25f, NormalIntensity = 0.25f, BlendFactor = 0f, BlendFalloff = 16f },
+                TundraColor = new Color(0.6f, 0.5746988f, 0.5385543f, 1f),
+                TundraOverlay = new SplatOverlay { Color = new Color(1f, 1f, 1f, 0f), Smoothness = 0f, NormalIntensity = 1f, BlendFactor = 0.5f, BlendFalloff = 0.5f },
+                ArcticColor = new Color(0.65f, 0.65f, 0.65f, 1f),
+                ArcticOverlay = new SplatOverlay { Color = new Color(0.93f, 0.9766666f, 1f, 0.4196078f), Smoothness = 0.6f, NormalIntensity = 1f, BlendFactor = 2f, BlendFalloff = 24f },
+                JungleColor = new Color(0.64f, 0.619085f, 0.5939869f, 1f),
+                JungleOverlay = new SplatOverlay { Color = new Color(0.638f, 0.6161273f, 0.560802f, 1f), Smoothness = 0.25f, NormalIntensity = 0.25f, BlendFactor = 0f, BlendFalloff = 16f },
+                SplatTiling = 5f,
+                UVMixMult = 0.25f,
+                UVMixStart = 5f,
+                UVMixDist = 75f
+            }
+        };
+        Debug.Log($"TerrainConfig.Splats set with {config.Splats.Length} elements from prefab dump");
 
-            _config = config;
-            Debug.Log("Assigned rebuilt config to TerrainManager._config");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Failed to rebuild TerrainConfig: {e.Message}");
-        }
+        _config = config;
+        Debug.Log("Assigned rebuilt config to TerrainManager._config");
     }
+    catch (System.Exception e)
+    {
+        Debug.LogError($"Failed to rebuild TerrainConfig: {e.Message}");
+    }
+}
 
 	private static void YoinkTerrainTexturing(GameObject sourcePrefab, Terrain targetTerrain)
 	{
@@ -1002,76 +1049,87 @@ private static void SetShaderTilingVectors()
 
 private static void ConfigureShaderGlobals(Terrain terrain)
 {
-	 
     TerrainTexturing texturing = terrain.gameObject.GetComponent<TerrainTexturing>();
-        if (texturing == null)
-        {
-            Debug.LogWarning("TerrainTexturing component not found on terrain. Adding one now.");
-            texturing = terrain.gameObject.AddComponent<TerrainTexturing>();
-        }
+    if (texturing == null)
+    {
+        Debug.LogWarning("TerrainTexturing component not found on terrain. Adding one now.");
+        texturing = terrain.gameObject.AddComponent<TerrainTexturing>();
+    }
 
-        // Call TerrainTexturing.Refresh to set up all shader properties
+    // Call TerrainTexturing.Refresh to set up all shader properties
     texturing.Refresh();
-
-	
 
     // Core terrain data textures from TerrainData
     Shader.SetGlobalTexture("Terrain_HeightTexture", HeightTexture); // Heightmap for elevation
-    //Shader.SetGlobalTexture("Terrain_Normal", RuntimeNormalMap);
     Shader.SetGlobalTexture("Terrain_Alpha", AlphaTexture); 
-	
+
     // Splatmap (alphamap) textures for ground control
     Texture2D[] alphamaps = terrain.terrainData.alphamapTextures;
+    Shader.SetGlobalTexture("Terrain_Control0", alphamaps[0]); // First 4 splat channels
+    Shader.SetGlobalTexture("Terrain_Control1", alphamaps[1]); // Next 4 splat channels
 
-	Shader.SetGlobalTexture("Terrain_Control0", alphamaps[0]); // First 4 splat channels
-	Shader.SetGlobalTexture("Terrain_Control1", alphamaps[1]); // Next 4 splat channels (if 8 splats)
-
-	Shader.SetGlobalVector("Terrain_Size", TerrainSize);
     // Texture arrays from TerrainConfig
-	
     Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD0", TerrainManager._config.AlbedoArrays[0]);
-	Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD1", TerrainManager._config.AlbedoArrays[1]);
-	Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD2", TerrainManager._config.AlbedoArrays[2]);
+    Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD1", TerrainManager._config.AlbedoArrays[1]);
+    Shader.SetGlobalTexture("Terrain_AlbedoArray_LOD2", TerrainManager._config.AlbedoArrays[2]);
     Shader.SetGlobalTexture("Terrain_NormalArray_LOD0", TerrainManager._config.NormalArrays[0]);
-	Shader.SetGlobalTexture("Terrain_NormalArray_LOD1", TerrainManager._config.NormalArrays[1]);
-	Shader.SetGlobalTexture("Terrain_NormalArray_LOD2", TerrainManager._config.NormalArrays[2]);
+    Shader.SetGlobalTexture("Terrain_NormalArray_LOD1", TerrainManager._config.NormalArrays[1]);
+    Shader.SetGlobalTexture("Terrain_NormalArray_LOD2", TerrainManager._config.NormalArrays[2]);
 
-	Shader.SetGlobalColor("Terrain_Arid0" , TerrainManager._config.GetAridColors()[0]);
-	Shader.SetGlobalColor("Terrain_Arid1" , TerrainManager._config.GetAridColors()[1]);
-	Shader.SetGlobalColor("Terrain_Arid2" , TerrainManager._config.GetAridColors()[2]);
-	Shader.SetGlobalColor("Terrain_Arid3" , TerrainManager._config.GetAridColors()[3]);
-	Shader.SetGlobalColor("Terrain_Arid4" , TerrainManager._config.GetAridColors()[4]);
-	
-	Shader.SetGlobalColor("Terrain_Temperate0" , TerrainManager._config.GetTemperateColors()[0]);
-	Shader.SetGlobalColor("Terrain_Temperate1" , TerrainManager._config.GetTemperateColors()[1]);
-	Shader.SetGlobalColor("Terrain_Temperate2" , TerrainManager._config.GetTemperateColors()[2]);
-	Shader.SetGlobalColor("Terrain_Temperate3" , TerrainManager._config.GetTemperateColors()[3]);
-	Shader.SetGlobalColor("Terrain_Temperate4" , TerrainManager._config.GetTemperateColors()[4]);
-	
-	Shader.SetGlobalColor("Terrain_Tundra0" , TerrainManager._config.GetTundraColors()[0]);
-	Shader.SetGlobalColor("Terrain_Tundra1" , TerrainManager._config.GetTundraColors()[1]);
-	Shader.SetGlobalColor("Terrain_Tundra2" , TerrainManager._config.GetTundraColors()[2]);
-	Shader.SetGlobalColor("Terrain_Tundra3" , TerrainManager._config.GetTundraColors()[3]);
-	Shader.SetGlobalColor("Terrain_Tundra4" , TerrainManager._config.GetTundraColors()[4]);
-	
-	Shader.SetGlobalColor("Terrain_Arctic0" , TerrainManager._config.GetArcticColors()[0]);
-	Shader.SetGlobalColor("Terrain_Arctic1" , TerrainManager._config.GetArcticColors()[1]);
-	Shader.SetGlobalColor("Terrain_Arctic2" , TerrainManager._config.GetArcticColors()[2]);
-	Shader.SetGlobalColor("Terrain_Arctic3" , TerrainManager._config.GetArcticColors()[3]);
-	Shader.SetGlobalColor("Terrain_Arctic4" , TerrainManager._config.GetArcticColors()[4]);
-	
-	Shader.SetGlobalVector("UVMixParameter0" , TerrainManager._config.GetUVMIXParameters()[0]);
-	Shader.SetGlobalVector("UVMixParameter1" , TerrainManager._config.GetUVMIXParameters()[1]);
-	Shader.SetGlobalVector("UVMixParameter2" , TerrainManager._config.GetUVMIXParameters()[2]);
-	Shader.SetGlobalVector("UVMixParameter3" , TerrainManager._config.GetUVMIXParameters()[3]);
-	Shader.SetGlobalVector("UVMixParameter4" , TerrainManager._config.GetUVMIXParameters()[4]);
-	Shader.SetGlobalVector("UVMixParameter5" , TerrainManager._config.GetUVMIXParameters()[5]);
-	Shader.SetGlobalVector("UVMixParameter6" , TerrainManager._config.GetUVMIXParameters()[6]);
-	Shader.SetGlobalVector("UVMixParameter7" , TerrainManager._config.GetUVMIXParameters()[7]);
-	
-	Shader.SetGlobalFloatArray("Terrain_Tiling", TerrainManager._config.GetSplatTilings());
-	
-	// Disable shore vector (already done, but ensure for redundancy)
+	Debug.LogError("global textures set");
+    // Set biome colors and overlay parameters for all 8 splat layers
+    Color[] aridColors = TerrainManager._config.GetAridColors();
+    Color[] temperateColors = TerrainManager._config.GetTemperateColors();
+    Color[] tundraColors = TerrainManager._config.GetTundraColors();
+    Color[] arcticColors = TerrainManager._config.GetArcticColors();
+    Color[] jungleColors = TerrainManager._config.GetJungleColors();
+
+    Color[] aridOverlayColors; Vector4[] aridOverlayParams;
+    TerrainManager._config.GetAridOverlayData(out aridOverlayColors, out aridOverlayParams);
+
+    Color[] temperateOverlayColors; Vector4[] temperateOverlayParams;
+    TerrainManager._config.GetTemperateOverlayData(out temperateOverlayColors, out temperateOverlayParams);
+
+    Color[] tundraOverlayColors; Vector4[] tundraOverlayParams;
+    TerrainManager._config.GetTundraOverlayData(out tundraOverlayColors, out tundraOverlayParams);
+
+    Color[] arcticOverlayColors; Vector4[] arcticOverlayParams;
+    TerrainManager._config.GetArcticOverlayData(out arcticOverlayColors, out arcticOverlayParams);
+
+    Color[] jungleOverlayColors; Vector4[] jungleOverlayParams;
+    TerrainManager._config.GetJungleOverlayData(out jungleOverlayColors, out jungleOverlayParams);
+
+    for (int i = 0; i < 8; i++)
+    {
+        // Biome colors
+        Shader.SetGlobalColor($"Splat{i}_AridColor", aridColors[i]);
+        Shader.SetGlobalColor($"Splat{i}_TemperateColor", temperateColors[i]);
+        Shader.SetGlobalColor($"Splat{i}_TundraColor", tundraColors[i]);
+        Shader.SetGlobalColor($"Splat{i}_ArcticColor", arcticColors[i]);
+        Shader.SetGlobalColor($"Splat{i}_JungleColor", jungleColors[i]);
+
+        // Overlay colors
+        Shader.SetGlobalColor($"Splat{i}_AridOverlayColor", aridOverlayColors[i]);
+        Shader.SetGlobalColor($"Splat{i}_TemperateOverlayColor", temperateOverlayColors[i]);
+        Shader.SetGlobalColor($"Splat{i}_TundraOverlayColor", tundraOverlayColors[i]);
+        Shader.SetGlobalColor($"Splat{i}_ArcticOverlayColor", arcticOverlayColors[i]);
+        Shader.SetGlobalColor($"Splat{i}_JungleOverlayColor", jungleOverlayColors[i]);
+
+        // Overlay parameters (Smoothness, NormalIntensity, BlendFactor, BlendFalloff)
+        Shader.SetGlobalVector($"Splat{i}_AridOverlayParam", aridOverlayParams[i]);
+        Shader.SetGlobalVector($"Splat{i}_TemperateOverlayParam", temperateOverlayParams[i]);
+        Shader.SetGlobalVector($"Splat{i}_TundraOverlayParam", tundraOverlayParams[i]);
+        Shader.SetGlobalVector($"Splat{i}_ArcticOverlayParam", arcticOverlayParams[i]);
+        Shader.SetGlobalVector($"Splat{i}_JungleOverlayParam", jungleOverlayParams[i]);
+
+        // UV mix parameters
+        Shader.SetGlobalVector($"Splat{i}_UVMIX", TerrainManager._config.GetUVMIXParameters()[i]);
+    }
+
+    // Splat tiling
+    Shader.SetGlobalFloatArray("Terrain_Tiling", TerrainManager._config.GetSplatTilings());
+
+    // Disable shore vector
     Shader.SetGlobalTexture("Terrain_ShoreVector", null);
 
     // Update material properties to disable Puddle and Wetness Layers
@@ -1091,22 +1149,20 @@ private static void ConfigureShaderGlobals(Terrain terrain)
         blackTexture.SetPixel(0, 0, Color.black);
         blackTexture.Apply();
         material.SetTexture("_WetnessLayer_Mask", blackTexture);
+
+        // Ensure opaque rendering
+        material.SetFloat("_Cutoff", 1.0f);
+        material.SetFloat("_CutoffRange", 0f);
     }
 
-    // Placeholder for biome and topology (adjust based on your data structure)
-    // Assuming these might come from TerrainManager or elsewhere
-	Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture);     // Replace with actual biome texture if available
-    Shader.SetGlobalTexture("Terrain_Topology", null);  // Replace with actual topology texture if available
+    // Biome textures (replace with actual textures from your data)
+    Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture); // Arid, Temperate, Tundra, Arctic weights
+    Shader.SetGlobalTexture("Terrain_Biome1", Biome1Texture); // Jungle weight in red channel
+    Shader.SetGlobalTexture("Terrain_Topology", null); // Replace with actual topology texture if available
 
     // Texel size for splatmap resolution
     float texelSize = 1f / terrain.terrainData.alphamapResolution;
     Shader.SetGlobalVector("Terrain_TexelSize", new Vector2(texelSize, texelSize));
-
-    // Splat tiling vectors
-    SetShaderTilingVectors();
-
-    // Splat UV mix and biome colors
-    SetShaderSplatParameters();
 
     // Terrain position and size
     Shader.SetGlobalVector("Terrain_Position", terrain.gameObject.transform.position);
@@ -1117,8 +1173,7 @@ private static void ConfigureShaderGlobals(Terrain terrain)
         1f / terrain.terrainData.size.z
     ));
 
-	
-    // Shader keywords (disable unnecessary ones)
+    // Shader keywords
     if (terrain.materialTemplate)
     {
         terrain.materialTemplate.DisableKeyword("_TERRAIN_BLEND_LINEAR");
@@ -1340,43 +1395,33 @@ private static void ConfigureShaderGlobals(Terrain terrain)
         return BiomeMap;
     }
 
-    /// <summary>Sets a region of the biome map.</summary>
-    public static void SetBiomeMapRegion(Vector4[,] array, int x, int y, int width, int height)
-    {
-        if (array == null || array.GetLength(0) != height || array.GetLength(1) != width)
-        {
-            Debug.LogError($"SetBiomeMapRegion: Invalid array dimensions. Expected [{height}, {width}], got [{array?.GetLength(0)}, {array?.GetLength(1)}]");
-            return;
-        }
+	/// <summary>Sets a region of the biome map.</summary>
+	public static void SetBiomeMapRegion(float[,,] array, int x, int y, int width, int height)
+	{
+		if (array == null || array.GetLength(0) != height || array.GetLength(1) != width)
+		{
+			Debug.LogError($"SetBiomeMapRegion: Invalid array dimensions. Expected [{height}, {width}], got [{array?.GetLength(0)}, {array?.GetLength(1)}]");
+			return;
+		}
 
-        Vector4[,] fullMap = GetBiomeMap();
-        for (int i = 0; i < height; i++)
-        {
-            for (int j = 0; j < width; j++)
-            {
-                if (x + j < SplatMapRes && y + i < SplatMapRes)
-                {
-                    fullMap[y + i, x + j] = array[i, j];
-                }
-            }
-        }
+		float[,,] fullMap = GetSplatMap(LayerType.Biome);
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				if (x + j < SplatMapRes && y + i < SplatMapRes)
+				{
+					for (int k = 0; k < array.GetLength(2); k++)
+					{
+						fullMap[y + i, x + j, k] = array[i, j, k];
+					}
+				}
+			}
+		}
 
-        // Convert back to float[,,] for TerrainData
-        float[,,] splatMap = new float[SplatMapRes, SplatMapRes, 4];
-        for (int i = 0; i < SplatMapRes; i++)
-        {
-            for (int j = 0; j < SplatMapRes; j++)
-            {
-                splatMap[i, j, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Arid)] = fullMap[i, j].x;
-                splatMap[i, j, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Temperate)] = fullMap[i, j].y;
-                splatMap[i, j, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Tundra)] = fullMap[i, j].z;
-                splatMap[i, j, TerrainBiome.TypeToIndex((int)TerrainBiome.Enum.Arctic)] = fullMap[i, j].w;
-            }
-        }
-
-        RegisterSplatMapUndo("Set Biome Map Region");
-        SetSplatMap(splatMap, LayerType.Biome);
-    }
+		RegisterSplatMapUndo("Set Biome Map Region");
+		SetSplatMap(fullMap, LayerType.Biome);
+	}
 
     /// <summary>Gets the topology map for a specific layer as an int[,] array.</summary>
     public static int[,] GetTopologyMap(int layer = -1)
@@ -2084,9 +2129,46 @@ public static bool[,] UpscaleBitmap(bool[,] source)
             case LayerType.Ground:
                 Ground = array;
                 break;
-            case LayerType.Biome:
-                Biome = array;
-                break;
+        case LayerType.Biome:
+            Biome = array;
+            // Create a 4-layer array for terrain splatmap (Arid, Temperate, Tundra, Arctic)
+            float[,,] terrainSplat = new float[SplatMapRes, SplatMapRes, 4];
+            for (int i = 0; i < SplatMapRes; i++)
+            {
+                for (int j = 0; j < SplatMapRes; j++)
+                {
+                    for (int k = 0; k < 4; k++)
+                    {
+                        terrainSplat[i, j, k] = array[i, j, k];
+                    }
+                }
+            }
+            // Update Biome1Texture for Jungle
+            Texture2D tempJungleTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.R8, false, true);
+            Color32[] jungleColors = new Color32[SplatMapRes * SplatMapRes];
+            for (int i = 0; i < SplatMapRes; i++)
+            {
+                for (int j = 0; j < SplatMapRes; j++)
+                {
+                    jungleColors[i * SplatMapRes + j] = new Color(array[i, j, 4], 0f, 0f, 1f);
+                }
+            }
+            tempJungleTexture.SetPixels32(jungleColors);
+            tempJungleTexture.Apply(true, false);
+            if (Biome1Texture == null || !Biome1Texture.IsCreated())
+            {
+                Biome1Texture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear)
+                {
+                    wrapMode = TextureWrapMode.Clamp,
+                    enableRandomWrite = true,
+                    name = "Terrain_Biome1"
+                };
+                Biome1Texture.Create();
+            }
+            Graphics.Blit(tempJungleTexture, Biome1Texture);
+            UnityEngine.Object.Destroy(tempJungleTexture);
+            array = terrainSplat; // Use 4-layer array for terrain
+            break;
             case LayerType.Topology:
                 if (topology < 0 || topology >= TerrainTopology.COUNT)
                 {
@@ -2959,78 +3041,113 @@ public static void NudgeHeightMap(float offset)
 	/// <param name="y">Starting y-coordinate in splatmap resolution.</param>
 	/// <param name="width">Width of the region in splatmap resolution.</param>
 	/// <param name="height">Height of the region in splatmap resolution.</param>
-	public static void SetBiomeRegion(float[,,] biomeData, int x, int y, int width, int height)
-	{
-		if (biomeData == null || biomeData.GetLength(0) != height || biomeData.GetLength(1) != width || biomeData.GetLength(2) != 4)
-		{
-			Debug.LogError($"Invalid biomeData dimensions: Expected [{height}, {width}, 4], got [{biomeData?.GetLength(0)}, {biomeData?.GetLength(1)}, {biomeData?.GetLength(2)}].");
-			return;
-		}
+public static void SetBiomeRegion(float[,,] biomeData, int x, int y, int width, int height, float blendStrength = 1f)
+{
+    // Validate input dimensions
+    if (biomeData == null || biomeData.GetLength(0) != height || biomeData.GetLength(1) != width)
+    {
+        Debug.LogError($"Invalid biomeData dimensions: Expected [{height}, {width}, 5], got [{biomeData?.GetLength(0)}, {biomeData?.GetLength(1)}, {biomeData?.GetLength(2)}].");
+        return;
+    }
 
-		if (Biome == null || Biome.GetLength(0) != SplatMapRes)
-		{
-			Biome = new float[SplatMapRes, SplatMapRes, 4];
-			Debug.LogWarning("Biome array was not initialized. Initialized with zeros.");
-		}
+    // Validate region bounds
+    if (x < 0 || y < 0 || x + width > SplatMapRes || y + height > SplatMapRes)
+    {
+        Debug.LogError($"Invalid biome region: x={x}, y={y}, width={width}, height={height}. Must be within [0, {SplatMapRes}).");
+        return;
+    }
 
-		// Validate region bounds
-		if (x < 0 || y < 0 || x + width > SplatMapRes || y + height > SplatMapRes)
-		{
-			Debug.LogError($"Invalid biome region: x={x}, y={y}, width={width}, height={height}. Must be within [0, {SplatMapRes}).");
-			return;
-		}
+    // Update Biome array with blending
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            float sum = 0f;
+            for (int k = 0; k < 5; k++)
+            {
+                // Linearly interpolate between existing and new weights
+                float existingWeight = Biome[y + i, x + j, k];
+                float newWeight = biomeData[i, j, k];
+                Biome[y + i, x + j, k] += newWeight * blendStrength;
+                sum += Biome[y + i, x + j, k];
+            }
+            // Normalize weights to sum to 1
+            if (sum > 0f)
+            {
+                for (int k = 0; k < 5; k++)
+                {
+                    Biome[y + i, x + j, k] /= sum;
+                }
+            }
+            else
+            {
+                // Fallback to default (e.g., Temperate)
+                Biome[y + i, x + j, 1] = 1f;
+            }
+        }
+    }
 
-		// Update Biome array with the provided data
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				for (int k = 0; k < 4; k++)
-				{
-					Biome[y + i, x + j, k] = biomeData[i, j, k];
-				}
-			}
-		}
+    // Update BiomeTexture (first 4 layers)
+    Texture2D tempTexture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
+    Color32[] colors = new Color32[width * height];
 
-		// Create a temporary texture for the region
-		Texture2D tempTexture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
-		Color32[] colors = new Color32[width * height];
+    // Update Biome1Texture (Jungle layer)
+    Texture2D tempJungleTexture = new Texture2D(width, height, TextureFormat.R8, false, true);
+    Color32[] jungleColors = new Color32[width * height];
 
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				colors[i * width + j] = new Color(
-					biomeData[i, j, 0],
-					biomeData[i, j, 1],
-					biomeData[i, j, 2],
-					biomeData[i, j, 3]
-				);
-			}
-		}
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            colors[i * width + j] = new Color(
+                Biome[y + i, x + j, 0], // Arid
+                Biome[y + i, x + j, 1], // Temperate
+                Biome[y + i, x + j, 2], // Tundra
+                Biome[y + i, x + j, 3]
+            );
+            jungleColors[i * width + j] = new Color(Biome[y + i, x + j, 4], 0f, 0f, 0f); // Jungle
+        }
+    }
 
-		tempTexture.SetPixels32(colors);
-		tempTexture.Apply(true, false);
+    // Apply to BiomeTexture
+    tempTexture.SetPixels32(colors);
+    tempTexture.Apply(true, false);
+    if (BiomeTexture == null || !BiomeTexture.IsCreated())
+    {
+        BiomeTexture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+        {
+            wrapMode = TextureWrapMode.Clamp,
+            enableRandomWrite = true,
+            name = "Terrain_Biome"
+        };
+        BiomeTexture.Create();
+    }
+    RenderTexture.active = BiomeTexture;
+    Graphics.CopyTexture(tempTexture, 0, 0, 0, 0, width, height, BiomeTexture, 0, 0, x, y);
+    RenderTexture.active = null;
+    UnityEngine.Object.Destroy(tempTexture);
 
-		// Ensure BiomeTexture exists
-		if (BiomeTexture == null || !BiomeTexture.IsCreated())
-		{
-			BiomeTexture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
-			{
-				wrapMode = TextureWrapMode.Clamp,
-				enableRandomWrite = true
-			};
-			BiomeTexture.Create();
-		}
+    // Apply to Biome1Texture
+    tempJungleTexture.SetPixels32(jungleColors);
+    tempJungleTexture.Apply(true, false);
+    if (Biome1Texture == null || !Biome1Texture.IsCreated())
+    {
+        Biome1Texture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear)
+        {
+            wrapMode = TextureWrapMode.Clamp,
+            enableRandomWrite = true,
+            name = "Terrain_Biome1"
+        };
+        Biome1Texture.Create();
+    }
+    RenderTexture.active = Biome1Texture;
+    Graphics.CopyTexture(tempJungleTexture, 0, 0, 0, 0, width, height, Biome1Texture, 0, 0, x, y);
+    RenderTexture.active = null;
+    UnityEngine.Object.Destroy(tempJungleTexture);
 
-		// Copy the region to the BiomeTexture at the correct position
-		RenderTexture.active = BiomeTexture;
-		Graphics.CopyTexture(tempTexture, 0, 0, 0, 0, width, height, BiomeTexture, 0, 0, x, y);
-		RenderTexture.active = null;
-
-		UnityEngine.Object.Destroy(tempTexture);
-		Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture);
-	}
+    Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture);
+    Shader.SetGlobalTexture("Terrain_Biome1", Biome1Texture);
+}
 
 	/// <summary>Sets a region of the alpha map and updates the AlphaTexture.</summary>
 	/// <param name="alphaData">2D array containing alpha values for the region [height, width].</param>
@@ -3363,7 +3480,7 @@ public static void ChangeLayer(LayerType layer, int topology = -1)
         return layer switch
         {
             LayerType.Ground => 8,
-            LayerType.Biome => 4,
+            LayerType.Biome => 5,
             _ => 2
         };
     }

@@ -214,7 +214,7 @@ Shader "Custom/Rust/StandardTerrain"
 				bio[1] = float3(0.0,0.3,0.0);
 				bio[2] = float3(0.7,0.25,0.0);
 				bio[3] = float3(1.0,1.0,1.0);
-				bio[4] = float3(0.5,0.5,0.0);
+				bio[4] = float3(1.0,0.0,0.0);
 			
 			float4 control0 = UNITY_SAMPLE_TEX2D(Terrain_Control0, IN.tc_Control0);
 			float4 control1 = UNITY_SAMPLE_TEX2D(Terrain_Control1, IN.tc_Control0);

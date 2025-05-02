@@ -72,7 +72,7 @@ public static class WorldConverter
                 terrains.splatMap[i, j, gndIdx] = 1f;
         });
 
-        terrains.biomeMap = new float[splatRes, splatRes, 4];
+        terrains.biomeMap = new float[splatRes, splatRes, 5];
         int biomeIdx = TerrainBiome.TypeToIndex((int)biome);
         Parallel.For(0, splatRes, i =>
         {
@@ -96,7 +96,7 @@ public static class WorldConverter
     public static MapInfo ConvertMaps(MapInfo terrains, TerrainMap<byte> splatMap, TerrainMap<byte> biomeMap, TerrainMap<byte> alphaMap)
     {
         terrains.splatMap = new float[splatMap.res, splatMap.res, 8];
-        terrains.biomeMap = new float[biomeMap.res, biomeMap.res, 4];
+        terrains.biomeMap = new float[biomeMap.res, biomeMap.res, 5];
         terrains.alphaMap = new bool[alphaMap.res, alphaMap.res];
 
         var groundTask = Task.Run(() =>
@@ -317,11 +317,11 @@ public static class WorldConverter
             splatBytes = splatMap.ToByteArray();
         });
 
-        byte[] biomeBytes = new byte[textureResolution * textureResolution * 4];
-        var biomeMap = new TerrainMap<byte>(biomeBytes, 4);
+        byte[] biomeBytes = new byte[textureResolution * textureResolution * 5];
+        var biomeMap = new TerrainMap<byte>(biomeBytes, 5);
         var biomeTask = Task.Run(() =>
         {
-            Parallel.For(0, 4, i =>
+            Parallel.For(0, 5, i =>
             {
                 for (int j = 0; j < textureResolution; j++)
                     for (int k = 0; k < textureResolution; k++)

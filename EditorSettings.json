@@ -7,7 +7,7 @@
   "terrainTextureSet": false,
   "style": true,
   "application": {
-    "rustDirectory": "E:/Program Files (x86)/Steam/steamapps/common/Rust",
+    "rustDirectory": "E:\\Program Files (x86)\\Steam\\steamapps\\common\\Rust",
     "prefabRenderDistance": 5000.0,
     "pathRenderDistance": 5000.0,
     "waterTransparency": 0.251107842,
@@ -278,7 +278,7 @@
       "isActive": false,
       "position": {
         "x": -73.30005,
-        "y": -118.999969,
+        "y": -85.49997,
         "z": 0.0
       },
       "scale": {
@@ -290,8 +290,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -315.79657,
-        "y": -57.8733826,
+        "x": -322.79657,
+        "y": -26.8733826,
         "z": 0.0
       },
       "scale": {
@@ -303,8 +303,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -268.79657,
-        "y": 37.8503723,
+        "x": -336.79657,
+        "y": 78.35037,
         "z": 0.0
       },
       "scale": {
@@ -329,8 +329,8 @@
     {
       "isActive": true,
       "position": {
-        "x": 321.289978,
-        "y": 13.0180054,
+        "x": -367.289978,
+        "y": 105.018005,
         "z": 0.0
       },
       "scale": {
@@ -343,7 +343,7 @@
       "isActive": false,
       "position": {
         "x": 85.97998,
-        "y": -84.6099854,
+        "y": -51.1099854,
         "z": 0.0
       },
       "scale": {
@@ -369,7 +369,7 @@
       "isActive": false,
       "position": {
         "x": 276.55,
-        "y": -96.97,
+        "y": -63.47,
         "z": 0.0
       },
       "scale": {

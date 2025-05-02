@@ -145,59 +145,111 @@ protected override void ApplyHeightMap(Matrix4x4 localToWorld, Matrix4x4 worldTo
         TerrainManager.SetAlphaMapRegion(regionAlpha, minX, minZ, width, height);
         dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
     }
+protected override void ApplyBiomeMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
+{
+    Texture2D biomeTexture1 = biomemap.GetResource(); // First biome texture
+    //Texture2D biomeTexture2 = biomemap2?.GetResource(); // Second biome texture (assuming biomemap2 is a new field)
+    Texture2D blendTexture = blendmap?.cachedInstance ?? blendmap?.GetResource();
 
-    protected override void ApplyBiomeMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
+	/*
+    if (biomeTexture1 == null || biomeTexture2 == null)
     {
-        if (!ShouldBiome() || biomemap == null || !biomemap.IsValid) return;
+        Debug.LogWarning($"Missing biome texture(s) for {this}. BiomeTexture1: {biomeTexture1}, BiomeTexture2: {biomeTexture2}");
+        return;
+    }
+	*/
+    bool useBlendMap = blendTexture != null && blendmap.IsValid;
 
-        Texture2D biomeTexture = biomemap.cachedInstance ?? biomemap.GetResource();
-        if (biomeTexture == null)
+    Vector3[] corners = GetWorldCorners(localToWorld);
+    int[] gridBounds = TerrainManager.WorldCornersToGrid(corners[0], corners[1], corners[2], corners[3]);
+    int minX = Mathf.Max(0, gridBounds[0]), minZ = Mathf.Max(0, gridBounds[1]);
+    int maxX = Mathf.Min(TerrainManager.SplatMapRes - 1, gridBounds[2]), maxZ = Mathf.Min(TerrainManager.SplatMapRes - 1, gridBounds[3]);
+    int width = maxX - minX + 1, height = maxZ - minZ + 1;
+
+    if (width <= 0 || height <= 0) return;
+
+    float[,,] biomeMap = TerrainManager.GetSplatMap(TerrainManager.LayerType.Ground);
+    float[,,] regionBiomes = new float[height, width, TerrainManager.LayerCount(TerrainManager.LayerType.Biome)];
+    int biomeCount = 5; // Arid, Temperate, Tundra, Arctic, Jungle
+
+    for (int x = minX; x <= maxX; x++)
+    {
+        for (int z = minZ; z <= maxZ; z++)
         {
-            Debug.LogWarning($"No biome texture available for {this}.");
-            return;
-        }
+            Vector3 worldPos = new Vector3(TerrainManager.ToWorldX(x), 0, TerrainManager.ToWorldZ(z));
+            Vector3 localPos = worldToLocal.MultiplyPoint3x4(worldPos) - offset;
 
-        Vector3[] corners = GetWorldCorners(localToWorld);
-        int[] gridBounds = TerrainManager.WorldCornersToGrid(corners[0], corners[1], corners[2], corners[3]);
-        int minX = Mathf.Max(0, gridBounds[0]), minZ = Mathf.Max(0, gridBounds[1]);
-        int maxX = Mathf.Min(TerrainManager.SplatMapRes - 1, gridBounds[2]), maxZ = Mathf.Min(TerrainManager.SplatMapRes - 1, gridBounds[3]);
-        int width = maxX - minX + 1, height = maxZ - minZ + 1;
+            float u = Mathf.Clamp01((localPos.x + extents.x) / size.x);
+            float v = Mathf.Clamp01((localPos.z + extents.z) / size.z);
+            float fade = useBlendMap
+                ? BitUtility.SampleAlphaBilinear(blendTexture, u, v)
+                : Mathf.InverseLerp(Radius, Radius - Fade, localPos.Magnitude2D());
 
-        if (width <= 0 || height <= 0) return;
+            // Sample both biome textures
+            Color32 biomeValue1 = biomeTexture1.GetPixelBilinear(u, v);
+            //Color32 biomeValue2 = biomeTexture2.GetPixelBilinear(u, v);
 
-        Vector4[,] biomeMap = TerrainManager.GetBiomeMap();
-        Vector4[,] regionBiomes = new Vector4[height, width];
+            // Blend biome values from both textures (e.g., weighted average)
+            float[] biomeValues = new float[biomeCount];
+            biomeValues[0] = ShouldBiome(1) ? (biomeValue1.r) : 0f; // Arid
+            biomeValues[1] = ShouldBiome(2) ? (biomeValue1.g ) : 0f; // Temperate
+            biomeValues[2] = ShouldBiome(4) ? (biomeValue1.b ) : 0f; // Tundra
+            biomeValues[3] = ShouldBiome(8) ? (biomeValue1.a ) : 0f; // Arctic
+            biomeValues[4] = 0f; // Jungle (example)
 
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int z = minZ; z <= maxZ; z++)
+            // Compute total biome contribution
+            float totalBiomeContribution = 0f;
+            for (int i = 0; i < biomeCount; i++)
             {
-                Vector3 worldPos = new Vector3(TerrainManager.ToWorldX(x), 0, TerrainManager.ToWorldZ(z));
-                Vector3 localPos = worldToLocal.MultiplyPoint3x4(worldPos) - offset;
+                totalBiomeContribution += biomeValues[i];
+            }
 
-                float dist = localPos.Magnitude2D();
-                float fade = Mathf.InverseLerp(Radius, Radius - Fade, dist);
-                if (fade > 0f)
+            // Normalize biome values (if non-zero contribution)
+            if (totalBiomeContribution > 0f)
+            {
+                for (int i = 0; i < biomeCount; i++)
                 {
-                    float u = (localPos.x + extents.x) / (2f * extents.x);
-                    float v = (localPos.z + extents.z) / (2f * extents.z);
-                    Vector4 biomeValue = biomeTexture.GetPixelBilinear(u, v);
-                    biomeValue.x = ShouldBiome(1) ? biomeValue.x : 0f; // Arid
-                    biomeValue.y = ShouldBiome(2) ? biomeValue.y : 0f; // Temperate
-                    biomeValue.z = ShouldBiome(4) ? biomeValue.z : 0f; // Tundra
-                    biomeValue.w = ShouldBiome(8) ? biomeValue.w : 0f; // Arctic
-                    regionBiomes[z - minZ, x - minX] = Vector4.Lerp(biomeMap[z, x], biomeValue, fade);
+                    biomeValues[i] /= totalBiomeContribution;
                 }
-                else
+            }
+
+            // Adjust fade factor based on total biome contribution
+            float effectiveFade = fade * totalBiomeContribution;
+
+            // Blend biome values into the regionBiomes array
+            regionBiomes[z - minZ, x - minX, 0] = Mathf.Lerp(biomeMap[z, x, 0], biomeValues[0], effectiveFade); // Arid
+            regionBiomes[z - minZ, x - minX, 1] = Mathf.Lerp(biomeMap[z, x, 1], biomeValues[1], effectiveFade); // Temperate
+            regionBiomes[z - minZ, x - minX, 2] = Mathf.Lerp(biomeMap[z, x, 2], biomeValues[2], effectiveFade); // Tundra
+            regionBiomes[z - minZ, x - minX, 3] = Mathf.Lerp(biomeMap[z, x, 3], biomeValues[3], effectiveFade); // Arctic
+            regionBiomes[z - minZ, x - minX, 4] = Mathf.Lerp(biomeMap[z, x, 4], biomeValues[4], effectiveFade); // Jungle
+        }
+    }
+
+    // Final normalization pass to ensure biome values sum to 1
+    for (int x = 0; x < width; x++)
+    {
+        for (int z = 0; z < height; z++)
+        {
+            float sum = 0f;
+            for (int i = 0; i < biomeCount; i++)
+            {
+                sum += regionBiomes[z, x, i];
+            }
+            if (sum > 0f)
+            {
+                for (int i = 0; i < biomeCount; i++)
                 {
-                    regionBiomes[z - minZ, x - minX] = biomeMap[z, x];
+                    regionBiomes[z, x, i] /= sum;
                 }
             }
         }
-
-        TerrainManager.SetBiomeMapRegion(regionBiomes, minX, minZ, width, height);
-        dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
     }
+
+    TerrainManager.SetBiomeMapRegion(regionBiomes, minX, minZ, width, height);
+    dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
+}
+
+
 protected override void ApplySplatMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
 {
     if (!ShouldSplat() || (splatmap0 == null || !splatmap0.IsValid) && (splatmap1 == null || !splatmap1.IsValid)) return;
@@ -301,8 +353,6 @@ protected override void ApplySplatMap(Matrix4x4 localToWorld, Matrix4x4 worldToL
 
 protected override void ApplyTopologyMap(Matrix4x4 localToWorld, Matrix4x4 worldToLocal, TerrainBounds dimensions)
 {
-	Debug.LogError("attempting to apply topos");
-    //if (!ShouldTopology() || topologymap == null || !topologymap.IsValid) return;
     Texture2D topologyTexture = topologymap.GetResource();
 
     if (topologyTexture == null)
@@ -363,20 +413,7 @@ protected override void ApplyTopologyMap(Matrix4x4 localToWorld, Matrix4x4 world
         }
     }
 
-    // Debug the regionTopology array before applying
-    for (int i = 0; i < height; i++)
-    {
-        for (int j = 0; j < width; j++)
-        {
-            if (regionTopology[i, j] != topologyMap[minZ + i, minX + j])
-            {
-                Debug.Log($"Topology changed at ({minX + j}, {minZ + i}): 0x{regionTopology[i, j]:X8} (was 0x{topologyMap[minZ + i, minX + j]:X8})");
-            }
-        }
-    }
-
     TopologyData.SetTopologyRegion(regionTopology, minX, minZ, width, height);
-
     dimensions.IncludeRect(new RectInt(minX, minZ, width, height));
 }
 
