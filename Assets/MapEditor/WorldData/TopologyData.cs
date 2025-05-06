@@ -124,6 +124,43 @@ public static class TopologyData
 		Data = topologyMap.ToByteArray();
 	}
 	
+	public static void SetTopology(int layer, float[,,] floatMap)
+	{
+		if (floatMap == null)
+		{
+			return;
+		}
+		layer = TerrainTopology.IndexToType(layer);
+
+		TerrainMap<int> topologyMap = GetTerrainMap();
+		int height = floatMap.GetLength(0);
+		int width = floatMap.GetLength(1);
+
+		// Update topology map directly based on floatMap values
+		Parallel.For(0, height, i =>
+		{
+			for (int j = 0; j < width; j++)
+			{
+				// Check if the coordinate is within the bounds of the terrain
+				if (j < topologyMap.res && i < topologyMap.res)
+				{
+					// Set or unset the bit based on floatMap value compared to threshold
+					if (floatMap[i, j, 1] < .9f)
+					{
+						topologyMap[i, j] |= layer; // Set the bit for this layer
+					}
+					else if (floatMap[i,j,1] > .9f)
+					{
+						topologyMap[i, j] &= ~layer; // Unset the bit for this layer
+					}
+				}
+			}
+		});
+
+		// Convert updated topology back to byte array and update Data
+		Data = topologyMap.ToByteArray();
+	}
+	
 	public static void SetTopologyRegion(int[,] topologyValues, int x, int y, int width, int height)
 	{
 		TerrainMap<int> topologyMap = GetTerrainMap();

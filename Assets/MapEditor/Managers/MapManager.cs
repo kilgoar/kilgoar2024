@@ -661,6 +661,7 @@ public static class MapManager
 		TerrainManager.Water.terrainData.SetHeights(0, 0, mapInfo.water.heights);
 		TerrainManager.Callbacks.InvokeHeightMapUpdated(TerrainType.Land);
 
+		TerrainManager.SyncTerrainResolutions();
 		// Set splatmaps
 		TerrainManager.SetSplatMap(mapInfo.splatMap, LayerType.Ground);
 		TerrainManager.SetSplatMap(mapInfo.biomeMap, LayerType.Biome);
@@ -686,7 +687,7 @@ public static class MapManager
 
 		// Signal completion
 		Callbacks.OnMapLoaded("New Map");
-
+		
 		Debug.Log($"New map of size {size} created successfully.");
 	}
 	

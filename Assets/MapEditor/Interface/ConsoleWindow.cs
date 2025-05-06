@@ -529,6 +529,10 @@ public class ConsoleWindow : MonoBehaviour
 				layer.Biome = TerrainBiome.Enum.Arctic;
 				layer.Layer = TerrainManager.LayerType.Biome;
 				break;
+			case "jungle":
+				layer.Biome = TerrainBiome.Enum.Jungle;
+				layer.Layer = TerrainManager.LayerType.Biome;
+				break;
 
 			// Map keywords to TerrainTopology (full list from /layers)
 			case "field":
@@ -565,6 +569,10 @@ public class ConsoleWindow : MonoBehaviour
 				break;
 			case "lakeside":
 				layer.Topologies = TerrainTopology.Enum.Lakeside;
+				layer.Layer = TerrainManager.LayerType.Topology;
+				break;
+			case "road":
+				layer.Topologies = TerrainTopology.Enum.Road;
 				layer.Layer = TerrainManager.LayerType.Topology;
 				break;
 			case "roadside":

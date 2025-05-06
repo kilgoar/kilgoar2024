@@ -274,15 +274,21 @@ Shader "Custom/Rust/StandardTerrain"
 		
 		            // Sample biome weights from Terrain_Biome and Terrain_Biome1
         float4 biomeWeights0 = UNITY_SAMPLE_TEX2D(Terrain_Biome, IN.tc_Control0); // RGBA for biomes 0-3
-        float jungleWeight = UNITY_SAMPLE_TEX2D(Terrain_Biome1, IN.tc_Control0).r; // R for biome 4 (Jungle)
-		
+        //float jungleWeight = UNITY_SAMPLE_TEX2D(Terrain_Biome1, IN.tc_Control0).r; // R for biome 4 (Jungle)
+				
 		alpha = UNITY_SAMPLE_TEX2D(Terrain_Alpha, IN.tc_Control0).a;
         
+		
+		
+		
             float biomeWeights[5];
             biomeWeights[0] = biomeWeights0.r; // Arid
             biomeWeights[1] = biomeWeights0.g; // Temperate
             biomeWeights[2] = biomeWeights0.b; // Tundra
             biomeWeights[3] = biomeWeights0.a; // Arctic
+			
+			float jungleWeight = 1.0 - (biomeWeights[0] + biomeWeights[1] +biomeWeights[2] +biomeWeights[3]);
+			
             biomeWeights[4] = jungleWeight;    // Jungle
 		
 		

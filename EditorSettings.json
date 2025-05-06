@@ -11,7 +11,7 @@
     "prefabRenderDistance": 5000.0,
     "pathRenderDistance": 5000.0,
     "waterTransparency": 0.251107842,
-    "loadbundleonlaunch": true,
+    "loadbundleonlaunch": false,
     "terrainTextureSet": true,
     "loadBatch": 128,
     "newSize": 1568,
@@ -19,10 +19,11 @@
     "newBiome": 2,
     "newSplat": 16,
     "recentFiles": [
-      "F:\\Marsv12v1.0.7terrain.map",
-      "E:\\smallmap.map",
-      "E:\\test.map.map",
       "E:\\jungletest.map",
+      "E:\\smallmap.map",
+      "E:\\Program Files (x86)\\Steam\\steamapps\\common\\Rust\\maps\\proceduralmap.4500.666587159.267_739cd8a07fc690ea9bb3362b14e85584.map",
+      "F:\\Marsv12v1.0.7terrain.map",
+      "E:\\test.map.map",
       "E:\\Program Files (x86)\\Steam\\steamapps\\common\\Rust\\maps\\proceduralmap.4500.1337.250_b9a88dce15ae14333143e3a545f696f4.map"
     ]
   },
@@ -253,8 +254,8 @@
     {
       "isActive": false,
       "position": {
-        "x": 98.45999,
-        "y": -75.034,
+        "x": 247.459991,
+        "y": -70.534,
         "z": 0.0
       },
       "scale": {
@@ -273,7 +274,7 @@
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 1.0
+        "z": 0.0
       }
     },
     {
@@ -290,10 +291,10 @@
       }
     },
     {
-      "isActive": true,
+      "isActive": false,
       "position": {
-        "x": -306.79657,
-        "y": -51.3733826,
+        "x": -295.79657,
+        "y": -51.8733826,
         "z": 0.0
       },
       "scale": {
@@ -303,10 +304,10 @@
       }
     },
     {
-      "isActive": true,
+      "isActive": false,
       "position": {
         "x": -336.79657,
-        "y": 78.35037,
+        "y": 46.5704041,
         "z": 0.0
       },
       "scale": {
@@ -331,8 +332,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -367.289978,
-        "y": 105.018005,
+        "x": -368.289978,
+        "y": 102.656982,
         "z": 0.0
       },
       "scale": {
@@ -344,8 +345,8 @@
     {
       "isActive": false,
       "position": {
-        "x": 85.97998,
-        "y": -51.1099854,
+        "x": -212.97998,
+        "y": -90.6099854,
         "z": 0.0
       },
       "scale": {
@@ -377,7 +378,7 @@
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 0.6
+        "z": 0.0
       }
     }
   ],

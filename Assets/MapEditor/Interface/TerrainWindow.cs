@@ -206,6 +206,7 @@ public class TerrainWindow : MonoBehaviour
 	}
 	
 	void OnDisable(){
+		TerrainManager.UpdateHeightCache();
 		TerrainManager.HideLandMask();
 		CoroutineManager.Instance.ChangeStylus(1);
 		ClearPreview();

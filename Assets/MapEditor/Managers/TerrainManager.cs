@@ -142,21 +142,15 @@ public static class TerrainManager
 	{
 		TerrainCallbacks.heightmapChanged += HeightMapChanged;
         TerrainCallbacks.textureChanged += SplatMapChanged;
-		
+		PopulateTerrainArrays();
 		AssetManager.Callbacks.BundlesLoaded += OnBundlesLoaded;
 		
 		FilterTexture = Resources.Load<Texture>("Textures/Brushes/White128");
         SetTerrainReferences();
+		SetTerrainLayers();
 		SyncTerrainResolutions();
 		HideLandMask();
-		
-		/*
-		#if UNITY_EDITOR
-		EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.GenerateNormalMap(HeightMapRes - 1, Progress.Start("Generate Normal Map")));
-		#else
-		CoroutineManager.StartCoroutine(Coroutines.GenerateNormalMap(HeightMapRes - 1, -1)); // No progress ID at runtime
-		#endif
-		*/
+	
 	}
 	
 	public static void OnBundlesLoaded()
@@ -273,11 +267,9 @@ public static class TerrainManager
 		}
 
 		// Ensure the terrain's alphamap is updated with the Ground array
-		if (LayerDirty)
-		{
 			Land.terrainData.SetAlphamaps(0, 0, Ground);
 			LayerDirty = false;
-		}
+
 
 		// Get the terrain's alphamap textures (Control0 and Control1)
 		Texture2D[] alphamaps = Land.terrainData.alphamapTextures;
@@ -440,85 +432,67 @@ public static class TerrainManager
 		*/
     }
 
-	public static void SyncBiomeTexture()
-	{
-		if (Biome == null || Biome.GetLength(0) != SplatMapRes || Biome.GetLength(2) < 4)
-		{
-			Debug.LogError("Biome data is not initialized, resolution mismatch, or insufficient layers.");
-			return;
-		}
+public static void SyncBiomeTexture()
+{
+    if (Biome == null || Biome.GetLength(0) != SplatMapRes || Biome.GetLength(2) != 5)
+    {
+        Debug.LogError($"Biome data is not initialized or incorrect dimensions: [{Biome?.GetLength(0)}, {Biome?.GetLength(1)}, {Biome?.GetLength(2)}], Expected: [{SplatMapRes}, {SplatMapRes}, 5]");
+        return;
+    }
 
-		// Initialize BiomeTexture for Arid, Temperate, Tundra, Arctic (4 layers)
-		Texture2D tempTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.RGBA32, false, true);
-		Color32[] colors = new Color32[SplatMapRes * SplatMapRes];
+    // Validate texture initialization
+    if (BiomeTexture == null || BiomeTexture.width != SplatMapRes || !BiomeTexture.IsCreated())
+    {
+        Debug.LogWarning("BiomeTexture not properly initialized. Re-initializing.");
+        InitializeTextures(); // Fallback to ensure textures are ready
+    }
+    if (Biome1Texture == null || Biome1Texture.width != SplatMapRes || !Biome1Texture.IsCreated())
+    {
+        Debug.LogWarning("Biome1Texture not properly initialized. Re-initializing.");
+        InitializeTextures();
+    }
 
-		// Initialize Biome1Texture for Jungle (1 layer)
-		Texture2D tempJungleTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.R8, false, true);
-		Color32[] jungleColors = new Color32[SplatMapRes * SplatMapRes];
+    // Log texture state
+    Debug.Log($"SyncBiomeTexture: SplatMapRes={SplatMapRes}, SplatRatio={SplatRatio}, HeightMapRes={HeightMapRes}");
+    Debug.Log($"BiomeTexture: {BiomeTexture.width}x{BiomeTexture.height}, Format: {BiomeTexture.format}, Wrap: {BiomeTexture.wrapMode}, Filter: {BiomeTexture.filterMode}");
+    Debug.Log($"Biome1Texture: {Biome1Texture.width}x{Biome1Texture.height}, Format: {Biome1Texture.format}, Wrap: {Biome1Texture.wrapMode}, Filter: {Biome1Texture.filterMode}");
 
-		for (int z = 0; z < SplatMapRes; z++)
-		{
-			for (int x = 0; x < SplatMapRes; x++)
-			{
-				// Store first four biome layers in BiomeTexture
-				colors[z * SplatMapRes + x] = new Color(
-					Biome[z, x, 0], // Arid
-					Biome[z, x, 1], // Temperate
-					Biome[z, x, 2], // Tundra
-					Biome[z, x, 3]  // Arctic
-				);
+    // Initialize temporary textures
+    Texture2D tempTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.RGBA32, false, true);
+    Color32[] colors = new Color32[SplatMapRes * SplatMapRes];
+    Texture2D tempJungleTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.RGBA32, false, true);
+    Color32[] jungleColors = new Color32[SplatMapRes * SplatMapRes];
 
-				// Store fifth biome layer (Jungle) in Biome1Texture red channel
-				if (Biome.GetLength(2) > 4)
-				{
-					float jungleValue = Biome[z, x, 4];
-					jungleColors[z * SplatMapRes + x] = new Color(jungleValue, 0f, 0f, 1f);
-				}
-				else
-				{
-					jungleColors[z * SplatMapRes + x] = new Color(0f, 0f, 0f, 1f); // Default to 0 if Jungle layer is missing
-				}
-			}
-		}
+    for (int z = 0; z < SplatMapRes; z++)
+    {
+        for (int x = 0; x < SplatMapRes; x++)
+        {
+            colors[z * SplatMapRes + x] = new Color(
+                Biome[z, x, 0], // Arid
+                Biome[z, x, 1], // Temperate
+                Biome[z, x, 2], // Tundra
+                Biome[z, x, 3]  // Arctic
+            );
+            float jungleValue = Biome[z, x, 4];
+            jungleColors[z * SplatMapRes + x] = new Color(jungleValue, 0f, 0f, 1f);
+        }
+    }
 
-		// Update BiomeTexture
-		tempTexture.SetPixels32(colors);
-		tempTexture.Apply(true, false);
+    // Update BiomeTexture
+    tempTexture.SetPixels32(colors);
+    tempTexture.Apply(true, false);
+    Graphics.Blit(tempTexture, BiomeTexture);
+    UnityEngine.Object.Destroy(tempTexture);
 
-		if (BiomeTexture == null || !BiomeTexture.IsCreated())
-		{
-			BiomeTexture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
-			{
-				wrapMode = TextureWrapMode.Clamp,
-				enableRandomWrite = true,
-				name = "Terrain_Biome"
-			};
-			BiomeTexture.Create();
-		}
+    // Update Biome1Texture
+    tempJungleTexture.SetPixels32(jungleColors);
+    tempJungleTexture.Apply(true, false);
+    Graphics.Blit(tempJungleTexture, Biome1Texture);
+    UnityEngine.Object.Destroy(tempJungleTexture);
 
-		Graphics.Blit(tempTexture, BiomeTexture);
-		UnityEngine.Object.Destroy(tempTexture);
-		Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture);
-
-		// Update Biome1Texture
-		tempJungleTexture.SetPixels32(jungleColors);
-		tempJungleTexture.Apply(true, false);
-
-		if (Biome1Texture == null || !Biome1Texture.IsCreated())
-		{
-			Biome1Texture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear)
-			{
-				wrapMode = TextureWrapMode.Clamp,
-				enableRandomWrite = true,
-				name = "Terrain_Biome1"
-			};
-			Biome1Texture.Create();
-		}
-
-		Graphics.Blit(tempJungleTexture, Biome1Texture);
-		UnityEngine.Object.Destroy(tempJungleTexture);
-		Shader.SetGlobalTexture("Terrain_Biome1", Biome1Texture);
-	}
+    Shader.SetGlobalTexture("Terrain_Biome", BiomeTexture);
+    Shader.SetGlobalTexture("Terrain_Biome1", Biome1Texture);
+}
 	
 	
 	public static void LoadTerrainAssets()
@@ -2195,57 +2169,26 @@ public static bool[,] UpscaleBitmap(bool[,] source)
         {
             case LayerType.Ground:
                 Ground = array;
+				SyncSplatTexture();
                 break;
-        case LayerType.Biome:
-            Biome = array;
-            // Create a 4-layer array for terrain splatmap (Arid, Temperate, Tundra, Arctic)
-            float[,,] terrainSplat = new float[SplatMapRes, SplatMapRes, 4];
-            for (int i = 0; i < SplatMapRes; i++)
-            {
-                for (int j = 0; j < SplatMapRes; j++)
-                {
-                    for (int k = 0; k < 4; k++)
-                    {
-                        terrainSplat[i, j, k] = array[i, j, k];
-                    }
-                }
-            }
-            // Update Biome1Texture for Jungle
-            Texture2D tempJungleTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.R8, false, true);
-            Color32[] jungleColors = new Color32[SplatMapRes * SplatMapRes];
-            for (int i = 0; i < SplatMapRes; i++)
-            {
-                for (int j = 0; j < SplatMapRes; j++)
-                {
-                    jungleColors[i * SplatMapRes + j] = new Color(array[i, j, 4], 0f, 0f, 1f);
-                }
-            }
-            tempJungleTexture.SetPixels32(jungleColors);
-            tempJungleTexture.Apply(true, false);
-            if (Biome1Texture == null || !Biome1Texture.IsCreated())
-            {
-                Biome1Texture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear)
-                {
-                    wrapMode = TextureWrapMode.Clamp,
-                    enableRandomWrite = true,
-                    name = "Terrain_Biome1"
-                };
-                Biome1Texture.Create();
-            }
-            Graphics.Blit(tempJungleTexture, Biome1Texture);
-            UnityEngine.Object.Destroy(tempJungleTexture);
-            array = terrainSplat; // Use 4-layer array for terrain
-            break;
+			case LayerType.Biome:
+				Biome = array;
+				SyncBiomeTexture();
+				break;
+
             case LayerType.Topology:
                 if (topology < 0 || topology >= TerrainTopology.COUNT)
                 {
                     Debug.LogError($"SetSplatMap({layer}, {topology}) topology parameter out of bounds. Should be between 0 - {TerrainTopology.COUNT - 1}");
                     return;
                 }
-                Topology[topology] = array;
+				TopologyData.SetTopology(topology, array);
+                //Topology[topology] = array;
                 break;
+				
         }
 
+		/*
         if (CurrentLayerType == layer)
         {
             if (CurrentLayerType == LayerType.Topology && TopologyLayer != topology)
@@ -2257,6 +2200,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
             Land.terrainData.SetAlphamaps(0, 0, array);
             LayerDirty = false;
         }
+		*/
     }
 
     /// <summary>Sets the AlphaMap (Holes) of the terrain.</summary>
@@ -2423,11 +2367,8 @@ public static bool[,] UpscaleBitmap(bool[,] source)
     /// <returns>Floats within the range 0° - 90°.</returns>
     public static float[,] GetSlopes()
     {
-        if (Slope != null)
-            return Slope;
-        if (Slope == null)
 
-            Slope = new float[HeightMapRes, HeightMapRes];
+        Slope = new float[HeightMapRes, HeightMapRes];
 
         for (int x = 0; x < HeightMapRes; x++)
             for (int y = 0; y < HeightMapRes; y++)
@@ -2438,10 +2379,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 	
 	public static float[,] GetSlopes(int length)
     {
-        if (Slope != null)
-            return Slope;
-        if (Slope == null)
-            Slope = new float[length, length];
+        Slope = new float[length, length];
 
         for (int x = 0; x < length; x++)
             for (int y = 0; y < length; y++)
@@ -2910,6 +2848,7 @@ public static void NudgeHeightMap(float offset)
 	#if UNITY_EDITOR
     private static TerrainLayer[] GetGroundLayers()
     {
+		
 		TerrainLayer[] textures = new TerrainLayer[8];
 				if (SettingsManager.application.terrainTextureSet)
 				{		
@@ -3110,6 +3049,7 @@ public static void NudgeHeightMap(float offset)
 	/// <param name="height">Height of the region in splatmap resolution.</param>
 public static void SetBiomeRegion(float[,,] biomeData, int x, int y, int width, int height, float blendStrength = 1f)
 {
+	SyncTerrainResolutions();
     // Validate input dimensions
     if (biomeData == null || biomeData.GetLength(0) != height || biomeData.GetLength(1) != width)
     {
@@ -3159,7 +3099,7 @@ public static void SetBiomeRegion(float[,,] biomeData, int x, int y, int width, 
     Color32[] colors = new Color32[width * height];
 
     // Update Biome1Texture (Jungle layer)
-    Texture2D tempJungleTexture = new Texture2D(width, height, TextureFormat.R8, false, true);
+    Texture2D tempJungleTexture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
     Color32[] jungleColors = new Color32[width * height];
 
     for (int i = 0; i < height; i++)
@@ -3199,7 +3139,7 @@ public static void SetBiomeRegion(float[,,] biomeData, int x, int y, int width, 
     tempJungleTexture.Apply(true, false);
     if (Biome1Texture == null || !Biome1Texture.IsCreated())
     {
-        Biome1Texture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear)
+        Biome1Texture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
         {
             wrapMode = TextureWrapMode.Clamp,
             enableRandomWrite = true,
@@ -3372,7 +3312,13 @@ public static void SetHeightMapRegion(float[,] array, int x, int y, int width, i
 
         if (terrain.Equals(Land))
         {
-			UpdateHeightCache();
+			if (TerrainWindow.Instance ==null)
+			{
+				UpdateHeightCache();
+			}
+			else{
+				//don't do it
+			}
         }
         Callbacks.InvokeHeightMapUpdated(terrain.Equals(Land) ? TerrainType.Land : TerrainType.Water);
     }
@@ -3462,6 +3408,25 @@ public static void SetHeightMapRegion(float[,] array, int x, int y, int width, i
 				};
 				BiomeTexture.Create();
 				Debug.Log($"Initialized BiomeTexture with resolution {SplatMapRes}x{SplatMapRes}");
+			}
+			
+			    // Initialize Biome1Texture
+			if (Biome1Texture != null && (Biome1Texture.width != SplatMapRes || !Biome1Texture.IsCreated()))
+			{
+				UnityEngine.Object.Destroy(Biome1Texture);
+				Biome1Texture = null;
+			}
+			if (Biome1Texture == null)
+			{
+				Biome1Texture = new RenderTexture(SplatMapRes, SplatMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+				{
+					wrapMode = TextureWrapMode.Clamp,
+					enableRandomWrite = true,
+					name = "Terrain_Biome1",
+					filterMode = FilterMode.Bilinear // Ensure consistent sampling
+				};
+				Biome1Texture.Create();
+				Debug.Log($"Initialized Biome1Texture with resolution {SplatMapRes}x{SplatMapRes}, Format: {Biome1Texture.format}, Wrap: {Biome1Texture.wrapMode}, Filter: {Biome1Texture.filterMode}");
 			}
 
 			// Initialize AlphaTexture

@@ -55,9 +55,7 @@ public class AppManager : MonoBehaviour
         PrefabManager.RuntimeInit();
         PathManager.RuntimeInit();
 		AreaManager.Initialize();
-
-        if (SettingsManager.application.loadbundleonlaunch)
-            AssetManager.RuntimeInit();
+		AssetManager.RuntimeInit();
 
         FilePreset application = SettingsManager.application;
 

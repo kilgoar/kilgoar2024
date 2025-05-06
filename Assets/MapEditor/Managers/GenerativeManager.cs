@@ -260,106 +260,99 @@ public static class GenerativeManager
 
 
 
-	[ConsoleCommand("Paints the borders of a specified layer with a blending radius")]
-    public static void PaintBorder(Layers layerData, int radius)
+[ConsoleCommand("Paints the borders of a specified layer with a blending radius")]
+public static void PaintBorder(Layers layerData, int radius)
+{
+    // Validate radius
+    if (radius < 0 || radius >= TerrainManager.SplatMapRes / 2)
     {
-        // Validate radius
-        if (radius < 0 || radius >= TerrainManager.SplatMapRes / 2)
-        {
-            Debug.LogError($"Radius must be between 0 and {TerrainManager.SplatMapRes / 2 - 1} grid units. Received: {radius}");
-            return;
-        }
+        Debug.LogError($"Radius must be between 0 and {TerrainManager.SplatMapRes / 2 - 1} grid units. Received: {radius}");
+        return;
+    }
 
-        // Determine the layer type and index from the Layers object
-        LayerType layerType;
-        int layerIndex = -1;
-        if (layerData.Ground != 0)
-        {
-            layerType = LayerType.Ground;
-            layerIndex = TerrainSplat.TypeToIndex((int)layerData.Ground);
-        }
-        else if (layerData.Biome != 0)
-        {
-            layerType = LayerType.Biome;
-            layerIndex = TerrainBiome.TypeToIndex((int)layerData.Biome);
-        }
-        else if (layerData.Topologies != 0)
-        {
-            layerType = LayerType.Topology;
-            layerIndex = TerrainTopology.TypeToIndex((int)layerData.Topologies);
-        }
-        else
-        {
-            Debug.LogError("No valid layer specified in Layers object.");
-            return;
-        }
+    // Determine the layer type and index from the Layers object
+    LayerType layerType;
+    int layerIndex = -1;
+    if (layerData.Ground != 0)
+    {
+        layerType = LayerType.Ground;
+        layerIndex = TerrainSplat.TypeToIndex((int)layerData.Ground);
+    }
+    else if (layerData.Biome != 0)
+    {
+        layerType = LayerType.Biome;
+        layerIndex = TerrainBiome.TypeToIndex((int)layerData.Biome);
+    }
+    else if (layerData.Topologies != 0)
+    {
+        layerType = LayerType.Topology;
+        layerIndex = TerrainTopology.TypeToIndex((int)layerData.Topologies);
+    }
+    else
+    {
+        Debug.LogError("No valid layer specified in Layers object.");
+        return;
+    }
 
-        // Get the current layer data
-        float[,,] layerMap = TerrainManager.GetLayerData(layerType, layerIndex);
-        int res = layerMap.GetLength(0);
-        int layerCount = TerrainManager.LayerCount(layerType); // 8 for Ground, 4 for Biome, 2 for Topology
+    // Get the current layer data
+    float[,,] layerMap = TerrainManager.GetLayerData(layerType, layerIndex);
+    int res = layerMap.GetLength(0);
+    int layerCount = TerrainManager.LayerCount(layerType); // 8 for Ground, 4 for Biome, 2 for Topology
 
-        // Register undo before modifying
-        TerrainManager.RegisterSplatMapUndo($"Paint Border Layer {layerType} Index {layerIndex}, Radius {radius}");
+    // Register undo before modifying
+    TerrainManager.RegisterSplatMapUndo($"Paint Border Layer {layerType} Index {layerIndex}, Radius {radius}");
 
-        // Paint the borders with blending over the radius
-        for (int x = 0; x < res; x++)
+    // Paint the borders with blending over the radius
+    for (int x = 0; x < res; x++)
+    {
+        for (int z = 0; z < res; z++)
         {
-            for (int z = 0; z < res; z++)
+            // Calculate distance from the nearest edge
+            int distToLeft = x;
+            int distToRight = res - 1 - x;
+            int distToBottom = z;
+            int distToTop = res - 1 - z;
+            int minDist = Mathf.Min(distToLeft, distToRight, distToBottom, distToTop);
+
+            // If within radius, apply blending
+            if (minDist <= radius)
             {
-                // Calculate distance from the nearest edge
-                int distToLeft = x;
-                int distToRight = res - 1 - x;
-                int distToBottom = z;
-                int distToTop = res - 1 - z;
-                int minDist = Mathf.Min(distToLeft, distToRight, distToBottom, distToTop);
-
-                // If within radius, apply blending
-                if (minDist <= radius)
+                if (layerData.Topologies != 0)
                 {
-                    // Blend factor: 1 at edge (minDist = 0), 0 at radius (minDist = radius)
-                    float strength = Mathf.InverseLerp(radius, 0, minDist);
+                    // For topologies, simply fill without blending
+                    layerMap[x, z, 0] = 1f;
+					layerMap[x, z, 1] = 0f;
+                    continue;
+                }
 
-                    // Calculate total strength of other layers
-                    float totalOtherStrength = 0f;
+
+                float o = Mathf.Lerp(0.01f, 1f, 1f - (float)minDist / radius); // Smooth taper
+
+                // Apply to the target layer
+                if (o > 0f)
+                {
+                    // Set the target layer to the maximum of current and new strength
+                    layerMap[x, z, layerIndex] = Mathf.Max(o, layerMap[x, z, layerIndex]);
+
+                    // Reduce other layers proportionally
                     for (int k = 0; k < layerCount; k++)
                     {
                         if (k != layerIndex)
                         {
-                            totalOtherStrength += layerMap[x, z, k];
-                        }
-                    }
-
-                    // Apply strength to the target layer and adjust others
-                    float remainingStrength = 1f - strength;
-                    for (int k = 0; k < layerCount; k++)
-                    {
-                        if (k == layerIndex)
-                        {
-                            layerMap[x, z, k] = strength; // Target layer gets the blended strength
-                        }
-                        else if (totalOtherStrength > 0)
-                        {
-                            // Distribute remaining strength proportionally among other layers
-                            layerMap[x, z, k] = (layerMap[x, z, k] / totalOtherStrength) * remainingStrength;
-                        }
-                        else
-                        {
-                            // If no other strength existed, set evenly or to 0
-                            layerMap[x, z, k] = (layerCount > 1) ? (remainingStrength / (layerCount - 1)) : 0f;
+                            layerMap[x, z, k] *= (1f - o);
                         }
                     }
                 }
-                // Interior beyond radius remains unchanged
             }
         }
-
-        // Apply the updated layer back to TerrainManager
-        TerrainManager.SetLayerData(layerMap, layerType, layerIndex);
-
-        // Notify listeners of the update
-        TerrainManager.Callbacks.InvokeLayerUpdated(layerType, layerIndex);
     }
+
+    // Apply the updated layer back to TerrainManager
+    TerrainManager.SetSplatMap(layerMap, layerType, layerIndex);
+
+    // Notify listeners of the update
+    TerrainManager.Callbacks.InvokeLayerUpdated(layerType, layerIndex);
+}
 
 	[ConsoleCommand("fills curvature with gradient")]
 	public static void paintCurvature(Layers layerData, float minBlend = -0.1f, float min = 0f, float max = 0.1f, float maxBlend = 0.2f)
@@ -472,8 +465,8 @@ public static class GenerativeManager
 	}
 
 
-[ConsoleCommand("Paint slopes with gradients")]
-public static void PaintSlope(Layers layerData, float minBlend = 20f, float min = 30f, float max = 60f, float maxBlend = 70f)
+[ConsoleCommand("Paint slopes, heights, or curves range")]
+public static void PaintRange(Layers layerData, float minBlend = 20f, float min = 30f, float max = 60f, float maxBlend = 70f, string topography ="slopes")
 {
     // Validate slope range
     if (!(minBlend <= min && min < max && max <= maxBlend))
@@ -511,15 +504,27 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
     int splatRes = layerMap.GetLength(0); // Splatmap resolution
     int layerCount = TerrainManager.LayerCount(layerType); // 8 for Ground, 4 for Biome, 2 for Topology
 
-    // Get the slope data from TerrainManager, adjusted for splatmap resolution
-    float[,] slopes = TerrainManager.GetSlopes();
-    int heightRes = TerrainManager.HeightMapRes;
-    float splatRatio = TerrainManager.SplatRatio; // e.g., 2 if 2049 heightmap vs. 1024 splatmap
+    TerrainManager.UpdateHeightCache();
+	int heightRes = TerrainManager.HeightMapRes;
+	
+	float[,] slopes = new float[heightRes,heightRes];
+	if(topography.Equals("slopes")){
+		slopes = TerrainManager.Slope;}
+	
+	else if(topography.Equals("heights")){
+		slopes = TerrainManager.Land.terrainData.GetHeights(0, 0, heightRes, heightRes);
+		Debug.LogError("polling heightmap " + slopes[0,0]);}
+		
+		
+	else if(topography.Equals("curves")){
+		slopes = TerrainManager.Curvature;}
+	
 
+    float splatRatio = TerrainManager.SplatRatio; // e.g., 2 if 2049 heightmap vs. 1024 splatmap
+	float slope;
     // Register undo before modifying
     TerrainManager.RegisterSplatMapUndo($"Paint Slope Blend {layerType} Index {layerIndex}, {minBlend}-{min}-{max}-{maxBlend}");
 
-    // Paint the layer with gradient blending
     for (int i = 0; i < splatRes; i++)
     {
         for (int j = 0; j < splatRes; j++)
@@ -530,69 +535,72 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
             heightX = Mathf.Clamp(heightX, 0, heightRes - 1);
             heightY = Mathf.Clamp(heightY, 0, heightRes - 1);
 
-            float slope = slopes[heightX, heightY]; // Use heightmap slope at corresponding splat position
+            slope = slopes[heightX, heightY];
+
             float strength;
 
             // Calculate blending strength based on slope
-            if (slope < minBlend)
-            {
-                strength = 0f; // Below minBlend: fully inactive
-            }
-            else if (slope < min)
-            {
-                // Gradient from minBlend (0) to min (1)
-                strength = Mathf.InverseLerp(minBlend, min, slope);
-            }
-            else if (slope <= max)
-            {
-                strength = 1f; // Between min and max: fully active
-            }
-            else if (slope < maxBlend)
-            {
-                // Gradient from max (1) to maxBlend (0)
-                strength = Mathf.InverseLerp(maxBlend, max, slope);
-            }
-            else
-            {
-                strength = 0f; // Above maxBlend: fully inactive
-            }
 
-            // Apply strength to the target layer and adjust others
-            float totalOtherStrength = 0f;
-            for (int k = 0; k < layerCount; k++)
-            {
-                if (k != layerIndex)
-                {
-                    totalOtherStrength += layerMap[i, j, k];
-                }
-            }
 
-            float remainingStrength = 1f - strength;
-            for (int k = 0; k < layerCount; k++)
-            {
-                if (k == layerIndex)
+                if (slope < minBlend)
                 {
-                    layerMap[i, j, k] = strength; // Target layer gets the calculated strength
+                    strength = 0f; // Below minBlend: fully inactive
                 }
-                else if (totalOtherStrength > 0)
+                else if (slope < min)
                 {
-                    // Distribute remaining strength proportionally among other layers
-                    layerMap[i, j, k] = (layerMap[i, j, k] / totalOtherStrength) * remainingStrength;
+                    // Gradient from minBlend to min
+                    strength = Mathf.InverseLerp(minBlend, min, slope);
+                }
+                else if (slope <= max)
+                {
+                    strength = 1f; // Between min and max: fully active
+                }
+                else if (slope < maxBlend)
+                {
+                    // Gradient from max to maxBlend
+                    strength = Mathf.InverseLerp(maxBlend, max, slope);
                 }
                 else
                 {
-                    // If no other strength existed, set evenly or to 0
-                    layerMap[i, j, k] = (layerCount > 1) ? (remainingStrength / (layerCount - 1)) : 0f;
+                    strength = 0f; // Above maxBlend: fully inactive
                 }
-            }
+				
+				if(layerType == LayerType.Topology){
+					if (strength>0f){
+						layerMap[i,j,1] = 0f;
+						layerMap[i,j,0] = 1f;
+					}
+					continue;
+				}
+				else{				
+                ApplyLayerBlend(layerMap, i, j, layerIndex, layerCount, strength);
+				}
+
         }
     }
 
-    // Apply the updated layer back to TerrainManager
-    TerrainManager.SetLayerData(layerMap, layerType, layerIndex);
+    // Apply the updated layer
+    TerrainManager.SetSplatMap(layerMap, layerType, layerIndex);
 
-    // Notify listeners of the update
+    // Notify listeners
     TerrainManager.Callbacks.InvokeLayerUpdated(layerType, layerIndex);
+}
+
+
+
+private static void ApplyLayerBlend(float[,,] layerMap, int x, int z, int layerIndex, int layerCount, float strength)
+{
+    if (strength > 0f)
+    {
+        layerMap[x, z, layerIndex] = Mathf.Max(strength, layerMap[x, z, layerIndex]);
+        for (int k = 0; k < layerCount; k++)
+        {
+            if (k != layerIndex)
+            {
+                layerMap[x, z, k] *= (1f - strength);
+            }
+        }
+    }
 }
 
 
@@ -1223,19 +1231,14 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
 					
 										
 					
-					if (o > 0f)
-					{
+					if (o > 0f)		{
 					newGround[i,j,t] = Math.Max(o, newGround[i,j,t]);
 					
-					for (int m = 0; m <=7; m++)
-									{
+					for (int m = 0; m <=7; m++)		{
 										if (m!=t)
 											newGround[i,j,m] *= 1f-o;
 										
 									}
-					
-					
-						
 					}						
 				
             }
@@ -1698,6 +1701,7 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
 	[ConsoleCommand("Fills layer")]
 	public static void fillLayer(Layers layerData)
 	{
+		TerrainManager.SyncTerrainResolutions();
 		// Determine the layer type and index from the Layers object
 		LayerType layerType;
 		int layerIndex = -1;
@@ -1725,7 +1729,7 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
 		// Get the current layer data
 		float[,,] layerMap = TerrainManager.GetLayerData(layerType, layerIndex);
 		int res = layerMap.GetLength(0);
-		int layerCount = TerrainManager.LayerCount(layerType); // 8 for Ground, 4 for Biome, 2 for Topology
+		int layerCount = TerrainManager.LayerCount(layerType); // 8 for Ground, 5 for Biome, 2 for Topology
 
 		// Fill the layer: set the specified layer index to fully active, others to inactive
 		for (int i = 0; i < res; i++)
@@ -1741,7 +1745,7 @@ public static void PaintSlope(Layers layerData, float minBlend = 20f, float min 
 
 		// Apply the filled layer back to TerrainManager
 		//use SetLayerData from now on
-		TerrainManager.SetLayerData(layerMap, layerType, layerIndex);
+		TerrainManager.SetSplatMap(layerMap, layerType, layerIndex);
 	}
 
 	[ConsoleCommand("erase overlapping topology")]

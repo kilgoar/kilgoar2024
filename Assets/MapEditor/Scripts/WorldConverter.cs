@@ -18,6 +18,8 @@ using static ModManager;
 
 public static class WorldConverter
 {
+	public static int BiomeChannels;
+	
     public struct MapInfo
     {
         public int terrainRes;
@@ -92,12 +94,14 @@ public static class WorldConverter
         return terrains;
     }
 
+
     /// <summary>Converts the MapInfo and TerrainMaps into a Unity map format.</summary>
     public static MapInfo ConvertMaps(MapInfo terrains, TerrainMap<byte> splatMap, TerrainMap<byte> biomeMap, TerrainMap<byte> alphaMap)
-    {
+    {		
         terrains.splatMap = new float[splatMap.res, splatMap.res, 8];
         terrains.biomeMap = new float[biomeMap.res, biomeMap.res, 5];
         terrains.alphaMap = new bool[alphaMap.res, alphaMap.res];
+
 
         var groundTask = Task.Run(() =>
         {
@@ -109,15 +113,39 @@ public static class WorldConverter
             });
         });
 
-        var biomeTask = Task.Run(() =>
+
+    var biomeTask = Task.Run(() =>
+    {
+        float[] biomeSums = new float[5]; // Track sum of each biome layer
+        Parallel.For(0, terrains.splatRes, i =>
         {
-            Parallel.For(0, terrains.splatRes, i =>
+            for (int j = 0; j < terrains.splatRes; j++)
             {
-                for (int j = 0; j < terrains.splatRes; j++)
-                    for (int k = 0; k < 4; k++)
-                        terrains.biomeMap[i, j, k] = BitUtility.Byte2Float(biomeMap[k, i, j]);
-            });
+                float sum = 0f;
+                for (int k = 0; k < BiomeChannels && k < 5; k++)
+                {
+                    float value = BitUtility.Byte2Float(biomeMap[k, i, j]);
+                    terrains.biomeMap[i, j, k] = value;
+                    biomeSums[k] += value;
+                    sum += value;
+                }
+                // Fill remaining channels with 0 if BiomeChannels < 5
+                for (int k = BiomeChannels; k < 5; k++)
+                {
+                    terrains.biomeMap[i, j, k] = 0f;
+                }
+                // Normalize weights to sum to 1
+                if (sum > 0)
+                {
+                    for (int k = 0; k < 5; k++)
+                    {
+                        terrains.biomeMap[i, j, k] /= sum;
+                    }
+                }
+            }
         });
+        Debug.Log($"ConvertMaps: Biome sums: Arid={biomeSums[0]}, Temperate={biomeSums[1]}, Tundra={biomeSums[2]}, Arctic={biomeSums[3]}, Jungle={biomeSums[4]}");
+    });
 
         var alphaTask = Task.Run(() =>
         {
@@ -156,11 +184,47 @@ public static class WorldConverter
 		
 		int resolution = splatMap.res; 
 		Debug.LogError(resolution);
-		int biomeChannels = world.GetMap("biome").data.Length / (resolution * resolution); // Calculate channels (4 or 5)
-		Debug.LogError(biomeChannels + " biomes found");
-		var biomeMap = new TerrainMap<byte>(world.GetMap("biome").data, biomeChannels);
+		BiomeChannels = world.GetMap("biome").data.Length / (resolution * resolution); // Calculate channels (4 or 5)
+		Debug.LogError(BiomeChannels + " biomes found");
+		var biomeMap = new TerrainMap<byte>(world.GetMap("biome").data, BiomeChannels);
 		
-        var alphaMap = new TerrainMap<byte>(world.GetMap("alpha").data, 1);
+		    var biomeMapData = world.GetMap("biome")?.data;
+			if (biomeMapData == null)
+			{
+				Debug.LogError("Biome map data is null! Creating default 5-channel map.");
+				BiomeChannels = 5;
+				biomeMapData = new byte[resolution * resolution * 5];
+			}
+			else
+			{
+				BiomeChannels = biomeMapData.Length / (resolution * resolution);
+				Debug.Log($"WorldToTerrain: Biome map: Data length={biomeMapData.Length}, Calculated BiomeChannels={BiomeChannels}, Expected=5");
+				if (BiomeChannels != 5)
+				{
+					Debug.LogWarning($"Unexpected BiomeChannels={BiomeChannels}. Expected 5. Jungle layer may be missing.");
+				}
+
+				// Sum raw biome data
+				long[] channelSums = new long[Math.Min(BiomeChannels, 5)];
+				for (int i = 0; i < resolution; i++)
+				{
+					for (int j = 0; j < resolution; j++)
+					{
+						for (int k = 0; k < Math.Min(BiomeChannels, 5); k++)
+						{
+							int index = (k * resolution + i) * resolution + j;
+							if (index < biomeMapData.Length)
+							{
+								channelSums[k] += biomeMapData[index];
+							}
+						}
+					}
+				}
+				Debug.Log($"WorldToTerrain: Raw biome byte sums: Arid={channelSums[0]}, Temperate={channelSums[1]}, Tundra={channelSums[2]}, Arctic={channelSums[3]}" + (BiomeChannels > 4 ? $", Jungle={channelSums[4]}" : ""));
+			}
+
+		
+		var alphaMap = new TerrainMap<byte>(world.GetMap("alpha").data, 1);
 		
         terrains.topology = topologyMap;
 
@@ -208,8 +272,7 @@ public static class WorldConverter
 				}
 			}
 		
-		
-		
+
         var heightTask = Task.Run(() => ShortMapToFloatArray(heightMap));
         var waterTask = Task.Run(() => ShortMapToFloatArray(waterMap));
 

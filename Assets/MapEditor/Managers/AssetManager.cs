@@ -38,9 +38,21 @@ public static class AssetManager
 	#endif
 	
 	public static void RuntimeInit()	{
+		
+		if(!SettingsManager.application.loadbundleonlaunch){
+			Debug.LogError("skipping load on launch");
+			LoadScreen.Instance.SetMessage("Not actually loading");
+			LoadScreen.Instance.Progress(.5f);
+			HideLoadScreen();
+			return;
+		}
+		
 
 		Callbacks.BundlesLoaded += HideLoadScreen;
 		Callbacks.BundlesDisposed += FileWindowUpdate;
+		
+
+
 
 		Debug.LogError(SettingsManager.application.rustDirectory);
 		
@@ -68,20 +80,16 @@ public static class AssetManager
 				}
 			}
 		}
-		else {
-			
-			bundlePath = Path.Combine(bundlePath, bundleExt);
-		}
-
+		else {			
+				bundlePath = Path.Combine(bundlePath, bundleExt);
+				Initialise(bundlePath);
+				return;
+			}
 		
-		if (!IsInitialised && SettingsManager.application.loadbundleonlaunch )		{
-			Initialise(bundlePath);
-		}
-		else
-		{
-			AppManager.Instance.LoadWindowStates();
-			AppManager.Instance.ActivateWindow(1);
-		}
+
+		Debug.LogError("failed to load bundles, showing settings window");
+		AppManager.Instance.ActivateWindow(1);
+
 	}
 	
 	public static bool AreBundlesLoaded()
@@ -1273,6 +1281,7 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 			yield break;
 		}
 
+		Shader developerShader = Shader.Find("Developer/LocalCoordDiffuse");
 		Shader standardShader = Shader.Find("Custom/Rust/Standard");
 		Shader standardFourShader = Shader.Find("Custom/Rust/StandardBlend4Way");
 		Shader specularShader = Shader.Find("Standard (Specular setup)");
@@ -1286,9 +1295,9 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 		Shader coreFoliageBillboard = Shader.Find("Custom/CoreFoliageBillboard");
 		
 		// Skip if the shader is Core/Foliage
-		if (mat.shader.name.Equals("Core/Foliage"))
+		if (mat.shader.name.Equals("Developer/LocalCoord Diffuse (Specular Setup)"))
 		{
-			mat.shader = coreFoliage;
+			mat.shader = developerShader;
 			yield break;
 		}
 		
@@ -1310,6 +1319,12 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 		}
 		*/
 		
+		if (mat.shader.name.Equals("Rust/Standard Terrain"))
+		{
+			mat.shader = standardTerrain;
+			yield break;
+		}
+		
 		
 		if (mat.shader.name.Equals("Rust/Standard Terrain"))
 		{
@@ -1319,7 +1334,7 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 		
 		
 		if (mat.shader.name.Equals("Standard (Specular setup)") ||mat.shader.name.Equals("Rust/Standard") || mat.shader.name.Equals("Rust/Standard + Wind") || mat.shader.name.Equals("Rust/Standard Cloth")
-			|| mat.shader.name.Equals("Rust/Standard Particle") || mat.shader.name.Equals("Rust/Standard Snow Area") || mat.shader.name.Equals("Rust/Standard Wire") || mat.shader.name.Equals("Rust/Standard + Specular Glare"))
+			|| mat.shader.name.Equals("Rust/Standard Particle") || mat.shader.name.Equals("Rust/Standard Snow Area") || mat.shader.name.Equals("Rust/Standard Wire") || mat.shader.name.Equals("Rust/Standard + Specular Glare") || mat.shader.name.Equals("Rust/Standard Packed Mask Blend"))
 		{
 			mat.shader = standardShader;
 			yield break;
@@ -1333,7 +1348,7 @@ public static IEnumerator SetBundleReferences((int parent, int bundle) ID)
 		
 		if ( mat.shader.name.Equals("Rust/Standard (Specular setup)") || mat.shader.name.Equals("Rust/Standard + Wind (Specular setup)") || mat.shader.name.Equals("Rust/Standard + Decal (Specular setup)"))
 		{
-			mat.shader = standardShaderSpecular;
+			mat.shader = standardShader;
 			yield break;
 		}
 		
