@@ -359,6 +359,8 @@ public static class WorldConverter
 		}
 	}
 
+
+
     /// <summary>Converts Unity terrains to WorldSerialization.</summary>
     public static WorldSerialization TerrainToWorld(Terrain land, Terrain water, (int prefab, int path, int terrain) ID = default) 
     {
@@ -481,6 +483,357 @@ public static class WorldConverter
         return world;
     }
 	
+	/// <summary>Gathers terrain data from the Unity Editor and converts to RMPrefabData with RMMonument terrain data.</summary>
+	public static RMPrefabData TerrainToRMPrefab(Terrain land, Terrain water)
+	{			
+		// Initialize RMPrefabData			
+		RMPrefabData rmPrefab = new RMPrefabData();
+		try
+		{
+
+
+			// Set modifiers if available
+			if (PrefabManager.CurrentModifiers?.modifierData != null)
+				rmPrefab.modifiers = PrefabManager.CurrentModifiers.modifierData;
+
+			// Process NPCs
+			foreach (NPCDataHolder p in PrefabManager.CurrentMapNPCs)
+			{
+				if (p.bots != null)
+				{
+					rmPrefab.npcs.bots.Add(p.bots);
+				}
+			}
+
+			// Process Prefabs
+			foreach (PrefabDataHolder p in PrefabManager.CurrentMapPrefabs)
+			{
+				if (p.prefabData != null)
+				{
+					p.AlwaysBreakPrefabs(); // Updates prefab data before saving
+					rmPrefab.prefabs.Add(p.prefabData);
+				}
+			}
+
+			// Process Circuits
+			foreach (CircuitDataHolder p in PrefabManager.CurrentMapElectrics)
+			{
+				if (p.circuitData != null)
+				{
+					p.UpdateCircuitData(); // Updates circuit data before saving
+					rmPrefab.electric.circuitData.Add(p.circuitData);
+				}
+			}
+
+			// Initialize RMMonument
+			RMMonument monument = new RMMonument
+			{
+				size = new Vector3(land.terrainData.size.x, land.terrainData.size.y, land.terrainData.size.z),
+				extents = land.terrainData.size / 2f, // Assuming extents are half the size
+				offset = land.transform.position - MapOffset, // Adjust for map offset
+				HeightMap = true,
+				AlphaMap = true,
+				WaterMap = true,
+				SplatMask = TerrainSplat.Enum.Grass, // Default splat mask
+				BiomeMask = TerrainBiome.Enum.Temperate, // Default biome mask
+				TopologyMask = TerrainTopology.Enum.Field // Default topology mask
+			};
+
+			// Texture resolution for maps
+			var textureResolution = SplatMapRes;
+			var heightMapRes = HeightMapRes;
+
+			// Synchronize textures to ensure data is up-to-date
+			TerrainManager.SyncSplatTexture();
+			TerrainManager.SyncBiomeTexture();
+			TerrainManager.SyncAlphaTexture();
+
+			// Process Splat Map (Control0 and Control1 textures)
+			Texture2D[] alphamaps = land.terrainData.alphamapTextures;
+			if (alphamaps == null || alphamaps.Length < 2)
+			{
+				Debug.LogError("Terrain alphamap textures (Control0 and Control1) are not available.");
+			}
+			var splatTask = Task.Run(() =>
+			{
+				monument.splatmap0 = WorldSerialization.SerializeTexture(alphamaps[0]); // First 4 splat channels
+				monument.splatmap1 = WorldSerialization.SerializeTexture(alphamaps[1]); // Next 4 splat channels
+			});
+
+			// Process Biome Map (BiomeTexture and Biome1Texture)
+			var biomeTask = Task.Run(() =>
+			{
+				if (TerrainManager.BiomeTexture == null || TerrainManager.Biome1Texture == null)
+				{
+					Debug.LogError("BiomeTexture or Biome1Texture is not initialized.");
+				}
+				monument.biomemap = WorldSerialization.SerializeTexture(TerrainManager.BiomeTexture); // Arid, Temperate, Tundra, Arctic
+
+			});
+
+			// Process Alpha Map
+			var alphaTask = Task.Run(() =>
+			{
+				if (TerrainManager.AlphaTexture == null)
+				{
+					Debug.LogError("AlphaTexture is not initialized.");
+				}
+
+				monument.alphamap = WorldSerialization.SerializeTexture(AlphaTexture);
+			});
+
+			// Process Blend Map
+			var blendTask = Task.Run(() =>
+			{
+				if (TerrainManager.BlendMapTexture == null)
+				{
+					Debug.LogWarning("BlendMapTexture is not initialized.");
+				}
+				
+				monument.blendmap = WorldSerialization.SerializeTexture(TerrainManager.BlendMapTexture);
+			});
+
+			// Process Topology Map
+			var topologyTask = Task.Run(() => TopologyData.SaveTopologyLayers());
+
+			// Process Height and Water Maps (unchanged)
+			byte[] heightBytes = FloatArrayToByteArray(land.terrainData.GetHeights(0, 0, heightMapRes, heightMapRes));
+			byte[] waterBytes = FloatArrayToByteArray(water.terrainData.GetHeights(0, 0, heightMapRes, heightMapRes));
+
+			// Wait for all tasks to complete
+			Task.WaitAll(splatTask, biomeTask, alphaTask, blendTask, topologyTask);
+
+			// Assign height and topology data to RMMonument
+			monument.heightmap = heightBytes;
+			monument.watermap = waterBytes;
+			monument.topologymap = TopologyData.GetTerrainMap().ToByteArray();
+
+			// Assign monument to RMPrefabData
+			rmPrefab.monument = monument;
+
+			// To serialize RMPrefabData (including monument), use SavePrefab<RMPrefabData>
+			return rmPrefab;
+		}
+		catch (NullReferenceException err)
+		{
+			Debug.LogError("Error during RMPrefab conversion: " + err.Message);
+			return rmPrefab;
+		}
+		return rmPrefab;
+	}
+	
+	/// <summary>Attaches a Monument component to a GameObject, populating it with RMMonument data.</summary>
+	/// <param name="rmPrefab">The RMPrefabData containing RMMonument data.</param>
+	/// <param name="go">The GameObject to attach the Monument component to.</param>
+	public static void AttachMonument(RMPrefabData rmPrefab, GameObject go)
+	{
+		if (rmPrefab == null)
+		{
+			Debug.LogError("RMPrefabData is null. Cannot attach Monument component.");
+			return;
+		}
+		if (go == null)
+		{
+			Debug.LogError("GameObject is null. Cannot attach Monument component.");
+			return;
+		}
+
+		try
+		{
+			// Add or get the Monument component
+			Monument monumentComponent = go.GetComponent<Monument>();
+			if (monumentComponent == null)
+				monumentComponent = go.AddComponent<Monument>();
+
+			// Populate Monument component with RMMonument data
+			if (rmPrefab.monument != null)
+			{
+				RMMonument rmMonument = rmPrefab.monument;
+
+				// Set basic Monument properties
+				monumentComponent.size = rmMonument.size;
+				monumentComponent.extents = rmMonument.extents;
+				monumentComponent.offset = rmMonument.offset;
+				monumentComponent.HeightMap = rmMonument.HeightMap;
+				monumentComponent.AlphaMap = rmMonument.AlphaMap;
+				monumentComponent.WaterMap = rmMonument.WaterMap;
+				monumentComponent.SplatMask = rmMonument.SplatMask;
+				monumentComponent.BiomeMask = rmMonument.BiomeMask;
+				monumentComponent.TopologyMask = rmMonument.TopologyMask;
+				monumentComponent.Radius = rmMonument.size.x / 2f; // Default to half the size.x
+				monumentComponent.Fade = Mathf.Min(rmMonument.size.x, rmMonument.size.z) * 0.1f; // Default to 10% of min dimension
+
+				// Deserialize and assign textures
+				var textureTasks = new List<Task>();
+
+				// Heightmap
+				if (rmMonument.heightmap != null)
+				{
+					textureTasks.Add(Task.Run(() =>
+					{
+						Texture2D heightTexture = WorldSerialization.DeserializeTexture(
+							rmMonument.heightmap,
+							TerrainManager.HeightMapRes,
+							TerrainManager.HeightMapRes,
+							TextureFormat.RGBA32
+						);
+						if (heightTexture != null)
+						{
+							monumentComponent.heightmap = new Texture2DRef { cachedInstance = heightTexture };
+						}
+					}));
+				}
+
+				// Splatmap0
+				if (rmMonument.splatmap0 != null)
+				{
+					textureTasks.Add(Task.Run(() =>
+					{
+						Texture2D splat0Texture = WorldSerialization.DeserializeTexture(
+							rmMonument.splatmap0,
+							TerrainManager.SplatMapRes,
+							TerrainManager.SplatMapRes,
+							TextureFormat.RGBA32
+						);
+						if (splat0Texture != null)
+						{
+							monumentComponent.splatmap0 = new Texture2DRef { cachedInstance = splat0Texture };
+						}
+					}));
+				}
+
+				// Splatmap1
+				if (rmMonument.splatmap1 != null)
+				{
+					textureTasks.Add(Task.Run(() =>
+					{
+						Texture2D splat1Texture = WorldSerialization.DeserializeTexture(
+							rmMonument.splatmap1,
+							TerrainManager.SplatMapRes,
+							TerrainManager.SplatMapRes,
+							TextureFormat.RGBA32
+						);
+						if (splat1Texture != null)
+						{
+							monumentComponent.splatmap1 = new Texture2DRef { cachedInstance = splat1Texture };
+						}
+					}));
+				}
+
+				// Alphamap
+				if (rmMonument.alphamap != null)
+				{
+					textureTasks.Add(Task.Run(() =>
+					{
+						RenderTexture alphaTexture = WorldSerialization.DeserializeTexture(
+							rmMonument.alphamap,
+							TerrainManager.AlphaMapRes,
+							TerrainManager.AlphaMapRes,
+							RenderTextureFormat.ARGB32
+						);
+						if (alphaTexture != null)
+						{
+							// Convert RenderTexture to Texture2D for Texture2DRef
+							Texture2D alphaTexture2D = new Texture2D(alphaTexture.width, alphaTexture.height, TextureFormat.RGBA32, false);
+							RenderTexture.active = alphaTexture;
+							alphaTexture2D.ReadPixels(new Rect(0, 0, alphaTexture.width, alphaTexture.height), 0, 0);
+							alphaTexture2D.Apply();
+							monumentComponent.alphamap = new Texture2DRef { cachedInstance = alphaTexture2D };
+							UnityEngine.Object.Destroy(alphaTexture);
+						}
+					}));
+				}
+
+				// Biomemap
+				if (rmMonument.biomemap != null)
+				{
+					textureTasks.Add(Task.Run(() =>
+					{
+						Texture2D biomeTexture = WorldSerialization.DeserializeTexture(
+							rmMonument.biomemap,
+							TerrainManager.SplatMapRes,
+							TerrainManager.SplatMapRes,
+							TextureFormat.RGBA32
+						);
+						if (biomeTexture != null)
+						{
+							monumentComponent.biomemap = new Texture2DRef { cachedInstance = biomeTexture };
+						}
+					}));
+				}
+
+				// Topologymap
+				if (rmMonument.topologymap != null)
+				{
+					textureTasks.Add(Task.Run(() =>
+					{
+						Texture2D topologyTexture = WorldSerialization.DeserializeTexture(
+							rmMonument.topologymap,
+							TerrainManager.SplatMapRes,
+							TerrainManager.SplatMapRes,
+							TextureFormat.RGBA32
+						);
+						if (topologyTexture != null)
+						{
+							monumentComponent.topologymap = new Texture2DRef { cachedInstance = topologyTexture };
+						}
+					}));
+				}
+
+				// Watermap
+				if (rmMonument.watermap != null)
+				{
+					textureTasks.Add(Task.Run(() =>
+					{
+						Texture2D waterTexture = WorldSerialization.DeserializeTexture(
+							rmMonument.watermap,
+							TerrainManager.HeightMapRes,
+							TerrainManager.HeightMapRes,
+							TextureFormat.RGBA32
+						);
+						if (waterTexture != null)
+						{
+							monumentComponent.watermap = new Texture2DRef { cachedInstance = waterTexture };
+						}
+					}));
+				}
+
+				// Blendmap
+				if (rmMonument.blendmap != null)
+				{
+					textureTasks.Add(Task.Run(() =>
+					{
+						Texture2D blendTexture = WorldSerialization.DeserializeTexture(
+							rmMonument.blendmap,
+							TerrainManager.SplatMapRes,
+							TerrainManager.SplatMapRes,
+							TextureFormat.RGBA32
+						);
+						if (blendTexture != null)
+						{
+							monumentComponent.blendmap = new Texture2DRef { cachedInstance = blendTexture };
+						}
+					}));
+				}
+
+				// Wait for all texture deserialization tasks to complete
+				Task.WaitAll(textureTasks.ToArray());
+			}
+			else
+			{
+				Debug.LogWarning("RMMonument data is null. Monument component will have default values.");
+			}
+
+			#if UNITY_EDITOR
+			UnityEditor.EditorUtility.SetDirty(go);
+			#endif
+		}
+		catch (Exception err)
+		{
+			Debug.LogError($"Error during AttachMonument: {err.Message}");
+		}
+	}
+	
 	
 	public static MapInfo WorldToREPrefab(WorldSerialization world)
 	{
@@ -497,6 +850,25 @@ public static class WorldConverter
 		}
 		return refab;
 	}
+	
+	public static MapInfo WorldToRMPrefab(WorldSerialization world)
+	{
+		MapInfo refab = new MapInfo();
+		refab.prefabData = world.rmPrefab.prefabs.ToArray();
+		refab.circuitData = world.rmPrefab.electric.circuitData.ToArray();
+		refab.npcData = world.rmPrefab.npcs.bots.ToArray();
+		refab.modifierData = world.rmPrefab.modifiers;
+		
+		for (int k = 0; k < refab.circuitData.Length; k++)
+		{
+			refab.circuitData[k].connectionsIn = refab.circuitData[k].branchIn.ToArray();
+			refab.circuitData[k].connectionsOut = refab.circuitData[k].branchOut.ToArray();
+		}
+		return refab;
+	}
+	
+
+
 	
 	public static WorldSerialization TerrainToCustomPrefab((int prefab, int circuit) ID) 
     {

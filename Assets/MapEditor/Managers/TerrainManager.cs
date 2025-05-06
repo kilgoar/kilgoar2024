@@ -66,12 +66,13 @@ public static class TerrainManager
     public static int Layers => LayerCount(CurrentLayerType);
 
     // Textures
-    private static Texture FilterTexture;
-    private static Texture2D HeightTexture;
+    public static Texture FilterTexture;
+    public static Texture2D HeightTexture;
+	public static Texture2D BlendMapTexture;
     public static RenderTexture HeightSlopeTexture;
-    private static RenderTexture AlphaTexture;
-    private static RenderTexture BiomeTexture;
-	private static RenderTexture Biome1Texture;
+    public static RenderTexture AlphaTexture;
+    public static RenderTexture BiomeTexture;
+	public static RenderTexture Biome1Texture;
     public static Texture2D RuntimeNormalMap { get; private set; }
 
     // Configuration

@@ -731,6 +731,34 @@ public static class PrefabManager
         PrefabParent.gameObject.GetComponent<LockObject>().UpdateTransform();
     }
 
+	public static void placeCustomMonument(string loadPath, Vector3 position, Vector3 rotation, Vector3 scale, Transform parent = null)
+	{
+		var world = new WorldSerialization();
+        world.LoadRMPrefab(loadPath);
+		
+		GameObject newObj = new GameObject(loadPath);
+		newObj.tag = "Collection";
+		WorldConverter.AttachMonument(world.rmPrefab, newObj);
+		string baseName = loadPath.Split('/').Last().Split('.')[0];
+			
+		string newObjName = baseName + "" + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10);
+
+		while(PrefabManager.PrefabCategories.ContainsKey(newObjName)) 
+			{
+				newObjName = baseName + " " + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10);
+			}
+
+		PrefabManager.PrefabCategories.Add(newObjName, newObj.transform);
+		newObj.name = newObjName;		
+			
+		newObj.transform.parent = parent;
+		newObj.transform.localPosition = position;
+		newObj.transform.localRotation = Quaternion.Euler(rotation);
+		newObj.transform.localScale = scale;
+		
+		MapManager.MergeOffsetREPrefab(WorldConverter.WorldToRMPrefab(world), newObj.transform, loadPath);
+	}
+
 	public static void placeCustomPrefab(string loadPath,Vector3 position, Vector3 rotation, Vector3 scale, Transform parent = null)
 	{
 			var world = new WorldSerialization();

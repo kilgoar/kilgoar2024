@@ -71,6 +71,7 @@ public class WorldSerialization
 
     public WorldData world = new WorldData();
 	public REPrefabData rePrefab = new REPrefabData();
+	public RMPrefabData rmPrefab = new RMPrefabData();
 
     public WorldSerialization()
     {
@@ -100,6 +101,43 @@ public class WorldSerialization
 		[ProtoMember(10)] public string buildingchunk = "";		
 		[ProtoMember(11)] public string checksum;
     }
+	
+	[ProtoContract]
+	public class RMPrefabData
+    {
+		[ProtoMember(1)] public ModifierData modifiers = new ModifierData();
+        [ProtoMember(3)] public List<PrefabData> prefabs = new List<PrefabData>();
+        [ProtoMember(5)] public CircuitDataHolder electric = new CircuitDataHolder();	
+		[ProtoMember(6)] public string emptychunk1 = "";		
+		[ProtoMember(7)] public NPCDataHolder npcs = new NPCDataHolder();		
+		[ProtoMember(8)] public string emptychunk3 = "";		
+		[ProtoMember(9)] public string emptychunk4 = "";		
+		[ProtoMember(10)] public string buildingchunk = "";		
+		[ProtoMember(11)] public string checksum;
+		[ProtoMember(11)] public RMMonument monument;
+    }
+	
+	[ProtoContract]
+	public class RMMonument
+	{
+		[ProtoMember(1)] public Vector3 size = Vector3.zero;
+		[ProtoMember(2)] public Vector3 extents = Vector3.zero;
+		[ProtoMember(3)] public Vector3 offset = Vector3.zero;
+		[ProtoMember(4)] public bool HeightMap = true;
+		[ProtoMember(5)] public bool AlphaMap = true;
+		[ProtoMember(6)] public bool WaterMap;
+		[ProtoMember(7)] public TerrainSplat.Enum SplatMask;
+		[ProtoMember(8)] public TerrainBiome.Enum BiomeMask;
+		[ProtoMember(9)] public TerrainTopology.Enum TopologyMask;
+		[ProtoMember(10)] public byte[] heightmap;
+		[ProtoMember(11)] public byte[] splatmap0;
+		[ProtoMember(12)] public byte[] splatmap1;
+		[ProtoMember(13)] public byte[] alphamap;
+		[ProtoMember(14)] public byte[] biomemap;
+		[ProtoMember(15)] public byte[] topologymap;
+		[ProtoMember(16)] public byte[] watermap;
+		[ProtoMember(17)] public byte[] blendmap;
+	}
 
 	[Serializable]
     [ProtoContract]
@@ -293,47 +331,39 @@ public class WorldSerialization
         [ProtoMember(2)] public float y;
         [ProtoMember(3)] public float z;
 
-        public VectorData()
-        {
+        public VectorData()        {
         }
 
-        public VectorData(float x, float y, float z)
-        {
+        public VectorData(float x, float y, float z)        {
             this.x = x;
             this.y = y;
             this.z = z;
         }
 
-        public static implicit operator VectorData(Vector3 v)
-        {
+        public static implicit operator VectorData(Vector3 v)        {
             return new VectorData(v.x, v.y, v.z);
         }
 
-        public static implicit operator VectorData(Quaternion q)
-        {
+        public static implicit operator VectorData(Quaternion q)        {
             return q.eulerAngles;
         }
 
-        public static implicit operator Vector3(VectorData v)
-        {
+        public static implicit operator Vector3(VectorData v)        {
             return new Vector3(v.x, v.y, v.z);
         }
 
-        public static implicit operator Quaternion(VectorData v)
-        {
+        public static implicit operator Quaternion(VectorData v)        {
             return Quaternion.Euler(v);
         }		
     }
 
-    public MapData GetMap(string name)
-    {
+    public MapData GetMap(string name)    {
         for (int i = 0; i < world.maps.Count; i++){
             if (world.maps[i].name == name) return world.maps[i];
 		}
         return null;
     }
 	
-
     public void AddMap(string name, byte[] data)
     {
         var map = new MapData();
@@ -418,6 +448,131 @@ public class WorldSerialization
         }
     }
 	
+	public void SaveRMPrefab(string fileName)
+    {
+		string checksum;
+
+        try
+        {
+            using (var fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                using (var binaryWriter = new BinaryWriter(fileStream))
+                {
+                    binaryWriter.Write(REPrefabVersion);
+
+                    using (var compressionStream = new LZ4Stream(fileStream, LZ4StreamMode.Compress))
+					{
+						
+                        Serializer.Serialize(compressionStream, rmPrefab);
+					}
+                }
+            }
+			
+				using (var md5 = System.Security.Cryptography.MD5.Create())
+						{
+							using(var stream = System.IO.File.OpenRead(fileName))
+							{
+								var hash = md5.ComputeHash(stream);
+								checksum = BitConverter.ToString(hash).Replace("-", "").ToLower();
+								
+								Debug.LogError(checksum);
+								rmPrefab.checksum = checksum;
+							}
+						}
+						
+		using (var fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                using (var binaryWriter = new BinaryWriter(fileStream))
+                {
+                    binaryWriter.Write(REPrefabVersion);
+
+                    using (var compressionStream = new LZ4Stream(fileStream, LZ4StreamMode.Compress))
+					{
+                        Serializer.Serialize(compressionStream, rmPrefab);
+					}
+                }
+            }
+			
+			
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+    }
+	
+	
+	public static byte[] SerializeTexture(Texture2D texture)	{
+		if (texture == null) return null;
+		return texture.EncodeToPNG();
+	}
+	
+	public static byte[] SerializeTexture(RenderTexture renderTexture)
+	{
+		if (renderTexture == null)
+			return null;
+
+		// Create a temporary Texture2D to hold the RenderTexture data
+		Texture2D tempTexture = new Texture2D(renderTexture.width, renderTexture.height, TextureFormat.RGBA32, false);
+
+		// Store the active RenderTexture and set the target RenderTexture as active
+		RenderTexture currentActive = RenderTexture.active;
+		RenderTexture.active = renderTexture;
+
+		// Read pixels from the RenderTexture into the Texture2D
+		tempTexture.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
+		tempTexture.Apply();
+
+		// Serialize the Texture2D to PNG
+		byte[] result = tempTexture.EncodeToPNG();
+
+		// Clean up
+		UnityEngine.Object.Destroy(tempTexture);
+		RenderTexture.active = currentActive;
+
+		return result;
+	}
+	
+	public static Texture2D DeserializeTexture(byte[] data, int width, int height, TextureFormat format)	{
+		if (data == null) return null;
+		Texture2D texture = new Texture2D(width, height, format, false);
+		texture.LoadImage(data); //PNG data
+		return texture;
+	}
+	
+	public static RenderTexture DeserializeTexture(byte[] data, int width, int height, RenderTextureFormat format)
+	{
+		if (data == null)
+			return null;
+
+		// Create a temporary Texture2D to load the PNG data
+		Texture2D tempTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+		if (!tempTexture.LoadImage(data))
+		{
+			UnityEngine.Object.Destroy(tempTexture);
+			Debug.LogError("Failed to load PNG data into Texture2D.");
+			return null;
+		}
+
+		// Create a RenderTexture with the specified dimensions and format
+		RenderTexture renderTexture = new RenderTexture(width, height, 0, format, RenderTextureReadWrite.Linear)
+		{
+			wrapMode = TextureWrapMode.Clamp,
+			enableRandomWrite = true
+		};
+		renderTexture.Create();
+
+		// Copy the Texture2D pixels to the RenderTexture
+		RenderTexture currentActive = RenderTexture.active;
+		RenderTexture.active = renderTexture;
+		Graphics.Blit(tempTexture, renderTexture);
+
+		// Clean up
+		UnityEngine.Object.Destroy(tempTexture);
+		RenderTexture.active = currentActive;
+
+		return renderTexture;
+	}
 	
 	//outputs decompressed lz4 binary file protobuftest
 	public void Decompress(string fileName)
@@ -504,6 +659,34 @@ public class WorldSerialization
             Debug.LogError(e.Message);
         }
     }
+	
+	public void LoadRMPrefab(string fileName)
+    {
+        try
+        {
+            using (var fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+				using (var binaryReader = new BinaryReader(fileStream))
+                {
+					uint ver = binaryReader.ReadUInt32();
+					//Debug.LogError(ver);
+					
+                    using (var compressionStream = new LZ4Stream(fileStream, LZ4StreamMode.Decompress))
+					{
+						
+						rmPrefab = Serializer.Deserialize<RMPrefabData>(compressionStream);
+						
+					}
+				}
+                
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+    }
+	
 	
     public void SavePrefabJSON(string fileName)
     {
