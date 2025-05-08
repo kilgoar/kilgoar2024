@@ -88,6 +88,8 @@ Shader "Custom/Rust/StandardTerrain"
         // Detail Properties
         _PotatoDetailWorldUVScale("Potato Detail UV Scale", Float) = 0.0
 		_BiomeMode("Biome Rendering mode", Float) = 0.0
+		_TopologyMode("Biome Rendering mode", Float) = -1.0
+		_PreviewMode("Preview mode", float) = 0.0
 		
         // Rendering Properties
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
@@ -124,6 +126,9 @@ Shader "Custom/Rust/StandardTerrain"
 		UNITY_DECLARE_TEX2D(Terrain_Alpha);
 		UNITY_DECLARE_TEX2D(Terrain_Biome);
 		UNITY_DECLARE_TEX2D(Terrain_Biome1);
+		UNITY_DECLARE_TEX2D(Terrain_Topologies);
+		UNITY_DECLARE_TEX2D(Terrain_Preview);
+		
 		UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD0);
 		UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD1);
 		UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD2);
@@ -143,6 +148,8 @@ Shader "Custom/Rust/StandardTerrain"
 		float _TerrainParallax;
 		float _Terrain_Type;
 		float _BiomeMode;
+		float _TopologyMode;
+		float _PreviewMode;
 		
 
         float4 BiomeColors[40];
@@ -205,8 +212,31 @@ Shader "Custom/Rust/StandardTerrain"
 
             // Ensure tangents and normals are passed correctly for lighting
             v.tangent = float4(cross(v.normal, float3(0, 0, 1)), 1.0); // Simple tangent for flat terrain
-        }
+			
+			// Apply displacement if preview mode is active
+            if (_PreviewMode > 0.5)
+            {
+                // Sample the preview texture in the vertex shader
+                float preview = UNITY_SAMPLE_TEX2D_LOD(Terrain_Preview, v.texcoord.xy, 0).r;
 
+                // Displace the vertex along the normal (Y-axis for terrains)
+                v.vertex.y += preview * 5000;
+            }
+			
+        }
+		
+		
+        int GetTopologyBitmask(float2 uv)
+        {
+            float4 color = UNITY_SAMPLE_TEX2D(Terrain_Topologies, uv);
+            int r = floor(color.r * 255.0);
+            int g = floor(color.g * 255.0);
+            int b = floor(color.b * 255.0);
+            int a = floor(color.a * 255.0);
+            int bitmask = (a << 24) | (b << 16) | (g << 8) | r;
+            return bitmask;
+        }
+		
         void surf(Input IN, inout SurfaceOutputStandard o)
         {
 				float3 bio[5];
@@ -376,6 +406,27 @@ Shader "Custom/Rust/StandardTerrain"
 					albedo += bio[b] * biomeWeights[b];
 				}
 		}
+		
+        // Topology mode override
+        if (_TopologyMode > -0.5) // Check if topology mode is enabled (>= 0)
+        {
+            int topologyBitmask = GetTopologyBitmask(IN.tc_Control0);
+            int layerIndex = floor(_TopologyMode); // _TopologyMode is the layer index (0-31)
+            bool layerPresent = topologyBitmask & (1 << layerIndex);
+            if (layerPresent)
+            {
+                // Apply a green overlay (blend with existing albedo for a friendly effect)
+                float3 greenOverlay = float3(0.1, 0.8, 0.0); // Bright green
+                albedo = greenOverlay; 
+            }
+        }
+		
+		if (_PreviewMode > .5)		{
+			float preview = UNITY_SAMPLE_TEX2D(Terrain_Preview, IN.tc_Control0);
+			
+			albedo.rgb = lerp(albedo.rgb, float3(.1, .8, 0), preview * 200);
+		}
+		
 		normalize(normal);
 		clip(alpha - _Cutoff);	
         //o.Normal = normal;
@@ -383,8 +434,6 @@ Shader "Custom/Rust/StandardTerrain"
 		
 		//o.Albedo = control1.rgb;
 	}
-
-	
 
         ENDCG
     }

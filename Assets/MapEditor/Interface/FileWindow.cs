@@ -19,7 +19,7 @@ public class FileWindow : MonoBehaviour
 	public Dropdown splatDrop, biomeDrop, recentDrop;
 	public UIRecycleTree tree;
 	public InputField pathField, filenameField;
-	public Button open, save, saveJson, savePrefab;
+	public Button open, save, saveJson, savePrefab, saveMonument;
 	public Text footer;
 
 	private List<TerrainSplat.Enum> splatEnums = new List<TerrainSplat.Enum>();
@@ -55,6 +55,7 @@ public class FileWindow : MonoBehaviour
 		open.onClick.AddListener(OpenFile);
 		save.onClick.AddListener(SaveFile);
 		savePrefab.onClick.AddListener(SavePrefab);
+		saveMonument.onClick.AddListener(SaveMonument);
 		saveJson.onClick.AddListener(SaveJson);
 		LoadDriveList();
 		OnDropChanged();
@@ -95,6 +96,12 @@ public class FileWindow : MonoBehaviour
 		MapManager.SaveCustomPrefab(path);
 		footer.text = path + " saved";
 	}
+	
+	public void SaveMonument(){
+		string path = filenameField.text + ".monument";
+		MapManager.SaveMonument(path);
+		footer.text = path + " saved";
+	}
 
 	public void PathChanged(string change)	{
 		
@@ -103,6 +110,7 @@ public class FileWindow : MonoBehaviour
 			save.interactable = false;
 			saveJson.interactable = false;
 			savePrefab.interactable = false;
+			saveMonument.interactable = false;
 			return;
 		}
 		
@@ -122,12 +130,14 @@ public class FileWindow : MonoBehaviour
 			save.interactable = true;
 			saveJson.interactable = true;
 			savePrefab.interactable = true;
+			saveMonument.interactable = true;
 		}
 		else
 		{
 			save.interactable = false;
 			saveJson.interactable = false;
 			savePrefab.interactable = false;
+			saveMonument.interactable = false;
 		}
 	}
 	

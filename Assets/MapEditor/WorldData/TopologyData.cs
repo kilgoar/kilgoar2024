@@ -5,11 +5,52 @@ using static TerrainManager;
 public static class TopologyData
 {
     private static byte[] Data;
-
+    public static Texture2D TopologyTexture { get; private set; }
+	
     public static TerrainMap<int> GetTerrainMap()
     {
         return new TerrainMap<int>(Data, 1);
     }
+
+    /// <summary>Initializes the TopologyTexture if not already created.</summary>
+    public static void InitializeTexture()
+    {
+        TerrainMap<int> topology = GetTerrainMap();
+        int resolution = topology.res;
+
+        if (TopologyTexture == null || TopologyTexture.width != resolution || TopologyTexture.height != resolution || TopologyTexture.format != TextureFormat.RGBA32)
+        {
+            TopologyTexture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false, true);
+			TopologyTexture.filterMode = FilterMode.Point; 
+            UpdateTexture(); // Populate initial pixel data
+        }
+		Shader.SetGlobalTexture("Terrain_Topologies", TopologyTexture);
+    }
+
+    /// <summary>Updates the TopologyTexture with the current topology data.</summary>
+    public static void UpdateTexture()
+    {
+        TerrainMap<int> topology = GetTerrainMap();
+        int resolution = topology.res;
+
+        Color[] pixels = new Color[resolution * resolution];
+        Parallel.For(0, resolution, i =>
+        {
+            for (int j = 0; j < resolution; j++)
+            {
+                int value = topology[i, j]; // Get the 32-bit bitmask
+                float r = ((value >> 0) & 0xFF) / 255f;  // Bits 0-7
+                float g = ((value >> 8) & 0xFF) / 255f;  // Bits 8-15
+                float b = ((value >> 16) & 0xFF) / 255f; // Bits 16-23
+                float a = ((value >> 24) & 0xFF) / 255f; // Bits 24-31
+                pixels[i * resolution + j] = new Color(r, g, b, a);
+            }
+        });
+
+        TopologyTexture.SetPixels(pixels);
+        TopologyTexture.Apply();
+    }
+	
 
     /// <summary>Returns the Splatmap of the selected Topology Layer.</summary>
     /// <param name="layer">The Topology layer to return.</param>

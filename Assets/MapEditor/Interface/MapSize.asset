@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: MapSize
   m_EditorClassIdentifier: 
   maxSetting: 6000
-  minSetting: 1000
+  minSetting: 150
   title: SIZE
   whole: 1

@@ -1859,7 +1859,7 @@ TextureImporter:
         width: 40
         height: 40
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -1867,6 +1867,48 @@ TextureImporter:
       bones: []
       spriteID: 132106c5cc76ee84e8ff86b295152a26
       internalID: 130147598
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: blendMapTool
+      rect:
+        serializedVersion: 2
+        x: 937
+        y: 435
+        width: 80
+        height: 72
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f61fd8c0220ce63459a04b80ac4073af
+      internalID: 103922
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: waterTool
+      rect:
+        serializedVersion: 2
+        x: 1048
+        y: 435
+        width: 80
+        height: 72
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a408263af73921d41beb9f7dde5c26f7
+      internalID: 671057253
       vertices: []
       indices: 
       edges: []
@@ -1911,6 +1953,7 @@ TextureImporter:
       addPrefab: -1929624688
       addPrefabGreen: -2121188648
       binoculars: -211829242
+      blendMapTool: 103922
       breaker: -435862801
       breakerGreen: 226577705
       button: 592952389
@@ -1963,6 +2006,7 @@ TextureImporter:
       trash: -1978091892
       trash green: -1524247354
       unfavorite: 1032138284
+      waterTool: 671057253
       windowUI: -441366200
   spritePackingTag: 
   pSDRemoveMatte: 0

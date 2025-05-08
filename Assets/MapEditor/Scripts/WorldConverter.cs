@@ -483,14 +483,15 @@ public static class WorldConverter
         return world;
     }
 	
-	/// <summary>Gathers terrain data from the Unity Editor and converts to RMPrefabData with RMMonument terrain data.</summary>
-	public static RMPrefabData TerrainToRMPrefab(Terrain land, Terrain water)
-	{			
-		// Initialize RMPrefabData			
-		RMPrefabData rmPrefab = new RMPrefabData();
+	/// <summary>Gathers terrain data from the Unity Editor and converts to WorldSerialization containing RMPrefabData with RMMonument terrain data.</summary>
+	public static WorldSerialization TerrainToRMPrefab(Terrain land, Terrain water)
+	{
+		// Initialize WorldSerialization
+		WorldSerialization worldSerialization = new WorldSerialization();
 		try
 		{
-
+			// Initialize RMPrefabData
+			RMPrefabData rmPrefab = new RMPrefabData();
 
 			// Set modifiers if available
 			if (PrefabManager.CurrentModifiers?.modifierData != null)
@@ -501,7 +502,7 @@ public static class WorldConverter
 			{
 				if (p.bots != null)
 				{
-					rmPrefab.npcs.bots.Add(p.bots);
+					rmPrefab.npcs.bots.Insert(0, p.bots);
 				}
 			}
 
@@ -521,7 +522,7 @@ public static class WorldConverter
 				if (p.circuitData != null)
 				{
 					p.UpdateCircuitData(); // Updates circuit data before saving
-					rmPrefab.electric.circuitData.Add(p.circuitData);
+					rmPrefab.electric.circuitData.Insert(0, p.circuitData);
 				}
 			}
 
@@ -529,7 +530,7 @@ public static class WorldConverter
 			RMMonument monument = new RMMonument
 			{
 				size = new Vector3(land.terrainData.size.x, land.terrainData.size.y, land.terrainData.size.z),
-				extents = land.terrainData.size / 2f, // Assuming extents are half the size
+				extents = land.terrainData.size, // Assuming extents are half the size
 				offset = land.transform.position - MapOffset, // Adjust for map offset
 				HeightMap = true,
 				AlphaMap = true,
@@ -548,78 +549,90 @@ public static class WorldConverter
 			TerrainManager.SyncBiomeTexture();
 			TerrainManager.SyncAlphaTexture();
 
-			// Process Splat Map (Control0 and Control1 textures)
-			Texture2D[] alphamaps = land.terrainData.alphamapTextures;
-			if (alphamaps == null || alphamaps.Length < 2)
-			{
-				Debug.LogError("Terrain alphamap textures (Control0 and Control1) are not available.");
-			}
-			var splatTask = Task.Run(() =>
-			{
-				monument.splatmap0 = WorldSerialization.SerializeTexture(alphamaps[0]); // First 4 splat channels
-				monument.splatmap1 = WorldSerialization.SerializeTexture(alphamaps[1]); // Next 4 splat channels
-			});
-
 			// Process Biome Map (BiomeTexture and Biome1Texture)
-			var biomeTask = Task.Run(() =>
+			if (TerrainManager.BiomeTexture == null || TerrainManager.Biome1Texture == null)
 			{
-				if (TerrainManager.BiomeTexture == null || TerrainManager.Biome1Texture == null)
-				{
-					Debug.LogError("BiomeTexture or Biome1Texture is not initialized.");
-				}
+				Debug.LogError("BiomeTexture or Biome1Texture is not initialized.");
+			}
+			else
+			{
 				monument.biomemap = WorldSerialization.SerializeTexture(TerrainManager.BiomeTexture); // Arid, Temperate, Tundra, Arctic
-
-			});
+			}
 
 			// Process Alpha Map
-			var alphaTask = Task.Run(() =>
+			if (TerrainManager.AlphaTexture == null)
 			{
-				if (TerrainManager.AlphaTexture == null)
-				{
-					Debug.LogError("AlphaTexture is not initialized.");
-				}
-
-				monument.alphamap = WorldSerialization.SerializeTexture(AlphaTexture);
-			});
+				Debug.LogError("AlphaTexture is not initialized.");
+			}
+			else
+			{
+				monument.alphamap = WorldSerialization.SerializeTexture(TerrainManager.AlphaTexture);
+			}
 
 			// Process Blend Map
-			var blendTask = Task.Run(() =>
+			if (TerrainManager.BlendMapTexture == null)
 			{
-				if (TerrainManager.BlendMapTexture == null)
-				{
-					Debug.LogWarning("BlendMapTexture is not initialized.");
-				}
-				
-				monument.blendmap = WorldSerialization.SerializeTexture(TerrainManager.BlendMapTexture);
-			});
+				Debug.LogWarning("BlendMapTexture is not initialized.");
+			}
+			monument.blendmap = WorldSerialization.SerializeTexture(TerrainManager.BlendMapTexture);
+
 
 			// Process Topology Map
 			var topologyTask = Task.Run(() => TopologyData.SaveTopologyLayers());
 
-			// Process Height and Water Maps (unchanged)
-			byte[] heightBytes = FloatArrayToByteArray(land.terrainData.GetHeights(0, 0, heightMapRes, heightMapRes));
-			byte[] waterBytes = FloatArrayToByteArray(water.terrainData.GetHeights(0, 0, heightMapRes, heightMapRes));
+			// Process Height and Water Maps
+			monument.heightmap = EncodeHeightMap(
+				land.terrainData.GetHeights(0, 0, heightMapRes, heightMapRes),
+				heightMapRes,
+				"HeightMapTexture"
+			);
+			monument.watermap = EncodeHeightMap(
+				water.terrainData.GetHeights(0, 0, heightMapRes, heightMapRes),
+				heightMapRes,
+				"WaterMapTexture"
+			);
 
 			// Wait for all tasks to complete
-			Task.WaitAll(splatTask, biomeTask, alphaTask, blendTask, topologyTask);
-
-			// Assign height and topology data to RMMonument
-			monument.heightmap = heightBytes;
-			monument.watermap = waterBytes;
+			Task.WaitAll(topologyTask);
 			monument.topologymap = TopologyData.GetTerrainMap().ToByteArray();
 
 			// Assign monument to RMPrefabData
 			rmPrefab.monument = monument;
 
-			// To serialize RMPrefabData (including monument), use SavePrefab<RMPrefabData>
-			return rmPrefab;
+			// Assign RMPrefabData to WorldSerialization
+			worldSerialization.rmPrefab = rmPrefab;
+
+			return worldSerialization;
 		}
 		catch (NullReferenceException err)
 		{
 			Debug.LogError("Error during RMPrefab conversion: " + err.Message);
-			return rmPrefab;
+			return worldSerialization;
 		}
-		return rmPrefab;
+	}
+	
+	private static byte[] EncodeHeightMap(float[,] heights, int resolution, string textureName)
+	{
+		Texture2D texture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false)
+		{
+			name = textureName,
+			wrapMode = TextureWrapMode.Clamp,
+			filterMode = FilterMode.Bilinear
+		};
+		Color[] pixels = new Color[resolution * resolution];
+		for (int y = 0; y < resolution; y++)
+		{
+			for (int x = 0; x < resolution; x++)
+			{
+				float height = heights[y, x]; // Normalized height (0–1)
+				pixels[y * resolution + x] = BitUtility.EncodeHeight(height); // Red and blue channels
+			}
+		}
+		texture.SetPixels(pixels);
+		texture.Apply();
+		byte[] result = WorldSerialization.SerializeTexture(texture);
+		UnityEngine.Object.Destroy(texture); // Clean up temporary texture
+		return result;
 	}
 	
 	/// <summary>Attaches a Monument component to a GameObject, populating it with RMMonument data.</summary>

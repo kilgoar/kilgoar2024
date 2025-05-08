@@ -175,17 +175,11 @@ public class CoroutineManager : MonoBehaviour
 
     public void PaintBrushMode()
     {
-				
-		
         
 		if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask)){
 					
-
-
-					TerrainManager.GetTerrainCoordinates(hit, MainScript.Instance.brushSize, out int numX, out int numY);
-					
-
-					
+			TerrainManager.GetTerrainCoordinates(hit, MainScript.Instance.brushSize, out int numX, out int numY);
+	
 					if (mouseLeftClick.ReadValue<float>() > 0.5f)
 					{
 						if (Keyboard.current.ctrlKey.isPressed)

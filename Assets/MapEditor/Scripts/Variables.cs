@@ -663,31 +663,29 @@ namespace RustMapEditor.Variables
 		public bool custom;
 		public uint prefabID;
 		public int emphasis;
+			
+		public GeologyItem Clone()		{
+			
+			return new GeologyItem			{
+				custom = this.custom,
+				customPrefab = this.customPrefab,
+				prefabID = this.prefabID,
+				emphasis = this.emphasis
+			};
+		}
 		
-	public GeologyItem Clone()
-    {
-        return new GeologyItem
-        {
-            custom = this.custom,
-            customPrefab = this.customPrefab,
-            prefabID = this.prefabID,
-            emphasis = this.emphasis
-        };
-    }
-		
-		public GeologyItem(uint prefabID)
-		{
+		public GeologyItem(uint prefabID)		{
 			this.prefabID = prefabID;
 		}
-		public GeologyItem(GeologyItem geoItem)
-		{
+		
+		public GeologyItem(GeologyItem geoItem)		{
 			this.prefabID = geoItem.prefabID;
 			this.custom =  geoItem.custom;
 			this.emphasis = geoItem.emphasis;
 			this.customPrefab = geoItem.customPrefab;
 		}
-		public GeologyItem()
-		{
+		
+		public GeologyItem()		{
 		}
 	}
 	

@@ -114,15 +114,15 @@ public class WorldSerialization
 		[ProtoMember(9)] public string emptychunk4 = "";		
 		[ProtoMember(10)] public string buildingchunk = "";		
 		[ProtoMember(11)] public string checksum;
-		[ProtoMember(11)] public RMMonument monument;
+		[ProtoMember(12)] public RMMonument monument;
     }
 	
 	[ProtoContract]
 	public class RMMonument
 	{
-		[ProtoMember(1)] public Vector3 size = Vector3.zero;
-		[ProtoMember(2)] public Vector3 extents = Vector3.zero;
-		[ProtoMember(3)] public Vector3 offset = Vector3.zero;
+		[ProtoMember(1)] public VectorData size;
+		[ProtoMember(2)] public VectorData extents;
+		[ProtoMember(3)] public VectorData offset;
 		[ProtoMember(4)] public bool HeightMap = true;
 		[ProtoMember(5)] public bool AlphaMap = true;
 		[ProtoMember(6)] public bool WaterMap;
@@ -502,18 +502,45 @@ public class WorldSerialization
     }
 	
 	
-	public static byte[] SerializeTexture(Texture2D texture)	{
-		if (texture == null) return null;
-		return texture.EncodeToPNG();
+	public static byte[] SerializeTexture(Texture2D texture)
+	{
+		if (texture == null)
+		{
+			Debug.LogWarning("SerializeTexture(Texture2D): Texture is null, returning null.");
+			return null;
+		}
+
+		Debug.Log($"SerializeTexture(Texture2D): Serializing texture '{texture.name}' with resolution {texture.width}x{texture.height}, format: {texture.format}");
+
+		byte[] result = texture.EncodeToPNG();
+
+		if (result == null || result.Length == 0)
+		{
+			Debug.LogError($"SerializeTexture(Texture2D): Failed to serialize texture '{texture.name}'. Result is null or empty.");
+		}
+		else
+		{
+			Debug.Log($"SerializeTexture(Texture2D): Successfully serialized texture '{texture.name}' to PNG, size: {result.Length} bytes.");
+		}
+
+		return result;
 	}
-	
+
 	public static byte[] SerializeTexture(RenderTexture renderTexture)
 	{
 		if (renderTexture == null)
+		{
+			Debug.LogWarning("SerializeTexture(RenderTexture): RenderTexture is null, returning null.");
 			return null;
+		}
+
+		Debug.Log($"SerializeTexture(RenderTexture): Serializing RenderTexture '{renderTexture.name}' with resolution {renderTexture.width}x{renderTexture.height}, format: {renderTexture.format}");
 
 		// Create a temporary Texture2D to hold the RenderTexture data
-		Texture2D tempTexture = new Texture2D(renderTexture.width, renderTexture.height, TextureFormat.RGBA32, false);
+		Texture2D tempTexture = new Texture2D(renderTexture.width, renderTexture.height, TextureFormat.RGBA32, false)
+		{
+			name = "TempRenderTextureConversion"
+		};
 
 		// Store the active RenderTexture and set the target RenderTexture as active
 		RenderTexture currentActive = RenderTexture.active;
@@ -529,6 +556,15 @@ public class WorldSerialization
 		// Clean up
 		UnityEngine.Object.Destroy(tempTexture);
 		RenderTexture.active = currentActive;
+
+		if (result == null || result.Length == 0)
+		{
+			Debug.LogError($"SerializeTexture(RenderTexture): Failed to serialize RenderTexture '{renderTexture.name}'. Result is null or empty.");
+		}
+		else
+		{
+			Debug.Log($"SerializeTexture(RenderTexture): Successfully serialized RenderTexture '{renderTexture.name}' to PNG, size: {result.Length} bytes.");
+		}
 
 		return result;
 	}

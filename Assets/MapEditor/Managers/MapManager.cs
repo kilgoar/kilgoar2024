@@ -567,6 +567,17 @@ public static class MapManager
 		PathManager.PathParent.GetComponent<LockObject>().SetPosition(centerPosition);
 	}
 
+	public static void SaveMonument(string path)
+    {
+		//PrefabManager.RenamePrefabCategories(PrefabManager.CurrentMapPrefabs, path.Split('/').Last().Split('.')[0] + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10) + UnityEngine.Random.Range(0,10));
+		string name = path.Split('/').Last().Split('.')[0];
+		PrefabManager.RenamePrefabCategories(PrefabManager.CurrentMapPrefabs, ":" + name + "::");
+		PrefabManager.RenameNPCs(PrefabManager.CurrentMapNPCs, ":" + name + "::");
+        Debug.LogError("attempting to save monument");
+		TerrainToRMPrefab(TerrainManager.Land, TerrainManager.Water).SaveRMPrefab(path);
+		Callbacks.OnMapSaved(path);
+    }
+
 	#if UNITY_EDITOR
     /// <summary>Loads and sets up the map.</summary>
     public static void Load(MapInfo mapInfo, string loadPath = "")
@@ -590,6 +601,8 @@ public static class MapManager
 		Debug.LogError("saving custom prefab");
         EditorCoroutineUtility.StartCoroutineOwnerless(Coroutines.SaveCustomPrefab(path));
     }
+	
+	
 	#else
 	public static void Load(MapInfo mapInfo, string loadPath = "")
     {
@@ -611,6 +624,8 @@ public static class MapManager
 		PrefabManager.RenameNPCs(PrefabManager.CurrentMapNPCs, ":" + name + "::");
         CoroutineManager.Instance.StartRuntimeCoroutine(Coroutines.SaveCustomPrefab(path));
     }
+	
+
 	
 	#endif
 	[ConsoleCommand("export prefabdata into JSON")]
@@ -961,6 +976,10 @@ public static class MapManager
 				Callbacks.OnMapSaved(path);
 				#endif
 			}
+			
+
+			
+			
 	}
 
 }

@@ -502,7 +502,7 @@ public static class SettingsManager
 		}
 	}
 	
-	public static void ConvertPathsToNodes(UIRecycleTree tree, List<string> paths, string extension = ".prefab", string searchQuery = "")
+	public static void ConvertPathsToNodes(UIRecycleTree tree, List<string> paths, string extension, string searchQuery = "")
 	{
 		
 		tree.Clear();
@@ -601,7 +601,101 @@ public static class SettingsManager
 	}
 	
 
-	
+	public static void ConvertPathsToNodes(UIRecycleTree tree, List<string> paths, string extension1, string extension2, string searchQuery = "")
+	{
+		tree.Clear();
+		Dictionary<string, Node> nodeMap = new Dictionary<string, Node>();
+
+		// Create a root node for "~Favorites" explicitly
+		Node favoritesRootNode = new Node("~Favorites");
+		tree.rootNode.nodes.AddWithoutNotify(favoritesRootNode);
+		favoritesRootNode.tree = tree;
+							
+		foreach (string path in paths)
+		{
+			// Check if the path matches either extension or starts with "~Favorites/"
+			if (path.EndsWith(extension1, StringComparison.Ordinal) || 
+				(path.EndsWith(extension2, StringComparison.Ordinal)) ||
+				extension1.Equals("override", StringComparison.Ordinal) || 
+				path.StartsWith("~Favorites/", StringComparison.Ordinal))
+			{
+				string searchPath = path;
+				// Remove either extension if present
+				if (path.EndsWith(extension1, StringComparison.Ordinal))
+					searchPath = path.Replace(extension1, "", StringComparison.Ordinal);
+				else if (!string.IsNullOrEmpty(extension2) && path.EndsWith(extension2, StringComparison.Ordinal))
+					searchPath = path.Replace(extension2, "", StringComparison.Ordinal);
+				
+				searchPath = searchPath.Replace("\\", "/", StringComparison.Ordinal);
+
+				// Strip the prefix "~Geology/" if present
+				if (searchPath.StartsWith("~Geology/", StringComparison.Ordinal))
+				{
+					searchPath = searchPath.Substring("~Geology/".Length);
+				}
+
+				// Proceed if it matches the search query or if the query is empty
+				if (string.IsNullOrEmpty(searchQuery) || searchPath.Contains(searchQuery, StringComparison.Ordinal))
+				{
+					bool isFavoritePath = path.StartsWith("~Favorites/", StringComparison.Ordinal);
+
+					if (isFavoritePath)
+					{
+						// Extract the filename (last part of the path)
+						string filename = System.IO.Path.GetFileName(path);
+
+						// Create a node for the filename
+						Node favoriteNode = new Node(filename);
+
+						// Attach the actual path (without "~Favorites/") to node.data
+						string actualPath = path.Substring("~Favorites/".Length);
+						favoriteNode.data = actualPath;
+						
+						// Add the node directly under the "~Favorites" root
+						favoritesRootNode.nodes.AddWithoutNotify(favoriteNode);
+						favoriteNode.parentNode = favoritesRootNode;
+						favoriteNode.tree = tree;
+					}
+					else
+					{
+						// Handle non-"~Favorites/" paths (e.g., "~Geology/")
+						string[] parts = searchPath.Split('/');
+						Node currentNode = null;
+
+						for (int i = 0; i < parts.Length; i++)
+						{
+							string part = parts[i];
+							string fullPath = string.Join("/", parts, 0, i + 1);
+
+							if (!nodeMap.TryGetValue(fullPath, out currentNode))
+							{
+								currentNode = new Node(part);
+								nodeMap[fullPath] = currentNode;
+
+								if (i == 0)
+								{
+									// Add top-level nodes directly to the tree root
+									tree.rootNode.nodes.AddWithoutNotify(currentNode);
+								}
+								else
+								{
+									string parentPath = string.Join("/", parts, 0, i);
+									if (nodeMap.TryGetValue(parentPath, out Node parentNode))
+									{
+										parentNode.nodes.AddWithoutNotify(currentNode);
+										currentNode.parentNode = parentNode;
+									}
+								}
+
+								currentNode.tree = tree;
+							}
+						}
+					}
+				}
+			}
+		}
+		tree.Rebuild();
+	}
 	
 	
     public const string BundlePathExt = @"\Bundles\Bundles";

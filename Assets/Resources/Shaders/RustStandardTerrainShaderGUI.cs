@@ -107,6 +107,11 @@ public class RustStandardTerrainShaderGUI : ShaderGUI
         MaterialProperty _Terrain_Type = FindProperty("_Terrain_Type", properties);
         MaterialProperty _LODTransitionDistance = FindProperty("_LODTransitionDistance", properties);
 
+        // New properties
+        MaterialProperty _BiomeMode = FindProperty("_BiomeMode", properties);
+        MaterialProperty _TopologyMode = FindProperty("_TopologyMode", properties);
+        MaterialProperty _PreviewMode = FindProperty("_PreviewMode", properties);
+
         // Global Textures Section
         showGlobalTextures = EditorGUILayout.Foldout(showGlobalTextures, "Global Textures", true);
         if (showGlobalTextures)
@@ -122,7 +127,9 @@ public class RustStandardTerrainShaderGUI : ShaderGUI
                 "Terrain_HeightTexture",
                 "Terrain_Alpha",
                 "Terrain_Biome",
-                "Terrain_Biome1"
+                "Terrain_Biome1",
+                "Terrain_Topologies", // New texture
+                "Terrain_Preview"    // New texture
             };
 
             foreach (string textureName in singleTextureNames)
@@ -303,6 +310,9 @@ public class RustStandardTerrainShaderGUI : ShaderGUI
             materialEditor.FloatProperty(_CutoffRange, "Cutoff Range");
             materialEditor.FloatProperty(_DecalLayerMask, "Decal Layer Mask");
             materialEditor.FloatProperty(_Mode, "Rendering Mode (0=Opaque, 1=Cutout)");
+            materialEditor.FloatProperty(_BiomeMode, "Biome Rendering Mode"); // New property
+            materialEditor.FloatProperty(_TopologyMode, "Topology Rendering Mode"); // New property
+            materialEditor.FloatProperty(_PreviewMode, "Preview Mode"); // New property
 
             // Update rendering settings based on _Mode
             if (_Mode.floatValue == 1.0f) // Cutout

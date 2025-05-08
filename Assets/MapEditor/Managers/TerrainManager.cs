@@ -69,6 +69,7 @@ public static class TerrainManager
     public static Texture FilterTexture;
     public static Texture2D HeightTexture;
 	public static Texture2D BlendMapTexture;
+	public static Texture2D MaskTexture;
     public static RenderTexture HeightSlopeTexture;
     public static RenderTexture AlphaTexture;
     public static RenderTexture BiomeTexture;
@@ -2032,7 +2033,9 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 	}
 	
 	public static void ShowLandMask()
-	{	
+	{
+		
+		Shader.SetGlobalTexture("Terrain_Biome1", MaskTexture);
 		if(LandMask!=null){	
 			LandMask.gameObject.SetActive(true);
 		}
@@ -3446,6 +3449,31 @@ public static void SetHeightMapRegion(float[,] array, int x, int y, int width, i
 				};
 				AlphaTexture.Create();
 				Debug.Log($"Initialized AlphaTexture with resolution {AlphaMapRes}x{AlphaMapRes}");
+			}
+			
+			// Initialize BlendMapTexture
+			if (BlendMapTexture != null && (BlendMapTexture.width != SplatMapRes || BlendMapTexture.format != TextureFormat.RGBA32))
+			{
+				UnityEngine.Object.Destroy(BlendMapTexture);
+				BlendMapTexture = null;
+			}
+			if (BlendMapTexture == null)
+			{
+				BlendMapTexture = new Texture2D(SplatMapRes, SplatMapRes, TextureFormat.RGBA32, false)
+				{
+					wrapMode = TextureWrapMode.Clamp,
+					filterMode = FilterMode.Bilinear, // Consistent with Biome1Texture
+					name = "Terrain_BlendMap"
+				};
+				// Clear to black (no blending)
+				Color[] pixels = new Color[SplatMapRes * SplatMapRes];
+				for (int i = 0; i < pixels.Length; i++)
+				{
+					pixels[i] = Color.black; // Default to black (no blending)
+				}
+				BlendMapTexture.SetPixels(pixels);
+				BlendMapTexture.Apply();
+				Debug.Log($"Initialized BlendMapTexture with resolution {SplatMapRes}x{SplatMapRes}, Format: {BlendMapTexture.format}, Wrap: {BlendMapTexture.wrapMode}, Filter: {BlendMapTexture.filterMode}");
 			}
 
 	}

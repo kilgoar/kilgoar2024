@@ -29,15 +29,21 @@ public class TerrainWindow : MonoBehaviour
 	
 	public Button TemplateButton; //this has a raw image child object RawImage which displays the paint brush. clone this when constructing rows
 	
-	public int topo, lastIndex;
-	
+	public int topo, lastIndex;	
 	public List<Texture2D> loadedBrushTextures = new List<Texture2D>(); 
-    public string[] brushFiles;
-	
-	public Toggle randomRotations;
-	
+    public string[] brushFiles;	
+	public Toggle randomRotations;	
 	Layers layers = new Layers() { Ground = TerrainSplat.Enum.Grass, Biome = TerrainBiome.Enum.Temperate, Topologies = TerrainTopology.Enum.Field};
 	
+	/*
+	public bool rotations;
+	public int targetTopo, paintMode, selectedSplatPaint;	
+	public float brushStrength;
+    public int brushSize, brushType;
+    public float myBrushSize;
+    public float terrainHeight;
+    public float flattenHeight;
+	*/
 	public static TerrainWindow Instance { get; private set; }
 	
 
@@ -193,10 +199,10 @@ public class TerrainWindow : MonoBehaviour
 	void OnEnable()	{
 
 		CoroutineManager.Instance.ChangeStylus(2);
-
-		//SetLayer(MainScript.Instance.brushType);
-		TerrainManager.ShowLandMask();
-		OnTopologyChanged(0);
+		SetLayer(MainScript.Instance.brushType);		
+		TopologyData.InitializeTexture();
+		TopologyData.UpdateTexture();
+		OnTopologyChanged(-1);
 	}
 	
 	void SendSettings(){
@@ -209,12 +215,12 @@ public class TerrainWindow : MonoBehaviour
 		TerrainManager.UpdateHeightCache();
 		TerrainManager.HideLandMask();
 		CoroutineManager.Instance.ChangeStylus(1);
-		ClearPreview();
 	}
 	
 	public void OnTopologyChanged(int index)
 	{
 		topo=index;
+		float t = (float)index;
 		MainScript.Instance.targetTopo = index;
 		
 		for (int i = 0; i < TopologyToggles.Count; i++)        {	
@@ -222,8 +228,7 @@ public class TerrainWindow : MonoBehaviour
             TopologyToggles[i].SetIsOnWithoutNotify(isActive);
             TopologyToggles[i].interactable = !isActive;
         }
-		
-		TerrainManager.BitView(topo);
+		Land.materialTemplate.SetFloat("_TopologyMode", t);
 	}
 	
 	public void OnCarveChanged(int index)
@@ -339,8 +344,7 @@ public class TerrainWindow : MonoBehaviour
 	
     public Texture2D LoadTextureFromFile(string filePath)
     {
-        try
-        {
+        try        {
             byte[] bytes = File.ReadAllBytes(filePath);
             Texture2D texture = new Texture2D(2, 2);
             if (texture.LoadImage(bytes))
@@ -357,8 +361,7 @@ public class TerrainWindow : MonoBehaviour
 
     public void OnBrushSelected(int brushId)
     {
-        if (brushId >= 0 && brushId < loadedBrushTextures.Count)
-        {
+        if (brushId >= 0 && brushId < loadedBrushTextures.Count)        {
             MainScript.Instance.SetBrush(brushId);
             Debug.Log($"Selected brush ID: {brushId} - {Path.GetFileName(brushFiles[brushId])}");
         }
@@ -383,25 +386,21 @@ public class TerrainWindow : MonoBehaviour
 
 		}
 		
-		ClearPreview();
-		TerrainManager.FillLandMask();	
-		
 		if(index == 0){    //height map editing
-			
+			OnTopologyChanged(-1); //hide topos
 
 			return;
 		}
 		
 		if (index == 2){                    //holes
-
-			TerrainManager.BitView(-1);
+			OnTopologyChanged(-1); //hide topos
 
 		return;
 		}
 		
 		if (index == 3){                   //topos
+			OnTopologyChanged(MainScript.Instance.targetTopo); //hide topos
 
-			TerrainManager.BitView(topo);
 			
 		return;
 		}
@@ -442,8 +441,5 @@ public void OnToggleChanged(int index)
     LayoutRebuilder.ForceRebuildLayoutImmediate(this.GetComponent<RectTransform>());
 }
 	
-	void ClearPreview()
-	{
-		TerrainManager.SetPreviewHoles(false);
-	}
+	
 }

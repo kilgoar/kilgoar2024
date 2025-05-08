@@ -18,6 +18,24 @@ public class BitUtility
 		return b * byte2float;
 	}
 	
+	// Encodes a normalized height (0–1) into a Color for red and blue monument texture
+    public static Color EncodeHeight(float height)
+    {
+        // Clamp height to [0, 1]
+        height = Mathf.Clamp01(height);
+
+        // Convert to 16-bit short (inverse of Short2Float, assuming linear mapping)
+        short shortValue = (short)(height * 65535f); // 0–65535 range
+
+        // Split short into high and low bytes
+        Union16 u = new Union16 { i = shortValue };
+        byte r = u.b1; // High byte (red)
+        byte b = u.b2; // Low byte (blue)
+
+        // Convert bytes to normalized [0, 1] for Color
+        return new Color(r / 255f, 0f, b / 255f, 1f); // Green = 0, Alpha = 1
+    }
+
 	public static float DecodeHeight(Color c)
 	{
 		// Convert the [0, 1] Color channels to [0, 255] Color32 channels

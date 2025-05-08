@@ -265,7 +265,7 @@ public class HierarchyWindow : MonoBehaviour
 		paths.AddRange(collectionPaths);
 
 
-		SettingsManager.ConvertPathsToNodes(tree, paths, ".prefab", query.text);
+		SettingsManager.ConvertPathsToNodes(tree, paths, ".prefab", ".monument", query.text);
 		SettingsManager.CheckFavorites(tree);
 		
 
