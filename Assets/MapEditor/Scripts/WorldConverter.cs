@@ -635,218 +635,204 @@ public static class WorldConverter
 		return result;
 	}
 	
-	/// <summary>Attaches a Monument component to a GameObject, populating it with RMMonument data.</summary>
-	/// <param name="rmPrefab">The RMPrefabData containing RMMonument data.</param>
-	/// <param name="go">The GameObject to attach the Monument component to.</param>
-	public static void AttachMonument(RMPrefabData rmPrefab, GameObject go)
-	{
-		if (rmPrefab == null)
-		{
-			Debug.LogError("RMPrefabData is null. Cannot attach Monument component.");
-			return;
-		}
-		if (go == null)
-		{
-			Debug.LogError("GameObject is null. Cannot attach Monument component.");
-			return;
-		}
+/// <summary>Attaches a Monument component to a GameObject, populating it with RMMonument data.</summary>
+/// <param name="rmPrefab">The RMPrefabData containing RMMonument data.</param>
+/// <param name="go">The GameObject to attach the Monument component to.</param>
+public static void AttachMonument(RMPrefabData rmPrefab, GameObject go)
+{
+    if (rmPrefab == null)
+    {
+        Debug.LogError("RMPrefabData is null. Cannot attach Monument component.");
+        return;
+    }
+    if (go == null)
+    {
+        Debug.LogError("GameObject is null. Cannot attach Monument component.");
+        return;
+    }
 
-		try
-		{
-			// Add or get the Monument component
-			Monument monumentComponent = go.GetComponent<Monument>();
-			if (monumentComponent == null)
-				monumentComponent = go.AddComponent<Monument>();
+    try
+    {
+        // Add or get the Monument component
+        Monument monumentComponent = go.GetComponent<Monument>();
+        if (monumentComponent == null)
+            monumentComponent = go.AddComponent<Monument>();
 
-			// Populate Monument component with RMMonument data
-			if (rmPrefab.monument != null)
-			{
-				RMMonument rmMonument = rmPrefab.monument;
+        // Populate Monument component with RMMonument data
+        if (rmPrefab.monument != null)
+        {
+            RMMonument rmMonument = rmPrefab.monument;
 
-				// Set basic Monument properties
-				monumentComponent.size = rmMonument.size;
-				monumentComponent.extents = rmMonument.extents;
-				monumentComponent.offset = rmMonument.offset;
-				monumentComponent.HeightMap = rmMonument.HeightMap;
-				monumentComponent.AlphaMap = rmMonument.AlphaMap;
-				monumentComponent.WaterMap = rmMonument.WaterMap;
-				monumentComponent.SplatMask = rmMonument.SplatMask;
-				monumentComponent.BiomeMask = rmMonument.BiomeMask;
-				monumentComponent.TopologyMask = rmMonument.TopologyMask;
-				monumentComponent.Radius = rmMonument.size.x / 2f; // Default to half the size.x
-				monumentComponent.Fade = Mathf.Min(rmMonument.size.x, rmMonument.size.z) * 0.1f; // Default to 10% of min dimension
+            // Set basic Monument properties
+            monumentComponent.size = rmMonument.size;
+            monumentComponent.extents = rmMonument.extents;
+            monumentComponent.offset = rmMonument.offset;
+            monumentComponent.HeightMap = rmMonument.HeightMap;
+            monumentComponent.AlphaMap = rmMonument.AlphaMap;
+            monumentComponent.WaterMap = rmMonument.WaterMap;
+            monumentComponent.SplatMask = rmMonument.SplatMask;
+            monumentComponent.BiomeMask = rmMonument.BiomeMask;
+            monumentComponent.TopologyMask = rmMonument.TopologyMask;
+            monumentComponent.Radius = rmMonument.size.x / 2f; // Default to half the size.x
+            monumentComponent.Fade = Mathf.Min(rmMonument.size.x, rmMonument.size.z) * 0.1f; // Default to 10% of min dimension
 
-				// Deserialize and assign textures
-				var textureTasks = new List<Task>();
+            // Deserialize and assign textures synchronously
+            // Heightmap
+            if (rmMonument.heightmap != null)
+            {
+                Texture2D heightTexture = WorldSerialization.DeserializeTexture(
+                    rmMonument.heightmap,
+                    TextureFormat.RGBA32
+                );
+                if (heightTexture != null)
+                {
+                    monumentComponent.heightmap = new Texture2DRef { cachedInstance = heightTexture };
+                }
+                else
+                {
+                    Debug.LogWarning("Failed to deserialize heightmap texture.");
+                }
+            }
 
-				// Heightmap
-				if (rmMonument.heightmap != null)
-				{
-					textureTasks.Add(Task.Run(() =>
-					{
-						Texture2D heightTexture = WorldSerialization.DeserializeTexture(
-							rmMonument.heightmap,
-							TerrainManager.HeightMapRes,
-							TerrainManager.HeightMapRes,
-							TextureFormat.RGBA32
-						);
-						if (heightTexture != null)
-						{
-							monumentComponent.heightmap = new Texture2DRef { cachedInstance = heightTexture };
-						}
-					}));
-				}
+            // Splatmap0
+            if (rmMonument.splatmap0 != null)
+            {
+                Texture2D splat0Texture = WorldSerialization.DeserializeTexture(
+                    rmMonument.splatmap0,
+                    TextureFormat.RGBA32
+                );
+                if (splat0Texture != null)
+                {
+                    monumentComponent.splatmap0 = new Texture2DRef { cachedInstance = splat0Texture };
+                }
+                else
+                {
+                    Debug.LogWarning("Failed to deserialize splatmap0 texture.");
+                }
+            }
 
-				// Splatmap0
-				if (rmMonument.splatmap0 != null)
-				{
-					textureTasks.Add(Task.Run(() =>
-					{
-						Texture2D splat0Texture = WorldSerialization.DeserializeTexture(
-							rmMonument.splatmap0,
-							TerrainManager.SplatMapRes,
-							TerrainManager.SplatMapRes,
-							TextureFormat.RGBA32
-						);
-						if (splat0Texture != null)
-						{
-							monumentComponent.splatmap0 = new Texture2DRef { cachedInstance = splat0Texture };
-						}
-					}));
-				}
+            // Splatmap1
+            if (rmMonument.splatmap1 != null)
+            {
+                Texture2D splat1Texture = WorldSerialization.DeserializeTexture(
+                    rmMonument.splatmap1,
+                    TextureFormat.RGBA32
+                );
+                if (splat1Texture != null)
+                {
+                    monumentComponent.splatmap1 = new Texture2DRef { cachedInstance = splat1Texture };
+                }
+                else
+                {
+                    Debug.LogWarning("Failed to deserialize splatmap1 texture.");
+                }
+            }
 
-				// Splatmap1
-				if (rmMonument.splatmap1 != null)
-				{
-					textureTasks.Add(Task.Run(() =>
-					{
-						Texture2D splat1Texture = WorldSerialization.DeserializeTexture(
-							rmMonument.splatmap1,
-							TerrainManager.SplatMapRes,
-							TerrainManager.SplatMapRes,
-							TextureFormat.RGBA32
-						);
-						if (splat1Texture != null)
-						{
-							monumentComponent.splatmap1 = new Texture2DRef { cachedInstance = splat1Texture };
-						}
-					}));
-				}
+            // Alphamap
+            if (rmMonument.alphamap != null)
+            {
+                RenderTexture alphaTexture = WorldSerialization.DeserializeTexture(
+                    rmMonument.alphamap,
+                    RenderTextureFormat.ARGB32
+                );
+                if (alphaTexture != null)
+                {
+                    // Convert RenderTexture to Texture2D for Texture2DRef
+                    Texture2D alphaTexture2D = new Texture2D(alphaTexture.width, alphaTexture.height, TextureFormat.RGBA32, false);
+                    RenderTexture.active = alphaTexture;
+                    alphaTexture2D.ReadPixels(new Rect(0, 0, alphaTexture.width, alphaTexture.height), 0, 0);
+                    alphaTexture2D.Apply();
+                    monumentComponent.alphamap = new Texture2DRef { cachedInstance = alphaTexture2D };
+                    UnityEngine.Object.Destroy(alphaTexture);
+                }
+                else
+                {
+                    Debug.LogWarning("Failed to deserialize alphamap texture.");
+                }
+            }
 
-				// Alphamap
-				if (rmMonument.alphamap != null)
-				{
-					textureTasks.Add(Task.Run(() =>
-					{
-						RenderTexture alphaTexture = WorldSerialization.DeserializeTexture(
-							rmMonument.alphamap,
-							TerrainManager.AlphaMapRes,
-							TerrainManager.AlphaMapRes,
-							RenderTextureFormat.ARGB32
-						);
-						if (alphaTexture != null)
-						{
-							// Convert RenderTexture to Texture2D for Texture2DRef
-							Texture2D alphaTexture2D = new Texture2D(alphaTexture.width, alphaTexture.height, TextureFormat.RGBA32, false);
-							RenderTexture.active = alphaTexture;
-							alphaTexture2D.ReadPixels(new Rect(0, 0, alphaTexture.width, alphaTexture.height), 0, 0);
-							alphaTexture2D.Apply();
-							monumentComponent.alphamap = new Texture2DRef { cachedInstance = alphaTexture2D };
-							UnityEngine.Object.Destroy(alphaTexture);
-						}
-					}));
-				}
+            // Biomemap
+            if (rmMonument.biomemap != null)
+            {
+                Texture2D biomeTexture = WorldSerialization.DeserializeTexture(
+                    rmMonument.biomemap,
+                    TextureFormat.RGBA32
+                );
+                if (biomeTexture != null)
+                {
+                    monumentComponent.biomemap = new Texture2DRef { cachedInstance = biomeTexture };
+                }
+                else
+                {
+                    Debug.LogWarning("Failed to deserialize biomemap texture.");
+                }
+            }
 
-				// Biomemap
-				if (rmMonument.biomemap != null)
-				{
-					textureTasks.Add(Task.Run(() =>
-					{
-						Texture2D biomeTexture = WorldSerialization.DeserializeTexture(
-							rmMonument.biomemap,
-							TerrainManager.SplatMapRes,
-							TerrainManager.SplatMapRes,
-							TextureFormat.RGBA32
-						);
-						if (biomeTexture != null)
-						{
-							monumentComponent.biomemap = new Texture2DRef { cachedInstance = biomeTexture };
-						}
-					}));
-				}
+            // Topologymap
+            if (rmMonument.topologymap != null)
+            {
+                Texture2D topologyTexture = WorldSerialization.DeserializeTexture(
+                    rmMonument.topologymap,
+                    TextureFormat.RGBA32
+                );
+                if (topologyTexture != null)
+                {
+                    monumentComponent.topologymap = new Texture2DRef { cachedInstance = topologyTexture };
+                }
+                else
+                {
+                    Debug.LogWarning("Failed to deserialize topologymap texture.");
+                }
+            }
 
-				// Topologymap
-				if (rmMonument.topologymap != null)
-				{
-					textureTasks.Add(Task.Run(() =>
-					{
-						Texture2D topologyTexture = WorldSerialization.DeserializeTexture(
-							rmMonument.topologymap,
-							TerrainManager.SplatMapRes,
-							TerrainManager.SplatMapRes,
-							TextureFormat.RGBA32
-						);
-						if (topologyTexture != null)
-						{
-							monumentComponent.topologymap = new Texture2DRef { cachedInstance = topologyTexture };
-						}
-					}));
-				}
+            // Watermap
+            if (rmMonument.watermap != null)
+            {
+                Texture2D waterTexture = WorldSerialization.DeserializeTexture(
+                    rmMonument.watermap,
+                    TextureFormat.RGBA32
+                );
+                if (waterTexture != null)
+                {
+                    monumentComponent.watermap = new Texture2DRef { cachedInstance = waterTexture };
+                }
+                else
+                {
+                    Debug.LogWarning("Failed to deserialize watermap texture.");
+                }
+            }
 
-				// Watermap
-				if (rmMonument.watermap != null)
-				{
-					textureTasks.Add(Task.Run(() =>
-					{
-						Texture2D waterTexture = WorldSerialization.DeserializeTexture(
-							rmMonument.watermap,
-							TerrainManager.HeightMapRes,
-							TerrainManager.HeightMapRes,
-							TextureFormat.RGBA32
-						);
-						if (waterTexture != null)
-						{
-							monumentComponent.watermap = new Texture2DRef { cachedInstance = waterTexture };
-						}
-					}));
-				}
+            // Blendmap
+            if (rmMonument.blendmap != null)
+            {
+                Texture2D blendTexture = WorldSerialization.DeserializeTexture(
+                    rmMonument.blendmap,
+                    TextureFormat.RGBA32
+                );
+                if (blendTexture != null)
+                {
+                    monumentComponent.blendmap = new Texture2DRef { cachedInstance = blendTexture };
+                }
+                else
+                {
+                    Debug.LogWarning("Failed to deserialize blendmap texture.");
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning("RMMonument data is null. Monument component will have default values.");
+        }
 
-				// Blendmap
-				if (rmMonument.blendmap != null)
-				{
-					textureTasks.Add(Task.Run(() =>
-					{
-						Texture2D blendTexture = WorldSerialization.DeserializeTexture(
-							rmMonument.blendmap,
-							TerrainManager.SplatMapRes,
-							TerrainManager.SplatMapRes,
-							TextureFormat.RGBA32
-						);
-						if (blendTexture != null)
-						{
-							monumentComponent.blendmap = new Texture2DRef { cachedInstance = blendTexture };
-						}
-					}));
-				}
-
-				// Wait for all texture deserialization tasks to complete
-				Task.WaitAll(textureTasks.ToArray());
-			}
-			else
-			{
-				Debug.LogWarning("RMMonument data is null. Monument component will have default values.");
-			}
-
-			#if UNITY_EDITOR
-			UnityEditor.EditorUtility.SetDirty(go);
-			#endif
-		}
-		catch (Exception err)
-		{
-			Debug.LogError($"Error during AttachMonument: {err.Message}");
-		}
-	}
-	
+        #if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(go);
+        #endif
+    }
+    catch (Exception err)
+    {
+        Debug.LogError($"Error during AttachMonument: {err.Message}");
+    }
+}
 	
 	public static MapInfo WorldToREPrefab(WorldSerialization world)
 	{

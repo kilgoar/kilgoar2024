@@ -660,10 +660,9 @@ namespace RustMapEditor.Variables
 	public class GeologyItem
 	{
 		public string customPrefab;
-		public bool custom;
 		public uint prefabID;
 		public int emphasis;
-			
+		public bool custom;
 		public GeologyItem Clone()		{
 			
 			return new GeologyItem			{

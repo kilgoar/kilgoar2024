@@ -108,8 +108,7 @@ public class HierarchyWindow : MonoBehaviour
 		return foundItem;
 	}
 	
-	private void OnGeologyPressed()
-	{
+	private void OnGeologyPressed()	{
 		SettingsManager.geology.geologyItems.Add(selectedNodeItem());
 		PopulateItemList();
 	}
@@ -117,13 +116,14 @@ public class HierarchyWindow : MonoBehaviour
 	public void PlacePrefab(Vector3 position){
 		if(tree.selectedNode!=null){
 			GenerativeManager.SpawnFeature(selectedNodeItem(), position-PrefabManager.PrefabParent.transform.position, Vector3.zero, Vector3.one, PrefabManager.PrefabParent);
+			PrefabManager.NotifyItemsChanged();
 		}
 	}
 	
 	private void OnPlaceOrigin(){
 		if(tree.selectedNode!=null){
 		GenerativeManager.SpawnFeature(selectedNodeItem(), Vector3.zero, Vector3.zero, Vector3.one, PrefabManager.PrefabParent);
-
+		PrefabManager.NotifyItemsChanged();
 		Transform origin = PrefabManager.PrefabParent.GetChild(PrefabManager.PrefabParent.childCount - 1);
 		
 		//enable the window for access

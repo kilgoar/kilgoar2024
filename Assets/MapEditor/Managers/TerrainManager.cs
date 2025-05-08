@@ -3473,10 +3473,14 @@ public static void SetHeightMapRegion(float[,] array, int x, int y, int width, i
 				}
 				BlendMapTexture.SetPixels(pixels);
 				BlendMapTexture.Apply();
+				Shader.SetGlobalTexture("Terrain_BlendMap", BlendMapTexture);
 				Debug.Log($"Initialized BlendMapTexture with resolution {SplatMapRes}x{SplatMapRes}, Format: {BlendMapTexture.format}, Wrap: {BlendMapTexture.wrapMode}, Filter: {BlendMapTexture.filterMode}");
 			}
-
+		
+		MainScript.Instance.InitializeTextures();
+		
 	}
+
 
     // Convert world corners to terrain grid bounds
     public static int[] WorldCornersToGrid(Vector3 bottomLeft, Vector3 bottomRight, Vector3 topLeft, Vector3 topRight)

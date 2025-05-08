@@ -2582,10 +2582,20 @@ private static void ApplyLayerBlend(float[,,] layerMap, int x, int z, int layerI
 			Debug.LogError("GeologyItem or its customPrefab is null or empty.");
 			return;
 		}
-
-		// Construct the path to the prefab
-		string prefabPath = SettingsManager.AppDataPath() + geoItem.customPrefab + ".prefab";
-
+		string prefabPath = Path.Combine(SettingsManager.AppDataPath(), geoItem.customPrefab);;
+		
+		if(Path.GetExtension(prefabPath).ToLower() != ".monument"){
+			prefabPath = Path.Combine(SettingsManager.AppDataPath(), geoItem.customPrefab + ".prefab");
+		}
+		else{
+			if (System.IO.File.Exists(prefabPath)){
+				PrefabManager.placeCustomMonument(prefabPath, position, rotation, scale, parent);
+				return;
+			}
+			Debug.LogError("monument not found");
+			return;
+		}
+		
 		// Check if the file exists at the given path
 		if (!System.IO.File.Exists(prefabPath))
 		{
@@ -2611,8 +2621,8 @@ private static void ApplyLayerBlend(float[,,] layerMap, int x, int z, int layerI
 			spawnGeoItem(item, position, rotation, scale, parent);
 			return;
 		}
-		
-		spawnCustom(item, position, rotation, scale, parent);
+		else
+			spawnCustom(item, position, rotation, scale, parent);
 	}
 	
 	

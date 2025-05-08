@@ -90,6 +90,8 @@ Shader "Custom/Rust/StandardTerrain"
 		_BiomeMode("Biome Rendering mode", Float) = 0.0
 		_TopologyMode("Biome Rendering mode", Float) = -1.0
 		_PreviewMode("Preview mode", float) = 0.0
+		_BrushStrength("Brush Strength", float) = 1.0
+		_TerrainTarget("Terrain Target", float) = 0
 		
         // Rendering Properties
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
@@ -128,6 +130,7 @@ Shader "Custom/Rust/StandardTerrain"
 		UNITY_DECLARE_TEX2D(Terrain_Biome1);
 		UNITY_DECLARE_TEX2D(Terrain_Topologies);
 		UNITY_DECLARE_TEX2D(Terrain_Preview);
+		UNITY_DECLARE_TEX2D(Terrain_BlendMap);
 		
 		UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD0);
 		UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD1);
@@ -150,6 +153,8 @@ Shader "Custom/Rust/StandardTerrain"
 		float _BiomeMode;
 		float _TopologyMode;
 		float _PreviewMode;
+		float _BrushStrength;
+		float _TerrainTarget;
 		
 
         float4 BiomeColors[40];
@@ -213,15 +218,28 @@ Shader "Custom/Rust/StandardTerrain"
             // Ensure tangents and normals are passed correctly for lighting
             v.tangent = float4(cross(v.normal, float3(0, 0, 1)), 1.0); // Simple tangent for flat terrain
 			
-			// Apply displacement if preview mode is active
-            if (_PreviewMode > 0.5)
-            {
-                // Sample the preview texture in the vertex shader
-                float preview = UNITY_SAMPLE_TEX2D_LOD(Terrain_Preview, v.texcoord.xy, 0).r;
-
-                // Displace the vertex along the normal (Y-axis for terrains)
-                v.vertex.y += preview * 5000;
+			float preview = 0.0;
+			if(_PreviewMode > 1.5){
+				 preview = UNITY_SAMPLE_TEX2D_LOD(Terrain_Preview, v.texcoord.xy, 0).r;
+			}
+			
+			//_PreviewMode 1 > no displacement
+			
+            if (_PreviewMode > 1.5 && _PreviewMode < 2.5) {     //2              
+                v.vertex.y += preview * 1000 * _BrushStrength;
             }
+			if (_PreviewMode > 2.5 && _PreviewMode < 3.5){ 		//3		
+                v.vertex.y -= preview * 1000 * _BrushStrength;
+			}
+			if (_PreviewMode > 3.5 && _PreviewMode < 4.5){     //4
+				
+
+			}
+			if (_PreviewMode > 4.5 && _PreviewMode < 5.5){      //5			
+				// Lerp vertex y toward _TerrainTarget
+				float influence = preview * _BrushStrength * 5.0;
+				v.vertex.y = lerp(v.vertex.y, _TerrainTarget * 1000.0, influence); // Scale target to vertex units
+			}
 			
         }
 		
@@ -421,11 +439,17 @@ Shader "Custom/Rust/StandardTerrain"
             }
         }
 		
-		if (_PreviewMode > .5)		{
+		if (_PreviewMode < -.5)		{
+			float blendMap = UNITY_SAMPLE_TEX2D(Terrain_BlendMap, IN.tc_Control0);
+			albedo.rgb *= blendMap;
+		}
+		
+		if (_PreviewMode > .5 || _PreviewMode < .5)		{
 			float preview = UNITY_SAMPLE_TEX2D(Terrain_Preview, IN.tc_Control0);
 			
-			albedo.rgb = lerp(albedo.rgb, float3(.1, .8, 0), preview * 200);
+			albedo.rgb = lerp(albedo.rgb, float3(.1, .8, 0), preview * 100 * _BrushStrength);
 		}
+
 		
 		normalize(normal);
 		clip(alpha - _Cutoff);	

@@ -620,11 +620,9 @@ public static class SettingsManager
 				path.StartsWith("~Favorites/", StringComparison.Ordinal))
 			{
 				string searchPath = path;
-				// Remove either extension if present
+				// Remove first extension only
 				if (path.EndsWith(extension1, StringComparison.Ordinal))
 					searchPath = path.Replace(extension1, "", StringComparison.Ordinal);
-				else if (!string.IsNullOrEmpty(extension2) && path.EndsWith(extension2, StringComparison.Ordinal))
-					searchPath = path.Replace(extension2, "", StringComparison.Ordinal);
 				
 				searchPath = searchPath.Replace("\\", "/", StringComparison.Ordinal);
 

@@ -207,14 +207,17 @@ public class TerrainWindow : MonoBehaviour
 	
 	void SendSettings(){
 		MainScript.Instance.brushStrength = strength.value;
+		Land.materialTemplate.SetFloat("_BrushStrength", (float)strength.value);
 		MainScript.Instance.TerrainTarget(height.value);
+		Land.materialTemplate.SetFloat("_TerrainTarget", (float)height.value);
 		MainScript.Instance.ChangeBrushSize((int)size.value*2);
 	}
 	
 	void OnDisable(){
-		TerrainManager.UpdateHeightCache();
-		TerrainManager.HideLandMask();
+		//TerrainManager.UpdateHeightCache();
 		CoroutineManager.Instance.ChangeStylus(1);
+		Land.materialTemplate.SetFloat("_PreviewMode", 0f);
+
 	}
 	
 	public void OnTopologyChanged(int index)
@@ -378,49 +381,49 @@ public class TerrainWindow : MonoBehaviour
 		
 		if (index == 1){   //show biomes
 			TerrainManager.ChangeLayer(LayerType.Biome, TerrainTopology.TypeToIndex((int)layers.Topologies));
-
 		}
 		else 
 		{
 			TerrainManager.ChangeLayer(LayerType.Ground, TerrainTopology.TypeToIndex((int)layers.Topologies));
-
 		}
 		
 		if(index == 0){    //height map editing
 			OnTopologyChanged(-1); //hide topos
-
 			return;
 		}
 		
 		if (index == 2){                    //holes
 			OnTopologyChanged(-1); //hide topos
-
 		return;
 		}
 		
 		if (index == 3){                   //topos
-			OnTopologyChanged(MainScript.Instance.targetTopo); //hide topos
-
-			
+			OnTopologyChanged(MainScript.Instance.targetTopo); //hide topos			
 		return;
+		
+		if (index == 6){
+			Land.materialTemplate.SetFloat("_PreviewMode", -1f);
+			return;
+		}
 		}
 		
 		
 	}
 	
-	public void SampleHeightAtClick(RaycastHit hit)
-    {            
+	public void SampleHeightAtClick(RaycastHit hit)    {            
             // Get the height at the clicked position
-            height.value = .001f*hit.point.y;
-          
+            height.value = .001f*hit.point.y;         
     }
 	
-public void OnToggleChanged(int index)
-{
+public void OnToggleChanged(int index){
+	
+	Debug.Log(index + " paint mode");
+	
     if (index == 0 || index == 1) { MainScript.Instance.paintMode = -1; } // splat and biome
     else if (index == 2) { MainScript.Instance.paintMode = -3; } // alpha
     else if (index == 3) { MainScript.Instance.paintMode = -2; } // topology
     else if (index == 4) { MainScript.Instance.paintMode = index; } // heights
+	else if (index == 6) { MainScript.Instance.paintMode = -4; } //monument blend map
 
     MainScript.Instance.brushType = index;
     MainScript.Instance.selectedSplatPaint = 0; // Reset to paint mode for topology
@@ -429,8 +432,7 @@ public void OnToggleChanged(int index)
     // Regenerate brush to ensure correct data for the new mode
     MainScript.Instance.GenerateBrush();
 
-    for (int i = 0; i < layerPanels.Count; i++)
-    {
+    for (int i = 0; i < layerPanels.Count; i++)    {
         bool isActive = i == index;
         layerPanels[i].SetActive(isActive);
         layerToggles[i].SetIsOnWithoutNotify(isActive);

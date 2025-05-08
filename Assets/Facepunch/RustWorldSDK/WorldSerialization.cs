@@ -569,20 +569,37 @@ public class WorldSerialization
 		return result;
 	}
 	
-	public static Texture2D DeserializeTexture(byte[] data, int width, int height, TextureFormat format)	{
-		if (data == null) return null;
-		Texture2D texture = new Texture2D(width, height, format, false);
-		texture.LoadImage(data); //PNG data
-		return texture;
-	}
-	
-	public static RenderTexture DeserializeTexture(byte[] data, int width, int height, RenderTextureFormat format)
+	public static Texture2D DeserializeTexture(byte[] data, TextureFormat format)
 	{
 		if (data == null)
+		{
+			Debug.LogError("Texture data is null.");
 			return null;
+		}
 
 		// Create a temporary Texture2D to load the PNG data
-		Texture2D tempTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+		Texture2D texture = new Texture2D(2, 2, format, false); // Dummy size, will be resized by LoadImage
+		if (!texture.LoadImage(data))
+		{
+			UnityEngine.Object.Destroy(texture);
+			Debug.LogError("Failed to load PNG data into Texture2D.");
+			return null;
+		}
+
+		// Texture is now loaded with its natural resolution
+		return texture;
+	}
+
+	public static RenderTexture DeserializeTexture(byte[] data, RenderTextureFormat format)
+	{
+		if (data == null)
+		{
+			Debug.LogError("Texture data is null.");
+			return null;
+		}
+
+		// Create a temporary Texture2D to load the PNG data
+		Texture2D tempTexture = new Texture2D(2, 2, TextureFormat.RGBA32, false); // Dummy size, will be resized by LoadImage
 		if (!tempTexture.LoadImage(data))
 		{
 			UnityEngine.Object.Destroy(tempTexture);
@@ -590,8 +607,8 @@ public class WorldSerialization
 			return null;
 		}
 
-		// Create a RenderTexture with the specified dimensions and format
-		RenderTexture renderTexture = new RenderTexture(width, height, 0, format, RenderTextureReadWrite.Linear)
+		// Create a RenderTexture with the natural dimensions of the loaded texture
+		RenderTexture renderTexture = new RenderTexture(tempTexture.width, tempTexture.height, 0, format, RenderTextureReadWrite.Linear)
 		{
 			wrapMode = TextureWrapMode.Clamp,
 			enableRandomWrite = true

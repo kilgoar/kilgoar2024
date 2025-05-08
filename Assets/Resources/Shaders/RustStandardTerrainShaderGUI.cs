@@ -129,7 +129,8 @@ public class RustStandardTerrainShaderGUI : ShaderGUI
                 "Terrain_Biome",
                 "Terrain_Biome1",
                 "Terrain_Topologies", // New texture
-                "Terrain_Preview"    // New texture
+                "Terrain_Preview",    // New texture
+				"Terrain_BlendMap"
             };
 
             foreach (string textureName in singleTextureNames)

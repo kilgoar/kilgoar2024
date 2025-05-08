@@ -32,6 +32,14 @@ public static class TopologyData
     {
         TerrainMap<int> topology = GetTerrainMap();
         int resolution = topology.res;
+		
+		if (TopologyTexture == null || TopologyTexture.width != resolution || TopologyTexture.height != resolution || TopologyTexture.format != TextureFormat.RGBA32)
+        {
+            TopologyTexture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false, true);
+			TopologyTexture.filterMode = FilterMode.Point; 
+            UpdateTexture(); // Populate initial pixel data
+        }
+		Shader.SetGlobalTexture("Terrain_Topologies", TopologyTexture);
 
         Color[] pixels = new Color[resolution * resolution];
         Parallel.For(0, resolution, i =>

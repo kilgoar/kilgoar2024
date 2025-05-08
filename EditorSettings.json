@@ -14,8 +14,8 @@
     "loadbundleonlaunch": true,
     "terrainTextureSet": true,
     "loadBatch": 128,
-    "newSize": 258,
-    "newHeight": 0.589610934,
+    "newSize": 1338,
+    "newHeight": 0.5615461,
     "newBiome": 2,
     "newSplat": 16,
     "recentFiles": [
@@ -79,9 +79,9 @@
     "geologyItems": [
       {
         "customPrefab": "",
-        "custom": false,
         "prefabID": 3464059523,
-        "emphasis": 1
+        "emphasis": 1,
+        "custom": false
       }
     ],
     "geologyCollisions": [],
@@ -254,8 +254,8 @@
     {
       "isActive": false,
       "position": {
-        "x": -337.799,
-        "y": -64.83998,
+        "x": 167.459991,
+        "y": -33.86,
         "z": 0.0
       },
       "scale": {
@@ -274,66 +274,40 @@
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 0.0
+        "z": 1.0
       }
     },
     {
       "isActive": false,
       "position": {
-        "x": -74.30005,
-        "y": -85.49997,
+        "x": -162.5,
+        "y": 39.99997,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 1.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": -238.392578,
+        "y": -12.9134521,
         "z": 0.0
       },
       "scale": {
         "x": 0.6,
         "y": 0.6,
         "z": 0.0
-      }
-    },
-    {
-      "isActive": false,
-      "position": {
-        "x": -286.29657,
-        "y": 21.1266174,
-        "z": 0.0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.6,
-        "z": 0.0
-      }
-    },
-    {
-      "isActive": false,
-      "position": {
-        "x": -337.79657,
-        "y": 46.5704041,
-        "z": 0.0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.6,
-        "z": 0.0
-      }
-    },
-    {
-      "isActive": false,
-      "position": {
-        "x": 29.0159912,
-        "y": -24.6459961,
-        "z": 0.0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.6,
-        "z": 0.6
       }
     },
     {
       "isActive": true,
       "position": {
-        "x": -370.289978,
-        "y": 106.656982,
+        "x": -339.29657,
+        "y": 31.3503723,
         "z": 0.0
       },
       "scale": {
@@ -345,14 +319,40 @@
     {
       "isActive": false,
       "position": {
-        "x": -213.97998,
-        "y": -90.6099854,
+        "x": -93.3999939,
+        "y": 2.1,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 1.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": -298.289978,
+        "y": 30.0180054,
         "z": 0.0
       },
       "scale": {
         "x": 0.6,
         "y": 0.6,
         "z": 0.0
+      }
+    },
+    {
+      "isActive": false,
+      "position": {
+        "x": -63.5,
+        "y": -29.00003,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 1.0
       }
     },
     {
@@ -365,33 +365,20 @@
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 0.0
+        "z": 1.0
       }
     },
     {
       "isActive": false,
       "position": {
-        "x": 275.55,
-        "y": -63.47,
+        "x": -330.5,
+        "y": -15.0000305,
         "z": 0.0
       },
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 0.0
-      }
-    },
-    {
-      "isActive": false,
-      "position": {
-        "x": 266.400024,
-        "y": 89.0,
-        "z": 0.0
-      },
-      "scale": {
-        "x": 0.6,
-        "y": 0.6,
-        "z": 0.0
+        "z": 0.6
       }
     }
   ],

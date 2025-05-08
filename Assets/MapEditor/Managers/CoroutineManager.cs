@@ -162,7 +162,6 @@ public class CoroutineManager : MonoBehaviour
 					if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask)){
 						
 							HierarchyWindow.Instance.PlacePrefab(hit.point);
-							PrefabManager.NotifyItemsChanged();
 
 					}
 
@@ -198,6 +197,9 @@ public class CoroutineManager : MonoBehaviour
 						}
 						else if (MainScript.Instance.paintMode == -2){
 							MainScript.Instance.ModifyTopology(numX, numY);
+						}
+						else if (MainScript.Instance.paintMode == -4){
+							MainScript.Instance.ModifyBlendMap(numX, numY);
 						}
 						else {	MainScript.Instance.ModifyTerrain(numX, numY); }
 						
