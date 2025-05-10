@@ -18,9 +18,9 @@ public class TerrainWindow : MonoBehaviour
 {
 	public List<Toggle> layerToggles;
 	public List<GameObject> layerPanels;	
-	public List<Toggle> carveToggles;
+	public List<Toggle> carveToggles, waterToggles;
 	public List<Toggle> TopologyToggles;	
-	public Slider strength, size, height;
+	public Slider strength, size, height, waterHeight;
 	public Text footer;
 	
 	public Transform brushRowParent;
@@ -85,6 +85,7 @@ public class TerrainWindow : MonoBehaviour
 		strength.onValueChanged.AddListener(_ => SendSettings());
 		size.onValueChanged.AddListener(_ => SendSettings());
 		height.onValueChanged.AddListener(_ => SendSettings());
+		waterHeight.onValueChanged.AddListener(_ => SendSettings());
 		randomRotations.onValueChanged.AddListener(OnRandomRotationsChanged);
 		
         MainScript.Instance.rotations = randomRotations.isOn;
@@ -120,32 +121,36 @@ public class TerrainWindow : MonoBehaviour
 		}
 		OnToggleChanged(initialLayerIndex); // Push Inspector state to MainScript
 
-		// Find and sync the initial carve toggle (based on Inspector state)
-		int initialCarveIndex = -1;
-		for (int i = 0; i < carveToggles.Count; i++)
-		{
-			if (carveToggles[i] != null && carveToggles[i].isOn)
-			{
-				initialCarveIndex = i;
-				break;
-			}
-		}
-		if (initialCarveIndex == -1) // Fallback if no toggle is on
-		{
-			initialCarveIndex = 0;
-			carveToggles[0].isOn = true;
-		}
+
+		int initialCarveIndex = 0;
+		carveToggles[0].isOn = true;
+
 		for (int i = 0; i < carveToggles.Count; i++)
 		{
 			if (i < carveToggles.Count && carveToggles[i] != null)
 			{
-				carveToggles[i].SetIsOnWithoutNotify(i == initialCarveIndex);
-				carveToggles[i].interactable = i != initialCarveIndex;
+				carveToggles[i].SetIsOnWithoutNotify(i == 0);
+				carveToggles[i].interactable = i != 0;
 				int index = i;
 				carveToggles[i].onValueChanged.AddListener((isOn) => OnCarveChanged(index));
 			}
 		}
 		OnCarveChanged(initialCarveIndex); // Push Inspector state to MainScript
+		
+		int initialWaterIndex = 0;
+		waterToggles[0].isOn = true;
+
+		for (int i = 0; i < waterToggles.Count; i++)
+		{
+			if (i < waterToggles.Count && waterToggles[i] != null)
+			{
+				waterToggles[i].SetIsOnWithoutNotify(i == 0);
+				waterToggles[i].interactable = i != 0;
+				int index = i;
+				waterToggles[i].onValueChanged.AddListener((isOn) => OnWaterChanged(index));
+			}
+		}
+		OnWaterChanged(initialWaterIndex); // Push Inspector state to MainScript
 
 		// Find and sync the initial topology toggle (based on Inspector state)
 		int initialTopoIndex = -1;
@@ -209,6 +214,7 @@ public class TerrainWindow : MonoBehaviour
 		MainScript.Instance.brushStrength = strength.value;
 		Land.materialTemplate.SetFloat("_BrushStrength", (float)strength.value);
 		MainScript.Instance.TerrainTarget(height.value);
+		MainScript.Instance.WaterTarget(waterHeight.value);
 		Land.materialTemplate.SetFloat("_TerrainTarget", (float)height.value);
 		MainScript.Instance.ChangeBrushSize((int)size.value*2);
 	}
@@ -243,6 +249,19 @@ public class TerrainWindow : MonoBehaviour
             bool isActive = i == index;
             carveToggles[i].SetIsOnWithoutNotify(isActive);
             carveToggles[i].interactable = !isActive;
+        }
+	}
+	
+	public void OnWaterChanged(int index)
+	{
+		Debug.Log("changin water mode" + index);
+		MainScript.Instance.waterPaintMode = index;
+		
+		for (int i = 0; i < waterToggles.Count; i++)
+        {
+            bool isActive = i == index;
+            waterToggles[i].SetIsOnWithoutNotify(isActive);
+            waterToggles[i].interactable = !isActive;
         }
 	}
 	
@@ -423,6 +442,7 @@ public void OnToggleChanged(int index){
     else if (index == 2) { MainScript.Instance.paintMode = -3; } // alpha
     else if (index == 3) { MainScript.Instance.paintMode = -2; } // topology
     else if (index == 4) { MainScript.Instance.paintMode = index; } // heights
+	else if (index == 5) { MainScript.Instance.paintMode = -5;  } // water
 	else if (index == 6) { MainScript.Instance.paintMode = -4; } //monument blend map
 
     MainScript.Instance.brushType = index;
@@ -443,5 +463,7 @@ public void OnToggleChanged(int index){
     LayoutRebuilder.ForceRebuildLayoutImmediate(this.GetComponent<RectTransform>());
 }
 	
+	
+
 	
 }

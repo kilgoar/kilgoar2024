@@ -14,8 +14,8 @@
     "loadbundleonlaunch": true,
     "terrainTextureSet": true,
     "loadBatch": 128,
-    "newSize": 1338,
-    "newHeight": 0.419990242,
+    "newSize": 438,
+    "newHeight": 0.524618566,
     "newBiome": 2,
     "newSplat": 16,
     "recentFiles": [
@@ -330,10 +330,10 @@
       }
     },
     {
-      "isActive": true,
+      "isActive": false,
       "position": {
-        "x": -357.289978,
-        "y": 19.8430176,
+        "x": -311.289978,
+        "y": 62.9819946,
         "z": 0.0
       },
       "scale": {

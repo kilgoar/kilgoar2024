@@ -149,9 +149,9 @@ public static class WorldConverter
 
         var alphaTask = Task.Run(() =>
         {
-            Parallel.For(0, terrains.splatRes, i =>
+            Parallel.For(0, alphaMap.res, i =>
             {
-                for (int j = 0; j < terrains.splatRes; j++)
+                for (int j = 0; j < alphaMap.res; j++)
                 {
                     if (alphaMap[0, i, j] > 0)
                         terrains.alphaMap[i, j] = true;
@@ -395,14 +395,14 @@ public static class WorldConverter
             biomeBytes = biomeMap.ToByteArray();
         });
 
-        byte[] alphaBytes = new byte[textureResolution * textureResolution * 1];
+        byte[] alphaBytes = new byte[AlphaMapRes * AlphaMapRes * 1];
         var alphaMap = new TerrainMap<byte>(alphaBytes, 1);
         bool[,] terrainHoles = GetAlphaMap();
         var alphaTask = Task.Run(() =>
         {
-            Parallel.For(0, textureResolution, i =>
+            Parallel.For(0, AlphaMapRes, i =>
             {
-                for (int j = 0; j < textureResolution; j++)
+                for (int j = 0; j < AlphaMapRes; j++)
                     alphaMap[0, i, j] = BitUtility.Bool2Byte(terrainHoles[i, j]);
             });
             alphaBytes = alphaMap.ToByteArray();

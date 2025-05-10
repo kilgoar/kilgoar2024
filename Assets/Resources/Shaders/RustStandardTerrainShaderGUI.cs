@@ -11,6 +11,7 @@ public class RustStandardTerrainShaderGUI : ShaderGUI
     private bool showWetness = false;        // Foldout for wetness properties
     private bool showDetail = false;         // Foldout for detail properties
     private bool showRendering = false;      // Foldout for rendering properties
+	private bool showBrushPreview = true;
 
     // Foldouts for each texture array
     private bool[] showTextureArrays = new bool[6]; // One for each LOD albedo and normal array
@@ -93,6 +94,12 @@ public class RustStandardTerrainShaderGUI : ShaderGUI
         MaterialProperty _ShoreWetnessLayer_Range = FindProperty("_ShoreWetnessLayer_Range", properties);
         MaterialProperty _ShoreWetnessLayer_WetAlbedoScale = FindProperty("_ShoreWetnessLayer_WetAlbedoScale", properties);
         MaterialProperty _ShoreWetnessLayer_WetSmoothness = FindProperty("_ShoreWetnessLayer_WetSmoothness", properties);
+		
+		MaterialProperty _BrushTex = FindProperty("_BrushTex", properties);
+		MaterialProperty _BrushPos = FindProperty("_BrushPos", properties);
+		MaterialProperty _BrushSize = FindProperty("_BrushSize", properties);
+		MaterialProperty _BrushStrength = FindProperty("_BrushStrength", properties);
+		MaterialProperty _TerrainTarget = FindProperty("_TerrainTarget", properties);
 
         MaterialProperty _PotatoDetailWorldUVScale = FindProperty("_PotatoDetailWorldUVScale", properties);
 
@@ -193,6 +200,19 @@ public class RustStandardTerrainShaderGUI : ShaderGUI
             }
             EditorGUI.indentLevel--;
         }
+
+		// Brush Preview Section
+		showBrushPreview = EditorGUILayout.Foldout(showBrushPreview, "Brush Preview Properties", true);
+		if (showBrushPreview)
+		{
+			EditorGUI.indentLevel++;
+			materialEditor.TexturePropertySingleLine(new GUIContent("Brush Texture"), _BrushTex);
+			materialEditor.VectorProperty(_BrushPos, "Brush Position (UV)");
+			materialEditor.FloatProperty(_BrushSize, "Brush Size (UV)");
+			materialEditor.FloatProperty(_BrushStrength, "Brush Strength");
+			materialEditor.FloatProperty(_TerrainTarget, "Terrain Target");
+			EditorGUI.indentLevel--;
+		}
 
         // Global Parameters Section (UV Mix and Biome Colors)
         showGlobalParameters = EditorGUILayout.Foldout(showGlobalParameters, "Global Parameters", true);

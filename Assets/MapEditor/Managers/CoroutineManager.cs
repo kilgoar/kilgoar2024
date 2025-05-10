@@ -17,7 +17,8 @@ public class CoroutineManager : MonoBehaviour
     public Texture2D paintBrushTexture;
     public InputAction mouseLeftClick;
     public int heightTool;
-	public int layerMask = 1 << 10; // "Land" layer
+	public int landMask = 1 << 10; // "Land" layer
+	public int waterMask = 1 << 4; // "Land" layer
 	public RaycastHit hit;
 	
     public static CoroutineManager Instance
@@ -159,7 +160,7 @@ public class CoroutineManager : MonoBehaviour
 				
 				if (HierarchyWindow.Instance!=null && HierarchyWindow.Instance.gameObject.activeSelf){
 					
-					if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask)){
+					if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, landMask)){
 						
 							HierarchyWindow.Instance.PlacePrefab(hit.point);
 
@@ -173,9 +174,19 @@ public class CoroutineManager : MonoBehaviour
     }
 
     public void PaintBrushMode()
-    {
-        
-		if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, layerMask)){
+    {        
+		if (MainScript.Instance.paintMode == -5){
+				if (mouseLeftClick.ReadValue<float>() > 0.5f)
+					{
+						if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, waterMask)){					
+							TerrainManager.GetTerrainCoordinates(hit, MainScript.Instance.brushSize, out int numX, out int numY);
+							MainScript.Instance.ModifyWater(numX, numY);
+						}
+						return;
+					}
+			}
+		
+		if (Physics.Raycast(cam.ScreenPointToRay(Mouse.current.position.ReadValue()), out hit, Mathf.Infinity, landMask)){
 					
 			TerrainManager.GetTerrainCoordinates(hit, MainScript.Instance.brushSize, out int numX, out int numY);
 	

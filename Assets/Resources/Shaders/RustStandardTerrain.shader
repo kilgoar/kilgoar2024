@@ -92,6 +92,12 @@ Shader "Custom/Rust/StandardTerrain"
 		_PreviewMode("Preview mode", float) = 0.0
 		_BrushStrength("Brush Strength", float) = 1.0
 		_TerrainTarget("Terrain Target", float) = 0
+				
+        // Brush preview properties
+        _BrushTex("Brush Texture", 2D) = "white" {}
+        _BrushPos("Brush Position (UV)", Vector) = (0, 0, 0, 0) // x, y in UV space
+        _BrushSize("Brush Size (UV)", Float) = 0.1
+		_SplatRatio("Splat Ratio", Float) = 1.0
 		
         // Rendering Properties
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
@@ -131,6 +137,7 @@ Shader "Custom/Rust/StandardTerrain"
 		UNITY_DECLARE_TEX2D(Terrain_Topologies);
 		UNITY_DECLARE_TEX2D(Terrain_Preview);
 		UNITY_DECLARE_TEX2D(Terrain_BlendMap);
+		UNITY_DECLARE_TEX2D(_BrushTex);
 		
 		UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD0);
 		UNITY_DECLARE_TEX2DARRAY(Terrain_AlbedoArray_LOD1);
@@ -155,7 +162,14 @@ Shader "Custom/Rust/StandardTerrain"
 		float _PreviewMode;
 		float _BrushStrength;
 		float _TerrainTarget;
-		
+        float _BrushSize;
+		float _SplatRatio;
+		float LayerFactors[8];
+				
+        float4 _BrushPos;
+		float4 _Terrain_TexelSize0; 
+		float4 _Terrain_TexelSize1; 		
+	
 
         float4 BiomeColors[40];
         // Arid biome colors (8 layers)
@@ -187,11 +201,10 @@ Shader "Custom/Rust/StandardTerrain"
 		float _Layer6_Factor, _Layer6_Falloff, _Layer6_Metallic, _Layer6_Smoothness, _Layer6_SpecularReflectivity;
 		float _Layer7_Factor, _Layer7_Falloff, _Layer7_Metallic, _Layer7_Smoothness, _Layer7_SpecularReflectivity;
  
-		float LayerFactors[8];
+
         sampler2D _Control0, _Control1;
 
-		float4 _Terrain_TexelSize0; 
-		float4 _Terrain_TexelSize1; 
+
 
 
         struct Input
@@ -219,17 +232,21 @@ Shader "Custom/Rust/StandardTerrain"
             v.tangent = float4(cross(v.normal, float3(0, 0, 1)), 1.0); // Simple tangent for flat terrain
 			
 			float preview = 0.0;
+			float2 brushUV = (v.texcoord.xy - _BrushPos.xy / _SplatRatio) / _BrushSize * _SplatRatio;
 			if(_PreviewMode > 1.5){
-				 preview = UNITY_SAMPLE_TEX2D_LOD(Terrain_Preview, v.texcoord.xy, 0).r;
+				if (brushUV.x >= 0.0 && brushUV.x <= 1.0 && brushUV.y >= 0.0 && brushUV.y <= 1.0)
+                {
+					preview = UNITY_SAMPLE_TEX2D_LOD(_BrushTex, brushUV, 0).r;
+				}
 			}
 			
 			//_PreviewMode 1 > no displacement
 			
             if (_PreviewMode > 1.5 && _PreviewMode < 2.5) {     //2              
-                v.vertex.y += preview * 1000 * _BrushStrength;
+                v.vertex.y += preview * 4 * _BrushStrength;
             }
 			if (_PreviewMode > 2.5 && _PreviewMode < 3.5){ 		//3		
-                v.vertex.y -= preview * 1000 * _BrushStrength;
+                v.vertex.y -= preview * 4 * _BrushStrength;
 			}
 			if (_PreviewMode > 3.5 && _PreviewMode < 4.5){     //4
 				
@@ -444,11 +461,47 @@ Shader "Custom/Rust/StandardTerrain"
 			albedo.rgb *= blendMap;
 		}
 		
-		if (_PreviewMode > .5)		{
-			float preview = UNITY_SAMPLE_TEX2D(Terrain_Preview, IN.tc_Control0);
-			
-			albedo.rgb = lerp(albedo.rgb, float3(.1, .8, 0), preview * 100 * _BrushStrength);
-		}
+		
+		            // Brush preview
+        if (_PreviewMode != 0.0)
+            {
+                // Compute brush UVs: map terrain UVs to brush texture UVs
+                float2 brushUV = (IN.tc_Control0 - _BrushPos.xy/_SplatRatio) / _BrushSize*_SplatRatio; 
+                float preview = 0.0;
+                if (brushUV.x >= 0.0 && brushUV.x <= 1.0 && brushUV.y >= 0.0 && brushUV.y <= 1.0)
+                {
+                    preview = UNITY_SAMPLE_TEX2D(_BrushTex, brushUV).r;
+                }
+
+                // Apply preview effect based on _PreviewMode
+                float influence = preview * _BrushStrength;
+				
+                if (_PreviewMode > 0.5 && _PreviewMode < 1.5) // Splat, Topology, Alpha (1.0)
+                {
+                    albedo.rgb = lerp(albedo.rgb, float3(0.1, 0.8, 0.0), influence); // Green
+                }
+                else if (_PreviewMode > 1.5 && _PreviewMode < 2.5) // Raise (2.0)
+                {
+                    albedo.rgb = lerp(albedo.rgb, float3(0.0, 0.8, 0.0), influence); // Green
+                }
+                else if (_PreviewMode > 2.5 && _PreviewMode < 3.5) // Lower (3.0)
+                {
+                    albedo.rgb = lerp(albedo.rgb, float3(0.8, 0.1, 0.0), influence); // Red
+                }
+                else if (_PreviewMode > 3.5 && _PreviewMode < 4.5) // Smooth (4.0)
+                {
+                    albedo.rgb = lerp(albedo.rgb, float3(0.0, 0.0, 0.8), influence); // Blue
+                }
+                else if (_PreviewMode > 4.5 && _PreviewMode < 5.5) // Smoothstep to height (5.0)
+                {
+                    albedo.rgb = lerp(albedo.rgb, float3(0.8, 0.8, 0.0), influence); // Yellow
+                }
+                else if (_PreviewMode > 5.5 && _PreviewMode < 6.5) // Flatten (6.0)
+                {
+                    albedo.rgb = lerp(albedo.rgb, float3(0.8, 0.7, 0.0), influence); // Magenta
+                }
+            }
+		
 
 		
 		normalize(normal);

@@ -1514,43 +1514,8 @@ private static void ConfigureShaderGlobals(Terrain terrain)
 
     // Apply holes to terrain
     RegisterSplatMapUndo("Set Alpha Region");
-    Land.terrainData.SetHoles(x, y, regionAlpha);
-
-    // Update AlphaTexture for the region
-    Texture2D tempTexture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
-    Color32[] colors = new Color32[width * height];
-
-    for (int i = 0; i < height; i++)
-    {
-        for (int j = 0; j < width; j++)
-        {
-            float value = regionAlpha[i, j] ? 1f : 0f;
-            colors[i * width + j] = new Color(value, value, value, value);
-        }
-    }
-
-    tempTexture.SetPixels32(colors);
-    tempTexture.Apply(true, false);
-
-    // Ensure AlphaTexture exists
-    if (AlphaTexture == null || !AlphaTexture.IsCreated())
-    {
-        AlphaTexture = new RenderTexture(AlphaMapRes, AlphaMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
-        {
-            wrapMode = TextureWrapMode.Clamp,
-            enableRandomWrite = true,
-            name = "Terrain_Alpha"
-        };
-        AlphaTexture.Create();
-    }
-
-    // Copy the region to the AlphaTexture
-    RenderTexture.active = AlphaTexture;
-    Graphics.CopyTexture(tempTexture, 0, 0, 0, 0, width, height, AlphaTexture, 0, 0, x, y);
-    RenderTexture.active = null;
-
-    UnityEngine.Object.Destroy(tempTexture);
-    Shader.SetGlobalTexture("Terrain_Alpha", AlphaTexture);
+    //Land.terrainData.SetHoles(x, y, regionAlpha);
+	SyncAlphaTexture();
 
     AlphaDirty = false;
     Callbacks.InvokeLayerUpdated(LayerType.Alpha, TopologyLayer);
@@ -2232,8 +2197,9 @@ public static bool[,] UpscaleBitmap(bool[,] source)
                     for (int j = 0; j < AlphaMapRes; j++)
                         Alpha[i, j] = array[i / 2, j / 2];
                 });
-
-                Land.terrainData.SetHoles(0, 0, Alpha);
+				
+				SyncAlphaTexture();
+                //Land.terrainData.SetHoles(0, 0, Alpha);
                 AlphaDirty = false;
                 return;
             }
@@ -2246,7 +2212,8 @@ public static bool[,] UpscaleBitmap(bool[,] source)
         }
 
         Alpha = array;
-        Land.terrainData.SetHoles(0, 0, Alpha);
+		SyncAlphaTexture();
+        //Land.terrainData.SetHoles(0, 0, Alpha);
         AlphaDirty = false;
     }
 
@@ -3201,44 +3168,7 @@ public static void SetBiomeRegion(float[,,] biomeData, int x, int y, int width, 
 
 		// Apply the region to the terrain
 		RegisterSplatMapUndo("Set Alpha Region");
-		Land.terrainData.SetHoles(x, y, alphaData);
-
-		// Update AlphaTexture for the region
-		Texture2D tempTexture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
-		Color32[] colors = new Color32[width * height];
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				float value = alphaData[i, j] ? 1f : 0f;
-				colors[i * width + j] = new Color(value, value, value, value);
-			}
-		}
-
-		tempTexture.SetPixels32(colors);
-		tempTexture.Apply(true, false);
-
-		// Ensure AlphaTexture exists
-		if (AlphaTexture == null || !AlphaTexture.IsCreated())
-		{
-			AlphaTexture = new RenderTexture(AlphaMapRes, AlphaMapRes, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
-			{
-				wrapMode = TextureWrapMode.Clamp,
-				enableRandomWrite = true,
-				name = "Terrain_Alpha"
-			};
-			AlphaTexture.Create();
-		}
-
-		// Copy the region to the AlphaTexture
-		RenderTexture.active = AlphaTexture;
-		Graphics.CopyTexture(tempTexture, 0, 0, 0, 0, width, height, AlphaTexture, 0, 0, x, y);
-		RenderTexture.active = null;
-
-		UnityEngine.Object.Destroy(tempTexture);
-		Shader.SetGlobalTexture("Terrain_Alpha", AlphaTexture);
-
+		SyncAlphaTexture();
 		AlphaDirty = false;
 		Callbacks.InvokeLayerUpdated(LayerType.Alpha, TopologyLayer);
 	}
@@ -3479,7 +3409,6 @@ public static void SetHeightMapRegion(float[,] array, int x, int y, int width, i
 				Debug.Log($"Initialized BlendMapTexture with resolution {SplatMapRes}x{SplatMapRes}, Format: {BlendMapTexture.format}, Wrap: {BlendMapTexture.wrapMode}, Filter: {BlendMapTexture.filterMode}");
 			}
 		
-		MainScript.Instance.InitializeTextures();
 		
 	}
 
