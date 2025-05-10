@@ -25,6 +25,7 @@ TagManager:
   - Node
   - NodeParent
   - Path
+  - Ocean
   layers:
   - Default
   - TransparentFX

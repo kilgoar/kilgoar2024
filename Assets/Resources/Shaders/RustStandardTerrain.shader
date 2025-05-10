@@ -426,7 +426,7 @@ Shader "Custom/Rust/StandardTerrain"
 		}
 		
         // Topology mode override
-        if (_TopologyMode > -0.5) // Check if topology mode is enabled (>= 0)
+        if (_TopologyMode > -0.5 && _PreviewMode > .5) // Check if topology mode is enabled (>= 0)
         {
             int topologyBitmask = GetTopologyBitmask(IN.tc_Control0);
             int layerIndex = floor(_TopologyMode); // _TopologyMode is the layer index (0-31)
@@ -444,7 +444,7 @@ Shader "Custom/Rust/StandardTerrain"
 			albedo.rgb *= blendMap;
 		}
 		
-		if (_PreviewMode > .5 || _PreviewMode < .5)		{
+		if (_PreviewMode > .5)		{
 			float preview = UNITY_SAMPLE_TEX2D(Terrain_Preview, IN.tc_Control0);
 			
 			albedo.rgb = lerp(albedo.rgb, float3(.1, .8, 0), preview * 100 * _BrushStrength);

@@ -8,8 +8,9 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Water
-  m_Shader: {fileID: 4800000, guid: 663c5869691e3624391cd8cd28896134, type: 3}
-  m_ValidKeywords: []
+  m_Shader: {fileID: 4800000, guid: aafe29c0b375eb74b955a511d16a2217, type: 3}
+  m_ValidKeywords:
+  - ALPHA_TEST
   m_InvalidKeywords:
   - _ALPHABLEND_ON
   - _GLOSSYREFLECTIONS_OFF
@@ -18,13 +19,18 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
+  m_CustomRenderQueue: 2000
+  stringTagMap:
+    RenderType: Opaque
   disabledShaderPasses: []
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
     - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Control:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -64,31 +70,59 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Splat0:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Splat1:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Splat2:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Splat3:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _TerrainHolesTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Terrain_Topologies:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
     - _BumpScale: 1
-    - _Cutoff: 0.408
+    - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
-    - _DstBlend: 10
+    - _DstBlend: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 0
     - _Metallic: 0
-    - _Mode: 2
+    - _Mode: 0
+    - _NoiseScale: -1.87
     - _OcclusionStrength: 1
+    - _OceanYLevel: 500
+    - _Opacity: 0.831
     - _Parallax: 0.02
     - _Shininess: 0.05
+    - _Smoothness: 0.9
     - _SmoothnessTextureChannel: 1
     - _SpecularHighlights: 0
-    - _SrcBlend: 5
+    - _SrcBlend: 1
+    - _TopologyBit: 7
     - _UVSec: 0
-    - _ZWrite: 0
+    - _WaveScale: 2.05
+    - _WaveSpeed: 0.4
+    - _WaveStrength: -1.42
+    - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 0.34811056, g: 0.73922455, b: 0.8113207, a: 0.3}
+    - _Color: {r: 0.24999991, g: 0.32999995, b: 0.35999998, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.2028302, g: 0.74916893, b: 1, a: 0}
   m_BuildTextureStacks: []

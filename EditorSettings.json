@@ -15,7 +15,7 @@
     "terrainTextureSet": true,
     "loadBatch": 128,
     "newSize": 1338,
-    "newHeight": 0.5615461,
+    "newHeight": 0.419990242,
     "newBiome": 2,
     "newSplat": 16,
     "recentFiles": [
@@ -304,7 +304,7 @@
       }
     },
     {
-      "isActive": true,
+      "isActive": false,
       "position": {
         "x": -339.29657,
         "y": 31.3503723,
@@ -330,10 +330,10 @@
       }
     },
     {
-      "isActive": false,
+      "isActive": true,
       "position": {
-        "x": -298.289978,
-        "y": 30.0180054,
+        "x": -357.289978,
+        "y": 19.8430176,
         "z": 0.0
       },
       "scale": {
@@ -352,7 +352,7 @@
       "scale": {
         "x": 0.6,
         "y": 0.6,
-        "z": 1.0
+        "z": 0.0
       }
     },
     {

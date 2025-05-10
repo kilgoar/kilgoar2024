@@ -27,6 +27,7 @@ public static class TerrainManager
     public static Terrain Land { get; private set; }
     public static Terrain LandMask { get; private set; }
     public static Terrain Water { get; private set; }
+	public static Terrain Ocean { get; private set; }
     public static Material WaterMaterial { get; private set; }
     public static Vector3 TerrainSize => Land.terrainData.size;
     public static Vector3 MapOffset => 0.5f * TerrainSize;
@@ -103,7 +104,8 @@ public static class TerrainManager
     {
         Land,
 		LandMask,
-        Water
+        Water,
+		Ocean
     }
 	
 	#if UNITY_EDITOR
@@ -2288,8 +2290,7 @@ public static bool[,] UpscaleBitmap(bool[,] source)
 		}
 
 
-		// Set only the changed region of the holes
-		Land.terrainData.SetHoles(x, y, array);
+		SyncAlphaTexture();
 		AlphaDirty = false;
 	}
 
@@ -2775,6 +2776,7 @@ public static void NudgeHeightMap(float offset)
 		
 		
 		Water = GameObject.FindGameObjectWithTag("Water").GetComponent<Terrain>();
+		Ocean = GameObject.FindGameObjectWithTag("Ocean").GetComponent<Terrain>();
 		
 		Land = GameObject.FindGameObjectWithTag("Land").GetComponent<Terrain>();
 		
@@ -3658,6 +3660,7 @@ public static void ChangeLayer(LayerType layer, int topology = -1)
             HeightMapRes = mapInfo.terrainRes;
 
             yield return SetupTerrain(mapInfo, Water);
+			yield return SetupTerrain(mapInfo, Ocean);
 			
 		    yield return SetupTerrain(mapInfo, Land);
 
@@ -3666,20 +3669,43 @@ public static void ChangeLayer(LayerType layer, int topology = -1)
         }
 
 
-        /// <summary>Sets up the inputted terrain's terraindata.</summary>
-        private static IEnumerator SetupTerrain(MapInfo mapInfo, Terrain terrain)
-        {
-            if (terrain.terrainData.size != mapInfo.size)
-            {
-                terrain.terrainData.heightmapResolution = mapInfo.terrainRes;
-                terrain.terrainData.size = mapInfo.size;
-                terrain.terrainData.alphamapResolution = mapInfo.splatRes;
-                terrain.terrainData.baseMapResolution = mapInfo.splatRes;
-            }
-            terrain.terrainData.SetHeights(0, 0, terrain.Equals(Land) ? mapInfo.land.heights : mapInfo.water.heights);
-			
-            yield return null;
-        }
+		private static IEnumerator SetupTerrain(MapInfo mapInfo, Terrain terrain)
+		{
+			if (terrain.terrainData.size != mapInfo.size)
+			{
+				terrain.terrainData.heightmapResolution = mapInfo.terrainRes;
+				terrain.terrainData.size = mapInfo.size;
+				terrain.terrainData.alphamapResolution = mapInfo.splatRes;
+				terrain.terrainData.baseMapResolution = mapInfo.splatRes;
+			}
+
+			/*
+			if (terrain.Equals(Ocean))
+			{
+				
+				// Create a heightmap array filled with 0.5f for Ocean
+				float[,] oceanHeights = new float[mapInfo.terrainRes, mapInfo.terrainRes];
+				for (int y = 0; y < mapInfo.terrainRes; y++)
+				{
+					for (int x = 0; x < mapInfo.terrainRes; x++)
+					{
+						oceanHeights[y, x] = 0.5f;
+					}
+				}
+				terrain.terrainData.SetHeights(0, 0, oceanHeights);
+				
+			}*/
+			 if (terrain.Equals(Water))			{
+				terrain.terrainData.SetHeights(0, 0, mapInfo.water.heights);
+			}
+			else if (terrain.Equals(Land))			{
+				terrain.terrainData.SetHeights(0, 0, mapInfo.land.heights);
+			}
+
+
+
+			yield return null;
+		}
 
 	public static IEnumerator GenerateNormalMap(int resolution, int progressID)
 	{
